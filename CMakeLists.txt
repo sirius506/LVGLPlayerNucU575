@@ -153,6 +153,8 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${PROJECT_SOURCE_DIR}/Fusion
     ${PROJECT_SOURCE_DIR}/lvgl
     ${PROJECT_SOURCE_DIR}/chocolate-doom-3.0.1/src
+    $(PROJECT_SOURCE_DIR)/ntshell/src/lib/core
+    $(PROJECT_SOURCE_DIR)/ntshell/src/lib/util
 )
 
 # Add project symbols (macros)
