@@ -1,0 +1,25 @@
+#ifndef BOARD_IF_H
+#define BOARD_IF_H
+#include "lvgl.h"
+
+typedef enum {
+  DOOM_SCREEN_INACTIVE,
+  DOOM_SCREEN_ACTIVE,
+  DOOM_SCREEN_SUSPEND,
+  DOOM_SCREEN_SUSPENDED,
+} DOOM_SCREEN_STATUS;
+
+int Board_FlashInfo(HAL_DEVICE *haldev);
+int Board_PSRAMInfo(HAL_DEVICE *haldev);
+int Board_Flash_Init(HAL_DEVICE *haldev, int mapmode);
+int Board_PSRAM_Init(HAL_DEVICE *haldev);
+int Board_EraseSectorSize();
+void Board_DoomModeLCD(int expand);
+void Board_Erase_Block(HAL_DEVICE *haldev, uint32_t baddr);
+void Board_Flash_ReInit(int mapmode);
+int Board_Flash_Write(HAL_DEVICE *haldev, uint8_t *bp, uint32_t baddr, int len);
+void Board_Endoom(uint8_t *bp);
+lv_image_dsc_t *GetGameImageDesc();
+extern volatile DOOM_SCREEN_STATUS DoomScreenStatus;
+
+#endif

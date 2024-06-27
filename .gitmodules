@@ -1,0 +1,7 @@
+[submodule "lvgl"]
+	path = lvgl
+	url = https://github.com/lvgl/lvgl.git
+	branch = release/v9.1
+[submodule "ntshell"]
+	path = ntshell
+	url = https://github.com/chiabrian/ntshell.git

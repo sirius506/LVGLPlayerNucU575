@@ -1,0 +1,88 @@
+add_library(app STATIC
+  8bitdozero2.c
+  app_gui.c
+  app_main.c
+  app_music_list.c
+  app_music_main.c
+  app_sound.c
+  app_verify.c
+  cover_if.c
+  doom_helper.c
+  dualsense.c
+  dualshock4.c
+  fatfs.c
+  gamepad.c
+  mix_player.c
+  sdl_helper.c
+  sdl_joystick.c
+  assets/output/Action_Left.c
+  assets/output/Action_Right.c
+  assets/output/Arrow_Up.c
+  assets/output/Arrow_Down.c
+  assets/output/Arrow_Left.c
+  assets/output/Arrow_Right.c
+  assets/output/Arrow_Lower_Left.c
+  assets/output/Arrow_Lower_Right.c
+  assets/output/Arrow_Upper_Left.c
+  assets/output/Arrow_Upper_Right.c
+  assets/output/Button_Go.c
+  assets/output/Button_Shutdown.c
+  assets/output/Button_Stop.c
+  assets/output/bluetooth_black.c
+  assets/output/bluetooth_blue.c
+  assets/output/bluetooth_scan.c
+  assets/output/dualsense2.c
+  assets/img_lv_demo_music_icon_1.c
+  assets/img_lv_demo_music_icon_2.c
+  assets/img_lv_demo_music_icon_3.c
+  assets/img_lv_demo_music_icon_4.c
+  assets/img_lv_demo_music_corner_left.c
+  assets/img_lv_demo_music_corner_right.c
+  assets/img_lv_demo_music_btn_rnd.c
+  assets/img_lv_demo_music_btn_loop.c
+  assets/img_lv_demo_music_btn_prev.c
+  assets/img_lv_demo_music_btn_next.c
+  assets/img_lv_demo_music_btn_pause.c
+  assets/img_lv_demo_music_btn_play.c
+  assets/img_lv_demo_music_wave_top_large.c
+  assets/img_lv_demo_music_wave_bottom_large.c
+  assets/img_lv_demo_music_btn_list_play.c
+  assets/img_lv_demo_music_btn_list_pause.c
+  assets/img_lv_demo_music_logo.c
+  assets/img_lv_demo_music_list_border.c
+  assets/img_lv_demo_music_slider_knob.c
+)
+
+# Enable CMake support for ASM and C languages
+enable_language(C)
+
+target_compile_definitions(app PUBLIC 
+	USE_FULL_LL_DRIVER 
+	USE_HAL_DRIVER 
+	STM32U575xx
+    $<$<CONFIG:Debug>:DEBUG>
+)
+
+target_include_directories(app PUBLIC
+    ${PROJECT_SOURCE_DIR}/lvgl/demos/music
+    ${PROJECT_SOURCE_DIR}/Core/Inc
+    ${PROJECT_SOURCE_DIR}/Drivers/STM32U5xx_HAL_Driver/Inc
+    ${PROJECT_SOURCE_DIR}/Drivers/STM32U5xx_HAL_Driver/Inc/Legacy
+    ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32U5xx/Include
+    ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Include
+    ${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/FreeRTOS/Source/include
+    ${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM33_NTZ/non_secure
+    ${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2
+    ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/RTOS2/Include
+    ${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/ff15/source
+    ${PROJECT_SOURCE_DIR}/CMSIS-DSP-1.15.0/Include
+    ${PROJECT_SOURCE_DIR}/SDL
+    ${PROJECT_SOURCE_DIR}/btstack
+    ${PROJECT_SOURCE_DIR}/btstack/src
+    ${PROJECT_SOURCE_DIR}/RTT
+    ${PROJECT_SOURCE_DIR}/App
+    ${PROJECT_SOURCE_DIR}/BSP
+    ${PROJECT_SOURCE_DIR}/Fusion
+    ${PROJECT_SOURCE_DIR}/lvgl
+    ${PROJECT_SOURCE_DIR}/chocolate-doom-3.0.1/src
+)
