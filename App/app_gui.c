@@ -757,15 +757,15 @@ void StartGuiTask(void *args)
       case GUIEV_PSEC_UPDATE:
         if (haldev->boot_mode)
           app_ppos_update((MIX_INFO *)event.evarg1);
-        else
+        else if (lv_scr_act() == menus->play_scr)
           app_psec_update(event.evval0);
         break;
       case GUIEV_FFT_UPDATE:
-        if (padInfo->hid_mode != HID_MODE_DOOM)
+        if ((lv_scr_act() == menus->play_scr) && (padInfo->hid_mode != HID_MODE_DOOM))
         {
           app_spectrum_update(event.evval0);
-          bsp_ledpwm_update(haldev, event.evarg1);
         }
+        bsp_ledpwm_update(haldev, event.evarg1);
         break;
       case GUIEV_RIGHT_XDIR:
       case GUIEV_RIGHT_YDIR:
@@ -923,18 +923,6 @@ void StartGuiTask(void *args)
             /* Display game title availabe on the Flash */
 
             flash_game = (WADPROP *)event.evarg1;
-
-#if 0
-            if (haldev->boot_mode)
-            {
-               lv_obj_t *scr;
-
-               scr = lv_obj_create(NULL);
-               lv_screen_load(scr);
-               a2dp_player_create(a2dps, scr, NULL);
-               break;
-            }
-#endif
           }
           else
           {
