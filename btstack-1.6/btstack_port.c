@@ -160,25 +160,12 @@ void StartBtstackTask(void *arg)
   hci_add_event_handler(&hci_event_callback_registration);
 
   // hand over to btstack embedded code
-#ifdef OLD_CODE
-  if (haldev->boot_mode)
-  {
-    // setup audio
-    btstack_audio_sink_set_instance(btstack_audio_embedded_sink_get_instance());
-    btstack_audio_main(0, haldev);
-  }
-  else
-  {
-    btstack_main(0, NULL);
-  }
-#else
   if (haldev->boot_mode)
   {
     // setup audio
     btstack_audio_sink_set_instance(btstack_audio_embedded_sink_get_instance());
   }
   btstack_main(0, haldev);
-#endif
 
   // go
   btstack_run_loop_execute();
