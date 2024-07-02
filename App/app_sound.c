@@ -274,12 +274,6 @@ debug_printf("max_len = %d\n", max_len);
     lv_obj_align(chartInfo->title, LV_ALIGN_TOP_LEFT, lv_pct(40), lv_pct(10));
 
     /* Add chart */
-#define OLD_CHARTx
-#ifdef OLD_CHART
-    chartInfo->chart = lv_chart_create(parent);
-    lv_obj_set_size(chartInfo->chart, lv_pct(58), lv_pct(40));
-    lv_obj_align(chartInfo->chart, LV_ALIGN_TOP_LEFT, lv_pct(40), lv_pct(16));
-#else
     chartInfo->chart_cont = lv_obj_create(parent);
     //lv_obj_remove_style_all(chartInfo->chart_cont);
     lv_obj_set_style_pad_top(chartInfo->chart_cont, 0, LV_PART_MAIN);
@@ -301,7 +295,6 @@ debug_printf("max_len = %d\n", max_len);
     lv_obj_set_height(chartInfo->chart, lv_pct(90));
     lv_obj_set_style_pad_top(chartInfo->chart, 0, LV_PART_SCROLLBAR);
     lv_obj_set_style_margin_top(chartInfo->chart, 0, LV_PART_SCROLLBAR);
-#endif
 #ifdef USE_ARROW_KEYS
     lv_obj_add_flag(chartInfo->chart, LV_OBJ_FLAG_SCROLL_WITH_ARROW);
     lv_group_add_obj(ing, chartInfo->chart);
@@ -317,14 +310,10 @@ debug_printf("max_len = %d\n", max_len);
     chartInfo->ser = lv_chart_add_series(chartInfo->chart, lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_PRIMARY_Y);
 
     chartInfo->slider = lv_slider_create(parent);
-#ifdef OLD_CODE
-    lv_slider_set_range(chartInfo->slider, LV_ZOOM_NONE, LV_ZOOM_NONE * 10);
-#else
     lv_slider_set_range(chartInfo->slider, 100, 1000);
     //lv_slider_set_value(chartInfo->slider, 100, LV_ANIM_OFF);
     //lv_slider_set_left_value(chartInfo->slider, 100, LV_ANIM_OFF);
     lv_obj_update_layout(chartInfo->slider);
-#endif
     lv_obj_set_size(chartInfo->slider, W_PERCENT(40), H_PERCENT(4));
     lv_obj_align_to(chartInfo->slider, chartInfo->chart, LV_ALIGN_OUT_BOTTOM_MID, 0, H_PERCENT(30));
     lv_obj_add_event_cb(chartInfo->slider, slider_x_event_cb, LV_EVENT_VALUE_CHANGED, chartInfo);

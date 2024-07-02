@@ -473,10 +473,6 @@ static void setGlyph(uint8_t *pwp, const uint32_t boffset, const txt_font_t *fon
   }
 }
 
-#ifdef OLD_CODE
-static uint8_t lbuff[ENDOOM_W*3*13];
-#endif
-
 void Board_Endoom(uint8_t *bp)
 {
   const txt_font_t *font;
