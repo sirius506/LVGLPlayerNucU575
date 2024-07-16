@@ -114,6 +114,7 @@ typedef enum {
   GUIEV_MUSIC_INFO,
   GUIEV_STREAM_PLAY,
   GUIEV_STREAM_PAUSE,
+  GUIEV_TRACK_CHANGED,
 } GUIEV_CODE;
 
 typedef struct {
@@ -182,6 +183,8 @@ typedef struct {
   lv_font_t *artist_font;
   lv_obj_t  *title_label;
   lv_obj_t  *artist_label;
+  int       cover_count;
+  int       cur_cover;
 } A2DP_SCREEN;
 
 #define KBDEVENT_DOWN   0

@@ -856,6 +856,7 @@ debug_printf("play_status = %x\n", play_status);
         case AVRCP_SUBEVENT_NOTIFICATION_TRACK_CHANGED:
             debug_printf("AVRCP Controller: Track changed\n");
             btapi_post_request(BTREQ_GET_INFO, avrcp_connection->avrcp_cid);
+            postGuiEventMessage(GUIEV_TRACK_CHANGED, 0, NULL, NULL);
             break;
 
         case AVRCP_SUBEVENT_NOTIFICATION_AVAILABLE_PLAYERS_CHANGED:

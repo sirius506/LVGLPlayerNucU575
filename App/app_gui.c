@@ -993,6 +993,7 @@ void StartGuiTask(void *args)
 
           scr = lv_obj_create(NULL);
           lv_screen_load(scr);
+          menus->play_scr = scr;
           a2dp_player_create(a2dps, scr, NULL);
           Start_SDLMixer();
         }
@@ -1239,7 +1240,6 @@ free(wadlist);
         lv_obj_add_flag(icon_label, LV_OBJ_FLAG_HIDDEN);
 
 
-        Mix_FFT_Disable();
         Mix_HaltMusic();                // Make sure to stop music playing
 
         lv_screen_load(games->screen);
@@ -1414,6 +1414,9 @@ debug_printf("CHEAT_SEL\n");
         games->mbox = lv_msgbox_create(NULL);
         lv_msgbox_add_title(games->mbox, "DOOM Error");
         lv_msgbox_add_text(games->mbox,  event.evarg1);
+        break;
+      case GUIEV_TRACK_CHANGED:
+        change_track_cover(a2dps);
         break;
       default:
         debug_printf("Not implemented (%d).\n", event.evcode);

@@ -62,11 +62,7 @@ static void slider_event_cb(lv_event_t * e)
     lv_snprintf(buf, sizeof(buf), "%d:%02d", ctime/60, ctime%60);
 
     lv_point_t label_size;
-#if 0
-    lv_txt_get_size(&label_size, buf, layout->font_small, 0, 0, LV_COORD_MAX, 0);
-#else
     lv_txt_get_size(&label_size, buf, LV_FONT_DEFAULT, 0, 0, LV_COORD_MAX, 0);
-#endif
     lv_area_t label_area;
     label_area.x1 = 0;
     label_area.x2 = label_size.x - 1;
@@ -103,7 +99,11 @@ static lv_obj_t * create_title_box(A2DP_SCREEN *a2dps, lv_obj_t * parent)
     lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
     ttf = find_flash_file(TTF_FONT_NAME);
+#if 1
     a2dps->title_font = lv_tiny_ttf_create_data((const void *)(QSPI_FLASH_ADDR + ttf->foffset), ttf->fsize, 20);
+#else
+    a2dps->title_font = &lv_font_montserrat_16;
+#endif
     a2dps->artist_font = lv_tiny_ttf_create_data((const void *)(QSPI_FLASH_ADDR + ttf->foffset), ttf->fsize, 15);
 
     a2dps->title_label = lv_label_create(cont);
@@ -251,7 +251,8 @@ extern lv_obj_t * create_spectrum_obj(lv_obj_t * parent);
 
 lv_obj_t * a2dp_player_create(A2DP_SCREEN *a2dps, lv_obj_t * parent, lv_group_t *g)
 {
-  register_cover_file();
+  a2dps->cover_count = register_cover_file();
+  a2dps->cur_cover = 0;
 
   //create_wave_images(parent);
   lv_obj_t * title_box = create_title_box(a2dps, parent);
@@ -281,6 +282,40 @@ lv_obj_t * a2dp_player_create(A2DP_SCREEN *a2dps, lv_obj_t * parent, lv_group_t 
     lv_obj_set_grid_cell(spectrum_obj, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_CENTER, 1, 9);
 
     return parent;
+}
+
+static lv_image_dsc_t imgdesc;
+
+void change_track_cover(A2DP_SCREEN *a2dps)
+{
+  COVER_INFO *cfp;
+  lv_obj_t * img;
+
+  a2dps->cur_cover++;
+  if (a2dps->cur_cover >= a2dps->cover_count)
+    a2dps->cur_cover = 0;
+
+  img = lv_image_create(spectrum_obj);
+
+  cfp = track_cover(a2dps->cur_cover);
+  if (cfp)
+  {
+      lv_image_dsc_t *desc = (lv_image_dsc_t *)(cfp->faddr);
+
+      imgdesc = *desc;
+      imgdesc.data_size = desc->header.w * desc->header.h * 2;
+      imgdesc.data = cfp->faddr + 12;
+      lv_image_set_src(img, &imgdesc);
+  }
+  lv_image_set_antialias(img, false);
+  lv_obj_align(img, LV_ALIGN_CENTER, 0, 0);
+#if 0
+  lv_obj_add_event_cb(img, album_gesture_event_cb, LV_EVENT_GESTURE, NULL);
+  lv_obj_remove_flag(img, LV_OBJ_FLAG_GESTURE_BUBBLE);
+  lv_obj_add_flag(img, LV_OBJ_FLAG_CLICKABLE);
+#endif
+
+  //return img;
 }
 
 void app_ppos_update(MIX_INFO *mixInfo)
