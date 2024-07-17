@@ -1423,16 +1423,14 @@ debug_printf("CHEAT_SEL\n");
         break;
       }
     }
-#if 1
-    else if (timer_interval != osWaitForever)
+    else
     {
       new_interval = lv_timer_handler();
-      if ((new_interval != timer_interval) && (new_interval > 4))
+      if (new_interval != timer_interval)
       {
-        timer_interval = new_interval;
+        timer_interval = new_interval/2;
       }
     }
-#endif
   }
   debug_printf("%s: ???\n", __FUNCTION__);
 }
