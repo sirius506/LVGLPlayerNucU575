@@ -280,6 +280,7 @@ static lv_obj_t *add_list_btn(lv_obj_t *parent, MUSIC_INFO *mi)
     LV_IMG_DECLARE(img_lv_demo_music_list_border);
     lv_obj_t * border = lv_image_create(btn);
     lv_image_set_src(border, &img_lv_demo_music_list_border);
+    lv_image_set_inner_align(border, LV_IMAGE_ALIGN_TILE);
     lv_obj_set_width(border, lv_pct(120));
     lv_obj_align(border, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_add_flag(border, LV_OBJ_FLAG_IGNORE_LAYOUT);
