@@ -49,7 +49,7 @@ static struct
 
 boolean D_ValidGameMode(GameMission_t mission, GameMode_t mode)
 {
-    int i;
+    unsigned int i;
 
     for (i=0; i<arrlen(valid_modes); ++i)
     {
@@ -65,7 +65,7 @@ boolean D_ValidGameMode(GameMission_t mission, GameMode_t mode)
 boolean D_ValidEpisodeMap(GameMission_t mission, GameMode_t mode,
                           int episode, int map)
 {
-    int i;
+    unsigned int i;
 
     // Hacks for Heretic secret episodes
 
@@ -137,7 +137,7 @@ static struct {
 
 boolean D_ValidGameVersion(GameMission_t mission, GameVersion_t version)
 {
-    int i;
+    unsigned int i;
 
     // All Doom variants can use the Doom versions.
 

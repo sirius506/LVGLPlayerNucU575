@@ -51,5 +51,7 @@ void btapi_send_report(uint8_t *ptr, int len);
 void btapi_push_report();
 void btapi_post_request(uint16_t code, uint16_t cid);
 void btapi_shutdown();
+void process_btapi_request(BTSTACK_INFO *info);
+void btapi_setup();
 
 #endif

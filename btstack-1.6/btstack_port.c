@@ -12,6 +12,7 @@
 #include "app_gui.h"
 #include "btstack_chipset_bcm.h"
 #include "../chocolate-doom/m_misc.h"
+#include "btapi.h"
 
 #include "hal_flash_bank_memory.h"
 
@@ -33,8 +34,6 @@ static hal_flash_bank_memory_t hal_flash_bank_context;
 #define	STORAGE_SIZE	(1024*2)
 SECTION_BKPSRAM static uint8_t tlvStorage_p[STORAGE_SIZE];
 
-extern void process_btapi_request();
-extern int btstack_main(int argc, const char * argv[]);
 extern int btstack_audio_main(int argc, HAL_DEVICE *haldev);
 
 #include "hal_time_ms.h"

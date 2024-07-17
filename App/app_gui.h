@@ -201,6 +201,7 @@ extern const GUI_LAYOUT GuiLayout;
 void postMainRequest(int cmd, void *arg, int val);
 void postGuiEvent(const GUI_EVENT *event);
 void postGuiEventMessage(GUIEV_CODE evcode, uint32_t evval0, void *evarg1, void *evarg2);
+void postMusicInfo(int code, void *ptr, int size);
 void music_process_stick(int evcode, int direction);
 void LoadMusicConfigs();
 int ReadMusicList(char *filename);
@@ -214,5 +215,6 @@ void app_spectrum_update(int v);
 void send_padkey(lv_indev_data_t *pdata);
 void doom_send_cheat_key(char ch);
 void app_screenshot();
+void app_btstack_ready();
 
 #endif

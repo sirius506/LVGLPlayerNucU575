@@ -8,4 +8,5 @@ void show_a2dp_buttons();
 void hide_a2dp_buttons(A2DP_SCREEN *a2dps);
 void set_playbtn_state(lv_imagebutton_state_t new_state);
 void set_scroll_labeltext(lv_obj_t *label, const char *str, const lv_font_t *font);
+void change_track_cover(A2DP_SCREEN *a2dps);
 #endif
