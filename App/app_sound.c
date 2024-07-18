@@ -80,12 +80,7 @@ void set_sound_chart(CHART_INFO *chartInfo, SOUND_DATA *sdp)
   lv_timer_reset(cursor_timer);
   lv_timer_pause(cursor_timer);
 
-#if 0
-  lv_slider_set_value(chartInfo->slider, LV_ZOOM_NONE, LV_ANIM_OFF);
-  lv_chart_set_zoom_x(chartInfo->chart, LV_ZOOM_NONE);
-#else
   lv_slider_set_value(chartInfo->slider, 100, LV_ANIM_OFF);
-#endif
 
   lv_chart_set_cursor_point(chartInfo->chart, chartInfo->cursor, chartInfo->ser, 0);
 }
@@ -171,15 +166,9 @@ static int sound_exist(SOUND_DATA *top,  char *name)
 static void slider_x_event_cb(lv_event_t *e)
 {
   lv_obj_t *obj = lv_event_get_target(e);
-#if 0
-  CHART_INFO *cinfo = (CHART_INFO *)lv_event_get_user_data(e);
-  int32_t v = lv_slider_get_value(obj);
-  lv_chart_set_zoom_x(cinfo->chart, v);
-#else
   CHART_INFO *cinfo = &ChartInfo;
   int32_t v = lv_slider_get_value(obj);
   lv_obj_set_width(cinfo->chart, cinfo->width * v / 100);
-#endif
 }
 
 /*
@@ -222,7 +211,7 @@ lv_obj_t *sound_list_create(lv_obj_t *parent, LUMP_HEADER *lh, int numlumps, uin
     lv_group_add_obj(ing, list);
   
     /* Collect sound LUMP information */
- max_len = 0; 
+    max_len = 0; 
     for (i = 0; i < numlumps; i++)
     {
       if (strncmp(lh->lumpname, "DS", 2) == 0)
@@ -242,8 +231,8 @@ lv_obj_t *sound_list_create(lv_obj_t *parent, LUMP_HEADER *lh, int numlumps, uin
             sdp->factor = (sdp->rate > 11025)? 2 : 4;
             sdp->pos = (uint8_t *)pcm + sizeof(PCM_HEADER) + 8;
             sdp->length = lh->fsize - sizeof(PCM_HEADER) - 16;
-if (sdp->length > max_len)
-  max_len = sdp->length;
+            if (sdp->length > max_len)
+              max_len = sdp->length;
             sindex++;
             sdp++;
           }
@@ -531,39 +520,35 @@ void sound_process_stick(int evcode, int direction)
   case GUIEV_RIGHT_XDIR:
     if (direction > 0)
     {
-      val = lv_obj_get_scroll_x(cinfo->chart);
-      w = lv_obj_get_width(cinfo->chart);
-      lv_obj_scroll_to_x(cinfo->chart, val + w / 2, LV_ANIM_OFF);
+      val = lv_obj_get_scroll_x(cinfo->chart_cont);
+      w = cinfo->width;
+      lv_obj_scroll_to_x(cinfo->chart_cont, val + w / 2, LV_ANIM_OFF);
     }
     else
     {
-      val = lv_obj_get_scroll_x(cinfo->chart);
-      w = lv_obj_get_width(cinfo->chart);
+      val = lv_obj_get_scroll_x(cinfo->chart_cont);
+      w = cinfo->width;
       val -= w / 2;
       if (val < 0) val = 0;
-      lv_obj_scroll_to_x(cinfo->chart, val, LV_ANIM_OFF);
+      lv_obj_scroll_to_x(cinfo->chart_cont, val, LV_ANIM_OFF);
     }
     break;
   case GUIEV_RIGHT_YDIR:
     if (direction < 0)
     {
-      val += LV_ZOOM_NONE;
-      if (val > LV_ZOOM_NONE * 10)
-        val = LV_ZOOM_NONE * 10;
+      val += 100;
+      if (val > 1000)
+        val = 1000;
       lv_slider_set_value(cinfo->slider, val, LV_ANIM_OFF);
-#if 0
-      lv_chart_set_zoom_x(cinfo->chart, val);
-#endif
+      lv_obj_set_width(cinfo->chart, cinfo->width * val / 100);
     }
     else
     {
-      val -= LV_ZOOM_NONE;
-      if (val < LV_ZOOM_NONE)
-        val = LV_ZOOM_NONE;
+      val -= 100;
+      if (val < 100)
+        val = 100;
       lv_slider_set_value(cinfo->slider, val, LV_ANIM_OFF);
-#if 0
-      lv_chart_set_zoom_x(cinfo->chart, val);
-#endif
+      lv_obj_set_width(cinfo->chart, cinfo->width * val / 100);
     }
     break;
   }
