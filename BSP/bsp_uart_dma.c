@@ -15,7 +15,7 @@ static void dummy_handler(void)
 
 void ErrorCallback(UART_HandleTypeDef *huart)
 {
- debug_printf("Error: %d\n", huart->ErrorCode);
+  debug_printf("Error: %d\n", huart->ErrorCode);
 }
   
 void RxCompCallback(UART_HandleTypeDef *huart)
@@ -65,21 +65,13 @@ void hal_uart_dma_set_block_received( void (*the_block_handler)(void))
     
 void hal_uart_dma_set_block_sent( void (*the_block_handler)(void))
 {
-    tx_done_handler = the_block_handler;
+  tx_done_handler = the_block_handler;
 }
 
 void hal_uart_dma_send_block(const uint8_t *data, uint16_t size){
-#if 1
   HAL_UART_Transmit_DMA(btuart, data, size);
-#else
-  HAL_UART_Transmit_IT(btuart, data, size);
-#endif
 }
 
 void hal_uart_dma_receive_block(uint8_t *data, uint16_t size){
-#if 0
   HAL_UART_Receive_DMA(btuart, data, size);
-#else
-  HAL_UART_Receive_IT(btuart, data, size);
-#endif
 }
