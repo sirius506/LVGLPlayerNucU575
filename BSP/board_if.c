@@ -518,3 +518,22 @@ void Board_Endoom(uint8_t *bp)
   }
   bsp_release_lcd(haldev->tft_lcd);
 }
+
+static TIM_OC_InitTypeDef sConfigOC = {0};
+
+int Board_Get_Brightness()
+{
+  return sConfigOC.Pulse / 2;
+}
+
+void Board_Set_Brightness(HAL_DEVICE *haldev, int brval)
+{
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+
+  brval = brval * 2;
+  if (brval > 200) brval = 200;
+  sConfigOC.Pulse = brval;
+  HAL_TIM_PWM_ConfigChannel(haldev->tft_lcd->pwm_timer, &sConfigOC, TIM_CHANNEL_1);
+}

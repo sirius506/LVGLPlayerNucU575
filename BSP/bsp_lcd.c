@@ -234,13 +234,6 @@ void LCD_RGB565_PartialCopy(HAL_DEVICE *iodev, uint8_t *map, int xpos, int ypos,
 
 static const uint16_t DeviceId[3] = { 0x00, 0x94, 0x88 };
 
-#if 0
-void LcdSetBrightness(DEVICE_IO *iodev, int level)
-{
-  MX_PWM_SetDuty(level);
-}
-#endif
-
 static void lcd_fill(HAL_DEVICE *iodev)
 {
   volatile uint16_t *bp = iodev->tft_data_addr;
@@ -373,9 +366,6 @@ int tft_init(HAL_DEVICE *iodev)
   osDelay(150);
   LCD_SEND_COMMAND(iodev, Cmd_DisplayOn);
   osDelay(5);
-#if 0
-  LcdSetBrightness(iodev, 40);
-#endif
 
 #if 0
     LCD_SEND_COMMAND(iodev, Cmd_WriteTearScan);
@@ -389,6 +379,7 @@ int tft_init(HAL_DEVICE *iodev)
     LCD_SEND_COMMAND(iodev, Cmd_TearingOn);
 
   HAL_TIM_PWM_Start(iodev->tft_lcd->pwm_timer, TIM_CHANNEL_1);
+  Board_Set_Brightness(iodev, 80);
   return 0;
 }
 

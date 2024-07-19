@@ -21,5 +21,7 @@ int Board_Flash_Write(HAL_DEVICE *haldev, uint8_t *bp, uint32_t baddr, int len);
 void Board_Endoom(uint8_t *bp);
 lv_image_dsc_t *GetGameImageDesc();
 extern volatile DOOM_SCREEN_STATUS DoomScreenStatus;
+void Board_Set_Brightness(HAL_DEVICE *haldev, int brval);
+int Board_Get_Brightness();
 
 #endif

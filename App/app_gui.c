@@ -774,7 +774,6 @@ void StartGuiTask(void *args)
         else if (lv_scr_act() == menus->play_scr)
           music_process_stick(event.evcode, event.evval0);
         break;
-#if 0
       case GUIEV_LEFT_XDIR:
         {
           int brval = Board_Get_Brightness();
@@ -785,7 +784,7 @@ void StartGuiTask(void *args)
            brval -= 10;
           if (brval > 100) brval = 100;
           if (brval < 0) brval = 0;
-          Board_Set_Brightness(brval);
+          Board_Set_Brightness(haldev, brval);
         }
         break;
       case GUIEV_LEFT_YDIR:
@@ -800,7 +799,6 @@ void StartGuiTask(void *args)
           Mix_VolumeMusic(cvol);
         }
         break;
-#endif
       case GUIEV_MUSIC_FINISH:
         _lv_demo_inter_pause_start();
         break;
