@@ -1602,9 +1602,7 @@ static void MX_GPIO_Init(void)
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI13_IRQn, 12, 0);
-#if 0
   HAL_NVIC_EnableIRQ(EXTI13_IRQn);
-#endif
 
   HAL_NVIC_SetPriority(EXTI15_IRQn, 9, 0);
   HAL_NVIC_EnableIRQ(EXTI15_IRQn);
