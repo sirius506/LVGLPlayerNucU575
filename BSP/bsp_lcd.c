@@ -261,11 +261,7 @@ static void dma2d_error_callback(DMA2D_HandleTypeDef *hdma2d)
 
 static void dma2d_callback(DMA2D_HandleTypeDef *hdma2d)
 {
-#if 0
-  DOOM_DMA2D_Handle *dma2dhandle = (DOOM_DMA2D_Handle *)hdma2d->UserPointer;
-#else
   DOOM_LCD_Handle *lcd_handle = (DOOM_LCD_Handle *)hdma2d->UserPointer;
-#endif
   osStatus_t st;
 
 #ifdef LCD_DEBUG
@@ -315,7 +311,7 @@ void bsp_release_lcd(DOOM_LCD_Handle *lcd_handle)
 
 int tft_init(HAL_DEVICE *iodev)
 {
-  iodev->tft_lcd->iosem = osSemaphoreNew(1, 1, &attributes_tftsem);
+  iodev->tft_lcd->iosem = osSemaphoreNew(1, 0, &attributes_tftsem);
 
   HAL_DMA2D_RegisterCallback(iodev->tft_lcd->hdma2d, HAL_DMA2D_TRANSFERCOMPLETE_CB_ID, dma2d_callback);
   HAL_DMA2D_RegisterCallback(iodev->tft_lcd->hdma2d, HAL_DMA2D_TRANSFERERROR_CB_ID, dma2d_error_callback);
@@ -371,12 +367,10 @@ int tft_init(HAL_DEVICE *iodev)
     LCD_SEND_COMMAND(iodev, Cmd_WriteTearScan);
 #endif
 
-#if 1
-    ili_recv_command(iodev, ILICMD_READ_SCAN, id_check, 2);
-    debug_printf("scan line = %02x %02x\n", id_check[0], id_check[1]);
-#endif
+  ili_recv_command(iodev, ILICMD_READ_SCAN, id_check, 2);
+  debug_printf("scan line = %02x %02x\n", id_check[0], id_check[1]);
 
-    LCD_SEND_COMMAND(iodev, Cmd_TearingOn);
+  LCD_SEND_COMMAND(iodev, Cmd_TearingOn);
 
   HAL_TIM_PWM_Start(iodev->tft_lcd->pwm_timer, TIM_CHANNEL_1);
   Board_Set_Brightness(iodev, 80);
