@@ -370,6 +370,7 @@ static int process_fft(FFTINFO *fftInfo, AUDIO_STEREO *pmusic, int frames)
 {
   int i;
 
+  HAL_GPIO_TogglePin(TEST0_GPIO_Port, TEST0_Pin);
   /* Convert to mono */
   for (i = 0; i < frames; i++)
   {
@@ -440,8 +441,11 @@ static int process_fft(FFTINFO *fftInfo, AUDIO_STEREO *pmusic, int frames)
     if (fftInfo->getptr >= &audio_buffer[AUDIO_SAMPLES])
       fftInfo->getptr -= AUDIO_SAMPLES;
     fftInfo->samples -= SHIFT_SAMPLES; 
+    HAL_GPIO_TogglePin(TEST0_GPIO_Port, TEST0_Pin);
+    HAL_GPIO_TogglePin(TEST1_GPIO_Port, TEST1_Pin);
     return 1;	/* New FFT result is ready. */
   }
+  HAL_GPIO_TogglePin(TEST0_GPIO_Port, TEST0_Pin);
   return 0;	/* No FFT result available. */
 }
 

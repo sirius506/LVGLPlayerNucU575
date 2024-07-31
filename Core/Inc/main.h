@@ -169,6 +169,11 @@ void MX_SDMMC1_SD_Init(void);
 #define LED_BLUE_Pin GPIO_PIN_7
 #define LED_BLUE_GPIO_Port GPIOB
 
+#define	TEST0_GPIO_Port	GPIOG
+#define	TEST0_Pin	GPIO_PIN_0
+#define	TEST1_GPIO_Port	GPIOG
+#define	TEST1_Pin	GPIO_PIN_1
+
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
