@@ -103,9 +103,6 @@ void StartDefaultTask(void *argument)
   tft_init(haldev);
   osThreadNew(StartGuiTask, haldev, &attributes_guitask);
 
-#if 0
-  osThreadNew(StartBtstackTask, haldev, &attributes_btstacktask);
-#endif
   osThreadNew(StartShellTask, NULL, &attributes_shelltask);
 
   unsigned int wait_time = osWaitForever;
@@ -167,7 +164,7 @@ void StartDefaultTask(void *argument)
     postGuiEvent(&guiev);
   }
 
-  /* Reserver screen_buffer space to hold RGB888 image data. */
+  /* Reserve screen_buffer space to hold RGB888 image data. */
   screen_buffer = (uint8_t *)malloc(SCREEN_BUFF_SIZE);
 
   osThreadNew(StartBtstackTask, haldev, &attributes_btstacktask);
