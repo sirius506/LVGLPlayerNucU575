@@ -16,6 +16,9 @@
 volatile DOOM_SCREEN_STATUS DoomScreenStatus;
 
 TASK_DEF(doomTask, 800, osPriorityBelowNormal)
+TASK_DEF(btstacktask,  500, osPriorityNormal2)
+
+extern void StartBtstackTask(void *arg);
 
 /* Declare Bluetooth button images on the menu screen */
 
@@ -526,6 +529,71 @@ static void vol_event_cb(lv_event_t *e)
   bsp_codec_setvol((DOOM_I2C_Handle *)p, v * 2);
 }
 
+typedef struct {
+  const char *label_text;
+  const uint16_t label_pos;
+} APP_LABEL_INFO;
+
+static const APP_LABEL_INFO app_labels[2] = {
+ { "Doom Player", 35 },
+ { "A2DP Player", 60 },
+};
+
+static void app_select_handler(lv_event_t *e)
+{
+  int index = (int)lv_event_get_user_data(e);
+
+  debug_printf("App %d selected.\n", index);
+
+  postGuiEventMessage(GUIEV_APP_SELECT, index, NULL, NULL);
+}
+
+static int SelectApplication(lv_obj_t *sel_screen)
+{
+  unsigned int new_interval, timer_interval;
+  osStatus_t st;
+
+
+  /* Create application buttons */
+
+  for (int i = 0; i < 2; i++)
+  {
+    lv_obj_t *btn, *label;
+
+    btn = lv_btn_create(sel_screen);
+    lv_obj_align(btn, LV_ALIGN_TOP_MID,  0, lv_pct(app_labels[i].label_pos));
+    lv_obj_add_event_cb(btn, app_select_handler, LV_EVENT_CLICKED, (void *)i);
+
+    label = lv_label_create(btn);
+    lv_label_set_text(label, app_labels[i].label_text);
+    lv_obj_center(label);
+  }
+
+  timer_interval = 3;
+
+  while (1)
+  {
+    GUI_EVENT event;
+
+    st = osMessageQueueGet(guievqId, &event, NULL, timer_interval);
+    if (st == osOK)
+    {
+      if (event.evcode == GUIEV_APP_SELECT)
+      {
+        return (event.evval0);
+      }
+    }
+    else
+    {
+      new_interval = lv_timer_handler();
+      if (new_interval != timer_interval)
+      {
+        timer_interval = new_interval/2;
+      }
+    }
+  }
+}
+
 void StartGuiTask(void *args)
 {
   START_SCREEN *starts = &StartScreen;
@@ -615,15 +683,25 @@ void StartGuiTask(void *args)
   //lv_label_set_text(icon_label, " " LV_SYMBOL_USB " " LV_SYMBOL_BLUETOOTH);
   lv_label_set_text(icon_label, (const char *)icon_label_string);
 
+  lv_obj_t *sel_screen;
+
+  sel_screen = lv_obj_create(NULL);
+  lv_screen_load(sel_screen);
+
+  haldev->boot_mode = SelectApplication(sel_screen);
+
+  osThreadNew(StartBtstackTask, haldev, &attributes_btstacktask);
+
   starts->screen = lv_obj_create(NULL);
   menus->screen = lv_obj_create(NULL);
   copys->screen = lv_obj_create(NULL);
   games->screen = lv_obj_create(NULL);
   sounds->screen = lv_obj_create(NULL);
 
-  /* Create initial startup screen */
+  /* Switch to initial startup screen */
   
   lv_screen_load(starts->screen);
+  lv_obj_delete(sel_screen);
   
   starts->title = lv_label_create(starts->screen);
   lv_obj_add_style(starts->title, &style_title, 0);
@@ -671,14 +749,8 @@ void StartGuiTask(void *args)
   lv_obj_align_to(vtitle, menus->vol_slider, LV_ALIGN_OUT_LEFT_MID, -5, 0);
 
   games->img = lv_image_create(games->screen);
-  //lv_obj_remove_style_all(games->img);
-  //lv_obj_set_size(games->img, 480, 320);
 
-#if 1
   games->cheat_btn = lv_btn_create(games->screen);
-#else
-  games->cheat_btn = lv_btn_create(games->img);
-#endif
   lv_obj_add_flag(games->img, LV_OBJ_FLAG_HIDDEN);
   lv_obj_remove_style_all(games->cheat_btn);
   lv_style_init(&style_cheat);
@@ -724,15 +796,19 @@ void StartGuiTask(void *args)
   menus->sub_scr = NULL;
   sound_list = NULL;
 
-  postMainRequest(REQ_VERIFY_SD, NULL, 0);	// Start SD card verification
+  audio_config = get_audio_config(&HalDevice);
+
+  if (haldev->boot_mode == BOOTM_A2DP)
+  {
+    postMainRequest(REQ_VERIFY_FONT, NULL, 0);	// Start font file verification
+  }
+  else
+  {
+    postMainRequest(REQ_VERIFY_SD, NULL, 0);	// Start SD card verification
+  }
 
   timer_interval = 3;
 
-  audio_config = get_audio_config(&HalDevice);
-
-#if 0
-  Start_SDLMixer();
-#endif
 
   while (1)
   {
@@ -985,7 +1061,7 @@ void StartGuiTask(void *args)
           }
         }
         break;
-      case GUIEV_START_A2DP:
+      case GUIEV_FONT_REPORT:
         {
           lv_obj_t *scr;
 
@@ -1006,7 +1082,7 @@ void StartGuiTask(void *args)
 
         sounds->ing = lv_group_create();
 
-free(wadlist);
+        free(wadlist);
         menus->ing = lv_group_create();
         lv_indev_set_group(keydev, menus->ing);
 

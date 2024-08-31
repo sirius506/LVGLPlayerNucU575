@@ -50,6 +50,7 @@ typedef enum {
   REQ_DUMMY,
   REQ_CAPTURE_SAVE,
   REQ_SCREEN_SAVE,
+  REQ_VERIFY_FONT,
 } REQ_CODE;
 
 typedef struct {
@@ -74,9 +75,10 @@ typedef enum {
   GUIEV_BTSTACK_READY,		// BTStack Ready
   GUIEV_HID_CONNECTED,		// Bluetooth HID device connected/disconnected
   GUIEV_GAMEPAD_READY,          // Gamepad controller has found
-  GUIEV_START_A2DP,
+  GUIEV_APP_SELECT,
   GUIEV_SD_REPORT,              // Report REQ_VERIFY_SD result
   GUIEV_FLASH_REPORT,           // Report REQ_VERIFY_FLASH result
+  GUIEV_FONT_REPORT,
   GUIEV_ICON_CHANGE,            // Set/Change Icon label
   GUIEV_MPLAYER_START,          // Start Music Player
   GUIEV_SPLAYER_START,          // Start Sound Player

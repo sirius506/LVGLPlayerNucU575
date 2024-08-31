@@ -11,7 +11,6 @@
 extern HAL_DEVICE HalDevice;
 
 TASK_DEF(guitask,     1400, osPriorityBelowNormal3)
-TASK_DEF(btstacktask,  500, osPriorityNormal2)
 TASK_DEF(shelltask,    500, osPriorityBelowNormal4)
 
 #define REQCMD_DEPTH     6
@@ -21,7 +20,6 @@ static osMessageQueueId_t  reqcmdqId;
 
 extern void StartGuiTask(void *args);
 extern void StartPlayerGuiTask(void *args);
-extern void StartBtstackTask(void *arg);
 extern void StartShellTask(void *arg);
 
 extern void MX_FATFS_Init();
@@ -143,16 +141,6 @@ void StartDefaultTask(void *argument)
   {
     res = FR_NOT_READY;
     errs1 = "SD card not ready.";
-    if (VerifyFont((void *)&errs1, (void *)&errs2) == 0)
-    {
-      res = FR_OK;
-      haldev->boot_mode = BOOTM_A2DP;
-      guiev.evcode = GUIEV_START_A2DP;
-      guiev.evval0 = res;
-      guiev.evarg1 = "";
-      guiev.evarg2 = "";
-      postGuiEvent(&guiev);
-    }
   } 
 
   if (res != FR_OK)
@@ -166,8 +154,6 @@ void StartDefaultTask(void *argument)
 
   /* Reserve screen_buffer space to hold RGB888 image data. */
   screen_buffer = (uint8_t *)malloc(SCREEN_BUFF_SIZE);
-
-  osThreadNew(StartBtstackTask, haldev, &attributes_btstacktask);
 
   for(;;)
   {
@@ -196,6 +182,13 @@ void StartDefaultTask(void *argument)
       break;
     case REQ_VERIFY_FLASH: 
       guiev.evcode = GUIEV_FLASH_REPORT;
+      guiev.evval0 = VerifyFlash((void *)&errs1, (void *)&errs2);
+      guiev.evarg1 = errs1;
+      guiev.evarg2 = errs2;
+      postGuiEvent(&guiev);
+      break; 
+    case REQ_VERIFY_FONT:
+      guiev.evcode = GUIEV_FONT_REPORT;
       guiev.evval0 = VerifyFlash((void *)&errs1, (void *)&errs2);
       guiev.evarg1 = errs1;
       guiev.evarg2 = errs2;
