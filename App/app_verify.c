@@ -402,11 +402,7 @@ void CopyFlash(WADLIST *list, uint32_t foffset)
  
   guiev.evcode = GUIEV_ERASE_REPORT;
 
-#if 0
-  Board_Flash_ReInit(0); 
-#else
   Board_Flash_Init(&HalDevice, 0);
-#endif
   block_size = Board_EraseSectorSize();
     
   /* fsize shows total number of required flash space. */

@@ -12,6 +12,7 @@
 #include "app_music.h"
 #include "a2dp_player.h"
 #include "src/display/lv_display_private.h"
+#include "app_setup.h"
 
 volatile DOOM_SCREEN_STATUS DoomScreenStatus;
 
@@ -19,12 +20,6 @@ TASK_DEF(doomTask, 800, osPriorityBelowNormal)
 TASK_DEF(btstacktask,  500, osPriorityNormal2)
 
 extern void StartBtstackTask(void *arg);
-
-/* Declare Bluetooth button images on the menu screen */
-
-LV_IMG_DECLARE(bluetooth_black)			// Bluetooth is inactive
-LV_IMG_DECLARE(bluetooth_blue)			// Bluetooth connected
-LV_IMG_DECLARE(bluetooth_scan)			// Scanning gamepad devices..
 
 LV_IMG_DECLARE(imgtest)
 LV_IMG_DECLARE(Action_Left)
@@ -48,13 +43,6 @@ extern void bsp_process_touch(lv_indev_data_t *tp);
 extern lv_obj_t *music_player_create(AUDIO_CONF *audio_config, lv_group_t *g, lv_style_t *btn_style, lv_indev_t *keypad_dev);
 
 extern int doom_main(int argc, char **argv);
-
-typedef enum {
-  BT_STATE_INIT = 0,
-  BT_STATE_READY,
-  BT_STATE_SCAN,
-  BT_STATE_CONNECT,
-} BT_STATE;
 
 const GUI_LAYOUT GuiLayout = {
   .font_title = &lv_font_montserrat_20,
@@ -133,6 +121,7 @@ static uint16_t buf_2[DISP_HOR_RES * 56];
 static uint16_t buf_1[DISP_HOR_RES * 80];
 #endif
 static lv_style_t style_title;
+static lv_style_t style_focus;
 static osMessageQueueId_t  guievqId;
 static osMessageQueueId_t  padkeyqId;
 
@@ -263,6 +252,7 @@ COPY_SCREEN  CopyScreen;
 GAME_SCREEN  GameScreen;
 SOUND_SCREEN SoundScreen;
 A2DP_SCREEN  A2DPScreen;
+SETUP_SCREEN SetupScreen;
 
 /**       
  * @brief Callback called when flash game has selected.
@@ -338,44 +328,6 @@ void drv_wait_cb(lv_display_t *drv)
   UNUSED(drv);
   bsp_wait_lcd(drv->user_data);
   //lv_display_flush_ready(drv);
-}
-
-typedef struct {
-  lv_obj_t *btn;
-  BT_STATE bst;
-} BT_BUTTON_INFO;
-
-BT_BUTTON_INFO bt_button_info;
-
-static void bt_button_handler(lv_event_t *e)
-{
-  BT_BUTTON_INFO *binfo = (BT_BUTTON_INFO *)lv_event_get_user_data(e);
-  const lv_image_dsc_t *img = NULL;
-
-  switch (binfo->bst)
-  {
-  case BT_STATE_READY:
-    btapi_start_scan();
-    binfo->bst = BT_STATE_SCAN;
-    img = &bluetooth_scan;
-    break;
-  case BT_STATE_SCAN:
-    btapi_stop_scan();
-    binfo->bst = BT_STATE_READY;
-    img = &bluetooth_black;
-    break;
-  case BT_STATE_CONNECT:
-    btapi_disconnect();
-    binfo->bst = BT_STATE_READY;
-    img = &bluetooth_blue;
-    break;
-  default:
-    break;
-  }
-  if (img)
-  {
-    lv_imagebutton_set_src(binfo->btn, LV_IMAGEBUTTON_STATE_RELEASED, NULL, img, NULL);
-  }
 }
 
 /*
@@ -519,16 +471,6 @@ void create_doom_buttons(lv_obj_t *parent)
   }
 }
 
-static void vol_event_cb(lv_event_t *e)
-{
-  lv_obj_t *obj = lv_event_get_target(e);
-  void *p;
-
-  int32_t v = lv_slider_get_value(obj);
-  p = lv_event_get_user_data(e);
-  bsp_codec_setvol((DOOM_I2C_Handle *)p, v * 2);
-}
-
 typedef struct {
   const char *label_text;
   const uint16_t label_pos;
@@ -600,6 +542,7 @@ void StartGuiTask(void *args)
   MENU_SCREEN *menus = &MenuScreen;
   COPY_SCREEN *copys = &CopyScreen;
   GAME_SCREEN *games = &GameScreen;
+  SETUP_SCREEN *setups = &SetupScreen;
   SOUND_SCREEN *sounds = &SoundScreen;
   A2DP_SCREEN  *a2dps = &A2DPScreen;
   HAL_DEVICE *haldev = (HAL_DEVICE *)args;
@@ -622,7 +565,6 @@ void StartGuiTask(void *args)
   AUDIO_CONF *audio_config;
   lv_obj_t *icon_label;
   uint16_t icon_value;
-  static lv_style_t style_focus;
   GAMEPAD_INFO *padInfo;
   extern bool D_GrabMouseCallback();
   const char *kbtext;
@@ -647,7 +589,6 @@ void StartGuiTask(void *args)
 
   lvgl_active = 1;
   cheatval = 0;
-  bt_button_info.bst = BT_STATE_INIT;
 
   if (bsp_touch_init(haldev) == 0)
   {
@@ -698,9 +639,12 @@ void StartGuiTask(void *args)
   games->screen = lv_obj_create(NULL);
   sounds->screen = lv_obj_create(NULL);
 
+  setup_screen_create(setups, haldev);
+  lv_obj_add_event_cb(setups->setup_screen, quit_setup_event, LV_EVENT_GESTURE, NULL);
+
   /* Switch to initial startup screen */
   
-  lv_screen_load(starts->screen);
+  activate_screen(starts->screen);
   lv_obj_delete(sel_screen);
   
   starts->title = lv_label_create(starts->screen);
@@ -726,18 +670,7 @@ void StartGuiTask(void *args)
   lv_label_set_text(copys->fname, "");
   lv_obj_align(copys->fname, LV_ALIGN_TOP_MID, 0, lv_pct(38));
 
-  /* Prepare Bluetooth image button. */
-
-  menus->cont_bt = lv_imagebutton_create(menus->screen);
-  lv_imagebutton_set_src(menus->cont_bt, LV_IMAGEBUTTON_STATE_RELEASED, NULL, &bluetooth_black, NULL);
-  lv_obj_align(menus->cont_bt, LV_ALIGN_CENTER, 0, layout->bt_yoffset);
-  lv_obj_set_width(menus->cont_bt, LV_SIZE_CONTENT);
-  lv_obj_add_event_cb(menus->cont_bt, bt_button_handler, LV_EVENT_CLICKED, &bt_button_info);
-  lv_obj_add_flag(menus->cont_bt, LV_OBJ_FLAG_HIDDEN);
-  lv_obj_add_style(menus->cont_bt, &style_focus, LV_STATE_FOCUS_KEY);
-
-  bt_button_info.btn = menus->cont_bt;
-
+#if 0
   menus->vol_slider = lv_slider_create(menus->screen);
   lv_slider_set_range(menus->vol_slider, -63, 64);
   lv_obj_set_size(menus->vol_slider, W_PERCENT(60), H_PERCENT(4));
@@ -747,6 +680,7 @@ void StartGuiTask(void *args)
   lv_obj_t * vtitle = lv_label_create(menus->screen);
   lv_label_set_text(vtitle, "Volume");
   lv_obj_align_to(vtitle, menus->vol_slider, LV_ALIGN_OUT_LEFT_MID, -5, 0);
+#endif
 
   games->img = lv_image_create(games->screen);
 
@@ -827,8 +761,8 @@ void StartGuiTask(void *args)
         lv_refr_now(NULL);
         break;
       case GUIEV_BTSTACK_READY:
-        lv_obj_remove_flag(menus->cont_bt, LV_OBJ_FLAG_HIDDEN);
-        bt_button_info.bst = BT_STATE_READY;
+        lv_obj_remove_flag(setups->cont_bt, LV_OBJ_FLAG_HIDDEN);
+        setups->bt_button_info.bst = BT_STATE_READY;
         break;
       case GUIEV_PSEC_UPDATE:
         if (haldev->boot_mode)
@@ -1066,7 +1000,7 @@ void StartGuiTask(void *args)
           lv_obj_t *scr;
 
           scr = lv_obj_create(NULL);
-          lv_screen_load(scr);
+          activate_screen(scr);
           menus->play_scr = scr;
           a2dp_player_create(a2dps, scr, NULL);
           Start_SDLMixer();
@@ -1121,9 +1055,13 @@ void StartGuiTask(void *args)
 #endif
 
         int cvol = bsp_codec_getvol(haldev->codec_i2c);
+#if 0
         lv_slider_set_value(menus->vol_slider, cvol, LV_ANIM_OFF);
+#else
+        lv_slider_set_value(setups->vol_slider, cvol, LV_ANIM_OFF);
+#endif
 
-        lv_screen_load(menus->screen);
+        activate_screen(menus->screen);
 
         /* We no longer need start screen. */
 
@@ -1137,7 +1075,7 @@ void StartGuiTask(void *args)
          * Copy it into the SPI flash.
          */
         lv_label_set_text(copys->title, sel_sd_game->wadInfo->title);
-        lv_screen_load(copys->screen);
+        activate_screen(copys->screen);
 
         g = lv_group_create();
         copys->mbox = lv_msgbox_create(copys->screen);
@@ -1167,7 +1105,7 @@ void StartGuiTask(void *args)
          * Copy operation has aborted.
          * Redraw start screen.
          */ 
-        lv_screen_load(starts->screen);
+        activate_screen(starts->screen);
         lv_indev_set_group(keydev, starts->ing);
         break;
       case GUIEV_REBOOT:
@@ -1256,7 +1194,7 @@ void StartGuiTask(void *args)
         {
           sound_list = sound_screen_create(sounds->screen, sounds->ing, &style_menubtn);
         } 
-        lv_screen_load(sounds->screen);
+        activate_screen(sounds->screen);
         lv_indev_set_group(keydev, sounds->ing);
         break;
       case GUIEV_MPLAYER_START:
@@ -1265,10 +1203,11 @@ void StartGuiTask(void *args)
           menus->player_ing = lv_group_create();
           lv_indev_set_group(keydev, menus->player_ing);
           menus->play_scr = music_player_create(audio_config, menus->player_ing, &style_menubtn, keydev);
+          activate_screen(menus->play_scr);
         }
         else
         {
-          lv_screen_load(menus->play_scr);
+          activate_screen(menus->play_scr);
           lv_indev_set_group(keydev, menus->player_ing);
         }
         break;
@@ -1283,7 +1222,7 @@ void StartGuiTask(void *args)
         {
           menus->sub_scr = padtest_create(padInfo, g);
         }
-        lv_screen_load(menus->sub_scr);
+        activate_screen(menus->sub_scr);
         break;
       case GUIEV_PADTEST_UPDATE:
         if (padInfo->hid_mode == HID_MODE_TEST)
@@ -1300,7 +1239,7 @@ void StartGuiTask(void *args)
         /*
          * Restore menu screen and its input group
          */
-        lv_screen_load(menus->screen);
+        activate_screen(menus->screen);
         lv_indev_set_group(keydev, menus->ing);
         if (menus->sub_scr)
         {
@@ -1316,7 +1255,7 @@ void StartGuiTask(void *args)
 
         Mix_HaltMusic();                // Make sure to stop music playing
 
-        lv_screen_load(games->screen);
+        activate_screen(games->screen);
 
         if (menus->sub_scr)
         {
@@ -1424,8 +1363,7 @@ debug_printf("CHEAT_SEL\n");
         {
           if (event.evval0 == 0)
           {
-            bt_button_info.bst = BT_STATE_READY;
-            lv_imagebutton_set_src(bt_button_info.btn, LV_IMAGEBUTTON_STATE_RELEASED, NULL, &bluetooth_black, NULL);
+            SetBluetoothButtonState(&setups->bt_button_info, BT_STATE_READY);
 #ifdef USE_FUSION
             if (menus->btn_dual)
               lv_obj_add_state(menus->btn_dual, LV_STATE_DISABLED);
@@ -1436,8 +1374,7 @@ debug_printf("CHEAT_SEL\n");
           }
           else
           {
-            bt_button_info.bst = BT_STATE_CONNECT;
-            lv_imagebutton_set_src(bt_button_info.btn, LV_IMAGEBUTTON_STATE_RELEASED, NULL, &bluetooth_blue, NULL);
+            SetBluetoothButtonState(&setups->bt_button_info, BT_STATE_CONNECT);
           }
         }
         break;

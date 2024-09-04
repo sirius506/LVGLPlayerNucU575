@@ -7,12 +7,13 @@ cmake_minimum_required(VERSION 3.22)
 # User is free to modify the file as much as necessary
 #
 
+
 # Setup compiler settings
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
-set(CMAKE_BUILD_TYPE "Release")
+#set(CMAKE_BUILD_TYPE "Release")
 
 # Define the build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -33,12 +34,13 @@ include("cmake/gcc-arm-none-eabi.cmake")
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
-# Enable CMake support for ASM and C languages
-enable_language(C ASM)
-
 # Core project settings
 project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
+
+
+# Enable CMake support for ASM and C languages
+enable_language(C ASM)
 
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
@@ -72,6 +74,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/app_music_list.c
     App/app_music_main.c
     App/app_sound.c
+    App/app_setup.c
     App/app_shell.c
     App/app_verify.c
     App/cover_if.c
@@ -100,6 +103,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/assets/output/bluetooth_blue.c
     App/assets/output/bluetooth_scan.c
     App/assets/output/dualsense2.c
+    App/assets/output/volume-control.c
+    App/assets/output/brightness.c
     App/assets/img_lv_demo_music_icon_1.c
     App/assets/img_lv_demo_music_icon_2.c
     App/assets/img_lv_demo_music_icon_3.c

@@ -445,25 +445,51 @@ void music_process_stick(int evcode, int direction)
 static void scroll_cb(lv_event_t *event)
 {
   MUSIC_INFO *mi;
+  lv_event_code_t code;
   int yoff;
+  lv_point_t po;
+  static int32_t last_y;
 
+  code = lv_event_get_code(event);
   mi = lv_event_get_user_data(event);
+  lv_indev_t *indev = lv_event_get_indev(event);
 
-#if 1
-  yoff = lv_obj_get_scroll_y(mi->main_cont);
-  if (yoff == 0)
+  lv_indev_get_point(indev, &po);
+
+  if (code == LV_EVENT_SCROLL_BEGIN)
   {
-    /* Player screen has been restored. Switch back to main input group. */
-    lv_indev_set_group(mi->kdev, mi->main_group);
+    yoff = lv_obj_get_scroll_y(mi->main_cont);
+    if (yoff == 0 && po.y == 0)
+    {
+      last_y = 0;
+    }
+    else
+    {
+      last_y = -1;
+    }
+    return;
   }
-  else if (yoff >= (DISP_VER_RES - (LV_DEMO_MUSIC_HANDLE_SIZE * 1)))
+  else if (code == LV_EVENT_SCROLL_END)
   {
-    /*
-     * Music list screen has been opened. Switch input group to the list.
-     */
-    lv_indev_set_group(mi->kdev, mi->list_group);
+    yoff = lv_obj_get_scroll_y(mi->main_cont);
+    if (yoff == 0)
+    {
+      /* Player screen has been restored. Switch back to main input group. */
+      lv_indev_set_group(mi->kdev, mi->main_group);
+      if (last_y == 0 && po.y > 0)
+      {
+       debug_printf("down gesture.\n");
+       start_setup();
+      }
+    }
+    else if (yoff >= (DISP_VER_RES - (LV_DEMO_MUSIC_HANDLE_SIZE * 1)))
+    {
+      /*
+       * Music list screen has been opened. Switch input group to the list.
+       */
+      lv_indev_set_group(mi->kdev, mi->list_group);
+    }
   }
-#endif
 }
 
 lv_obj_t *music_player_create(AUDIO_CONF *audio_config, lv_group_t *g, lv_style_t *btn_style, lv_indev_t *keypad_dev)
@@ -487,12 +513,12 @@ lv_obj_t *music_player_create(AUDIO_CONF *audio_config, lv_group_t *g, lv_style_
   register_cover_file();
 
   scr = lv_obj_create(NULL);
-  lv_screen_load(scr);
   list = music_list_create(scr, (uint32_t)dh, lh, dh->numlumps);
   MusicInfo->main_cont =  _lv_demo_music_main_create(scr, g, btn_style);
   MusicInfo->main_group = g;
   MusicInfo->kdev = keypad_dev;
 
+  lv_obj_add_event_cb(MusicInfo->main_cont, scroll_cb, LV_EVENT_SCROLL_BEGIN, MusicInfo);
   lv_obj_add_event_cb(MusicInfo->main_cont, scroll_cb, LV_EVENT_SCROLL_END, MusicInfo);
 
   return scr;

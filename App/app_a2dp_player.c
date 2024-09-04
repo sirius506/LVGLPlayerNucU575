@@ -81,12 +81,6 @@ static void slider_event_cb(lv_event_t * e)
   }
 }
 
-#if 0
-static void spectrum_draw_event_cb(lv_event_t * e)
-{
-}
-#endif
-
 static lv_obj_t * create_title_box(A2DP_SCREEN *a2dps, lv_obj_t * parent)
 {
     FS_DIRENT *ttf;
@@ -99,11 +93,7 @@ static lv_obj_t * create_title_box(A2DP_SCREEN *a2dps, lv_obj_t * parent)
     lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
     ttf = find_flash_file(TTF_FONT_NAME);
-#if 1
     a2dps->title_font = lv_tiny_ttf_create_data((const void *)(QSPI_FLASH_ADDR + ttf->foffset), ttf->fsize, 20);
-#else
-    a2dps->title_font = &lv_font_montserrat_16;
-#endif
     a2dps->artist_font = lv_tiny_ttf_create_data((const void *)(QSPI_FLASH_ADDR + ttf->foffset), ttf->fsize, 15);
 
     a2dps->title_label = lv_label_create(cont);

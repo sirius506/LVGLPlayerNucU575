@@ -151,7 +151,6 @@ typedef struct {
   lv_group_t *ing;              // Input group
   lv_obj_t *sub_scr;
   lv_obj_t *play_scr;
-  lv_obj_t *vol_slider;
   lv_group_t *player_ing;       // Input group for player
 } MENU_SCREEN;
 

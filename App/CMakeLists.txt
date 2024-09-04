@@ -4,6 +4,7 @@ add_library(app STATIC
   app_main.c
   app_music_list.c
   app_music_main.c
+  app_setup.c
   app_sound.c
   app_verify.c
   cover_if.c
