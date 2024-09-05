@@ -213,6 +213,18 @@ static void DAC_Audio_MixSound(AUDIO_CONF *aconf, const AUDIO_STEREO *psrc, int 
   osMutexRelease(aconf->soundLockId);
 }
 
+void bsp_start_audio_timer(HAL_DEVICE *haldev)
+{
+  if (haldev && haldev->audio_timer)
+    HAL_TIM_Base_Start(haldev->audio_timer);	// Start trigger timer
+}
+
+void bsp_stop_audio_timer(HAL_DEVICE *haldev)
+{
+  if (haldev && haldev->audio_timer)
+    HAL_TIM_Base_Stop(haldev->audio_timer);	// Stop trigger timer
+}
+
 /**
  * @brief Stop DAC activity
  */

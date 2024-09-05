@@ -317,6 +317,13 @@ void Board_ScreenExpand(uint8_t *bp, uint32_t *palette)
   {
     LCD_L8_PartialCopy(haldev, bp, 160, 0, 320, 200);
     bsp_release_lcd(haldev->tft_lcd);
+
+    if (DoomScreenStatus == DOOM_SCREEN_SUSPEND)
+    {
+      postGuiEventMessage(GUIEV_CHEAT_ACK, 0, NULL, NULL);
+      osThreadSuspend(osThreadGetId());
+  debug_printf("Resumed.\n");
+    }
     return;
   }
 

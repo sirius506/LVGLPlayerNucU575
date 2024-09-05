@@ -12,6 +12,9 @@ LV_IMG_DECLARE(bluetooth_scan)			// Scanning gamepad devices..
 LV_IMG_DECLARE(volume_control)
 LV_IMG_DECLARE(brightness)
 
+extern osThreadId_t    doomtaskId;
+extern volatile DOOM_SCREEN_STATUS DoomScreenStatus;
+
 void SetBluetoothButtonState(BT_BUTTON_INFO *binfo, BT_STATE new_state)
 {
   binfo->bst = new_state;
@@ -68,6 +71,10 @@ void enter_setup_event(lv_event_t *e)
   UNUSED(e);
   lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_active());
 
+  if (DoomScreenStatus == DOOM_SCREEN_ACTIVE)
+  {
+     DoomScreenStatus = DOOM_SCREEN_SUSPEND;
+  }
   if (dir == LV_DIR_BOTTOM)
   {
     lv_screen_load_anim(SetupScreen.setup_screen, LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
@@ -76,6 +83,10 @@ void enter_setup_event(lv_event_t *e)
 
 void start_setup()
 {
+  if (DoomScreenStatus == DOOM_SCREEN_ACTIVE)
+  {
+     DoomScreenStatus = DOOM_SCREEN_SUSPEND;
+  }
   lv_screen_load_anim(SetupScreen.setup_screen, LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
 }
 
@@ -116,6 +127,20 @@ static void brightness_event_cb(lv_event_t *e)
   Board_Set_Brightness(haldev, v);
 }
 
+/**
+ *  @brif Resume DOOM task when setup screen has unloaded.
+ */
+static void setupscr_event_cb(lv_event_t *ev)
+{
+  UNUSED(ev);
+
+  if (DoomScreenStatus == DOOM_SCREEN_SUSPEND)
+  {
+    DoomScreenStatus = DOOM_SCREEN_ACTIVE;
+    if (doomtaskId) osThreadResume(doomtaskId);
+  }
+}
+
 lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev)
 {
   lv_obj_t *bar, *img;
@@ -130,6 +155,7 @@ lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev)
   lv_style_set_bg_color(&style_setup, lv_color_hex3(0x777777));
   lv_obj_add_style(scr, &style_setup, 0);
   setups->setup_screen = scr;
+  lv_obj_add_event_cb(scr, setupscr_event_cb, LV_EVENT_SCREEN_UNLOADED, haldev);
 
   lv_style_init(&style_bar);
   lv_style_init(&style_indicator);

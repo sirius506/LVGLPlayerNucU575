@@ -223,9 +223,15 @@ void StartDefaultTask(void *argument)
 
         aconf = get_audio_config(NULL);
         bsp_lcd_save(screen_buffer);
+#ifdef OLD_CODE
         HAL_TIM_Base_Stop(aconf->haldev->audio_timer);
         SaveScreenFile(screen_buffer, SCREEN_BUFF_SIZE);
         HAL_TIM_Base_Start(aconf->haldev->audio_timer);
+#else
+        bsp_stop_audio_timer(aconf->haldev);
+        SaveScreenFile(screen_buffer, SCREEN_BUFF_SIZE);
+        bsp_start_audio_timer(aconf->haldev);
+#endif
       }
       break;
     default:

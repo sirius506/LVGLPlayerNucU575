@@ -105,7 +105,7 @@ static uint8_t padkeyBuffer[PADKEYQ_DEPTH * sizeof(lv_indev_data_t)];
 
 MESSAGEQ_DEF(padkeyq, padkeyBuffer, sizeof(padkeyBuffer));
 
-static osThreadId_t    doomtaskId;
+osThreadId_t    doomtaskId;
 static int lvgl_active;
 static lv_display_t *display;
 
@@ -1300,22 +1300,25 @@ debug_printf("Suspend request.\n");
         break;
       case GUIEV_CHEAT_ACK:
 debug_printf("CHEAT_ACK (%d).\n", cheatval);
-        lv_obj_add_flag(games->cheat_btn, LV_OBJ_FLAG_HIDDEN);
-#ifdef USE_KBD
-        if ((cheatval == LV_EVENT_LONG_PRESSED) && lv_obj_has_flag(games->cheat_code, LV_OBJ_FLAG_HIDDEN))
+        if (cheatval)
         {
+          lv_obj_add_flag(games->cheat_btn, LV_OBJ_FLAG_HIDDEN);
+#ifdef USE_KBD
+          if ((cheatval == LV_EVENT_LONG_PRESSED) && lv_obj_has_flag(games->cheat_code, LV_OBJ_FLAG_HIDDEN))
+          {
             lv_obj_remove_flag(games->kbd, LV_OBJ_FLAG_HIDDEN);
             lv_obj_remove_flag(games->ta, LV_OBJ_FLAG_HIDDEN);
             lv_textarea_set_text(games->ta, "id");
             cheatval = 0;
-        }
-        else
-        {
+          }
+          else
+          {
             lv_obj_remove_flag(games->cheat_code, LV_OBJ_FLAG_HIDDEN);
-        }
+          }
 #else
-        lv_obj_remove_flag(games->cheat_code, LV_OBJ_FLAG_HIDDEN);
+          lv_obj_remove_flag(games->cheat_code, LV_OBJ_FLAG_HIDDEN);
 #endif
+        }
         break;
       case GUIEV_KBD_OK:
 #ifdef USE_KBD
