@@ -9,7 +9,105 @@ typedef struct {
  uint8_t valset;
 } TLV_SETUP;
 
-/* MCLK = 11.29MHz */
+/* MCLK = 49.147MHz */
+/* Use filter C. DOSR must be multiple of 2. */
+/* 2.8MHz < DOSR * DAC_FS < 6.2MHz */
+/* CODEC_CLKIN = MCLK = 192K * NDAC * MDAC * DOSR */
+/*     DOSR = 32, NDAC = 1, MDAC = 8 */
+/* PRB_17, PTM_P1 */
+
+const TLV_SETUP TLV192K_InitData[] = {
+  { 0x00, 0x00 },	/* Select Page 0 */
+  { 0x01, 0x01 }, 	/* Initialize the device through software reset */
+  { 0x04, 0x00 },	/* CODEC_CLKIN as MCLK */
+  { 0x0B, 0x81 },	/* NDAC = 1 */
+  { 0x0C, 0x88 },	/* MDAC = 8 */
+  { 0x0D, 0x00 },	/* DOSR = 0x0020 */
+  { 0x0E, 0x20 }, 	/* DOSR = 32 */
+  { 0x14, 0x20 }, 	/* AOSR = 32 */
+
+  { 0x00, 0x00 },	/* Select Page 0 */
+  { 0x3C, 0x11 },	/* Set the DAC Mode to PRB_P17 */
+
+  { 0x00, 0x01 },	/* Select Page 1 */
+  { 0x01, 0x08 },	/* Disable weak AVDD to DVDD connection */
+  { 0x02, 0x01 },	/* Enable Analog Blocks, AVDD LDO Power up */
+  { 0x7B, 0x01 },	/* Set the REF charging time to 40ms */
+  { 0x14, 0x04 },	/* Set HP power up time for NO POP */
+
+  { 0x00, 0x01 },	/* Select Page 1 */
+  { 0x0C, 0x08 },	/* Route LDAC to HPL */
+  { 0x0D, 0x08 },	/* Route RDAC to HPR */
+  { 0x03, 0x08 },	/* Set the DAC PTM mode to PTM_1 */
+  { 0x04, 0x08 },
+
+  { 0x00, 0x00 },	/* Select Page 0 */
+  { 0x41, 0x00 },	/* DAC => 0dB */
+  { 0x42, 0x00 },
+  { 0x3F, 0xD6 },	/* Power up LDAC/RDAC */
+
+  { 0x00, 0x01 },	/* Select Page 1 */
+  { 0x10, 0x00 },	/* Unmute HPL driver, 0dB Gain */
+  { 0x11, 0x00 },	/* Unmute HPR driver, 0dB Gain */
+  { 0x09, 0x30 },	/* Power up HPL/HPR */
+
+  { 0xFE, 250 },
+  { 0x00, 0x00 },	/* Select Page 0 */
+  { 0x3F, 0xD4 },
+  { 0x40, 0x00 },	/* Unmute LDAC/RDAC */
+  { 0xFF, 0xFF },
+};
+
+/* MCLK = 49.147MHz */
+/* Use filter C. DOSR must be multiple of 2. */
+/* 2.8MHz < DOSR * DAC_FS < 6.2MHz */
+/* CODEC_CLKIN = MCLK = 96K * NDAC * MDAC * DOSR */
+/*     DOSR = 32, NDAC = 2, MDAC = 8 */
+/* PRB_17, PTM_P1 */
+
+const TLV_SETUP TLV96K_InitData[] = {
+  { 0x00, 0x00 },	/* Select Page 0 */
+  { 0x01, 0x01 }, 	/* Initialize the device through software reset */
+  { 0x04, 0x00 },	/* CODEC_CLKIN as MCLK */
+  { 0x0B, 0x82 },	/* NDAC = 2 */
+  { 0x0C, 0x88 },	/* MDAC = 8 */
+  { 0x0D, 0x00 },	/* DOSR = 0x0020 */
+  { 0x0E, 0x20 }, 	/* DOSR = 32 */
+
+  { 0x00, 0x00 },	/* Select Page 0 */
+  { 0x3C, 0x11 },	/* Set the DAC Mode to PRB_P17 */
+
+  { 0x00, 0x01 },	/* Select Page 1 */
+  { 0x01, 0x08 },	/* Disable weak AVDD to DVDD connection */
+  { 0x02, 0x01 },	/* Enable Analog Blocks, AVDD LDO Power up */
+  { 0x7B, 0x01 },	/* Set the REF charging time to 40ms */
+  { 0x14, 0x04 },	/* Set HP power up time for NO POP */
+
+  { 0x00, 0x01 },	/* Select Page 1 */
+  { 0x0C, 0x08 },	/* Route LDAC to HPL */
+  { 0x0D, 0x08 },	/* Route RDAC to HPR */
+  { 0x03, 0x08 },	/* Set the DAC PTM mode to PTM_1 */
+  { 0x04, 0x08 },
+
+  { 0x00, 0x00 },	/* Select Page 0 */
+  { 0x41, 0x00 },	/* DAC => 0dB */
+  { 0x42, 0x00 },
+  { 0x3F, 0xD6 },	/* Power up LDAC/RDAC */
+
+  { 0x00, 0x01 },	/* Select Page 1 */
+  { 0x10, 0x00 },	/* Unmute HPL driver, 0dB Gain */
+  { 0x11, 0x00 },	/* Unmute HPR driver, 0dB Gain */
+  { 0x09, 0x30 },	/* Power up HPL/HPR */
+
+  { 0xFE, 250 },
+  { 0x00, 0x00 },	/* Select Page 0 */
+  { 0x3F, 0xD4 },
+  { 0x40, 0x00 },	/* Unmute LDAC/RDAC */
+  { 0xFF, 0xFF },
+};
+
+/* MCLK = 11.29MHz PLL J = 8 */
+/* PLL_CLK = 11.29 * 8 = 90.32 */
 /* CODEC_CLKIN = NDAC * MDAC * DOSR * DAC_FS */
 /* NDAC = 2, MDAC = 8, DOSR = 128 */
 
@@ -37,10 +135,8 @@ const TLV_SETUP TLVInitData[] = {
   { 0x00, 0x01 },	/* Select Page 1 */
   { 0x0C, 0x08 },	/* Route LDAC to HPL */
   { 0x0D, 0x08 },	/* Route RDAC to HPR */
-#if 1
   { 0x03, 0x08 },	/* Set the DAC PTM mode to PTM_1 */
   { 0x04, 0x08 },
-#endif
 
   { 0x00, 0x00 },	/* Select Page 0 */
   { 0x41, 0x00 },	/* DAC => 0dB */
@@ -61,11 +157,25 @@ const TLV_SETUP TLVInitData[] = {
 
 const uint8_t TLV_Signature[2] = { 0x11, 0x04 };
 
-void bsp_codec_init(DOOM_I2C_Handle *codec_i2c)
+void bsp_codec_init(DOOM_I2C_Handle *codec_i2c, int sample_rate)
 {
   osStatus_t st;
   uint8_t regvals[4];
   uint16_t maddr;
+  const TLV_SETUP *dp = TLVInitData;
+
+  switch (sample_rate)
+  {
+  case 192000:
+    dp = TLV192K_InitData;
+    break;
+  case 96000:
+    dp = TLV96K_InitData;
+    break;
+  default:
+    dp = TLVInitData;
+    break;
+  }
 
   HAL_I2C_Mem_Read_IT(codec_i2c->hi2c, CODEC_ADDR, 5, I2C_MEMADD_SIZE_8BIT, regvals, 2);
   st = osSemaphoreAcquire(codec_i2c->iosem, 100);
@@ -73,7 +183,6 @@ void bsp_codec_init(DOOM_I2C_Handle *codec_i2c)
   {
     if (memcmp(regvals, TLV_Signature, 2) == 0)
     {
-      const TLV_SETUP *dp = TLVInitData;
 
       debug_printf("TLV320DAC3203 detected.\n");
       while (dp->reg != 0xFF)

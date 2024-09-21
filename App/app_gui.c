@@ -20,6 +20,7 @@ TASK_DEF(doomTask, 800, osPriorityBelowNormal)
 TASK_DEF(btstacktask,  500, osPriorityNormal2)
 
 extern void StartBtstackTask(void *arg);
+extern void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen);
 
 LV_IMG_DECLARE(imgtest)
 LV_IMG_DECLARE(Action_Left)
@@ -253,6 +254,7 @@ GAME_SCREEN  GameScreen;
 SOUND_SCREEN SoundScreen;
 A2DP_SCREEN  A2DPScreen;
 SETUP_SCREEN SetupScreen;
+OSCM_SCREEN  OSCMScreen;
 
 /**       
  * @brief Callback called when flash game has selected.
@@ -476,10 +478,13 @@ typedef struct {
   const uint16_t label_pos;
 } APP_LABEL_INFO;
 
-static const APP_LABEL_INFO app_labels[2] = {
- { "Doom Player", 35 },
- { "A2DP Player", 60 },
+static const APP_LABEL_INFO app_labels[] = {
+ { "Doom Player", 30 },
+ { "Bluetooth Player", 50 },
+ { "Oscilloscope  Music",  70 },
 };
+
+#define	NUM_APPLICATION	(sizeof(app_labels)/sizeof(APP_LABEL_INFO))
 
 static void app_select_handler(lv_event_t *e)
 {
@@ -494,11 +499,16 @@ static int SelectApplication(lv_obj_t *sel_screen)
 {
   unsigned int new_interval, timer_interval;
   osStatus_t st;
+  lv_obj_t *title;
 
+  title = lv_label_create(sel_screen);
+  lv_obj_add_style(title, &style_title, 0);
+  lv_label_set_text(title, "LVGL Player (Nucleo-U575ZI)");
+  lv_obj_align(title, LV_ALIGN_TOP_MID, 0, lv_pct(7));
 
   /* Create application buttons */
 
-  for (int i = 0; i < 2; i++)
+  for (unsigned int i = 0; i < NUM_APPLICATION; i++)
   {
     lv_obj_t *btn, *label;
 
@@ -535,6 +545,8 @@ static int SelectApplication(lv_obj_t *sel_screen)
     }
   }
 }
+
+void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp);
 
 void StartGuiTask(void *args)
 {
@@ -629,9 +641,11 @@ void StartGuiTask(void *args)
   sel_screen = lv_obj_create(NULL);
   lv_screen_load(sel_screen);
 
+  Board_Flash_Init(haldev, 1);
   haldev->boot_mode = SelectApplication(sel_screen);
 
-  osThreadNew(StartBtstackTask, haldev, &attributes_btstacktask);
+  if (haldev->boot_mode < 2)
+    osThreadNew(StartBtstackTask, haldev, &attributes_btstacktask);
 
   starts->screen = lv_obj_create(NULL);
   menus->screen = lv_obj_create(NULL);
@@ -669,18 +683,6 @@ void StartGuiTask(void *args)
   copys->fname = lv_label_create(copys->screen);
   lv_label_set_text(copys->fname, "");
   lv_obj_align(copys->fname, LV_ALIGN_TOP_MID, 0, lv_pct(38));
-
-#if 0
-  menus->vol_slider = lv_slider_create(menus->screen);
-  lv_slider_set_range(menus->vol_slider, -63, 64);
-  lv_obj_set_size(menus->vol_slider, W_PERCENT(60), H_PERCENT(4));
-  lv_obj_align(menus->vol_slider, LV_ALIGN_CENTER, 0, layout->bt_yoffset + 70);
-  lv_obj_add_event_cb(menus->vol_slider, vol_event_cb, LV_EVENT_VALUE_CHANGED, haldev->codec_i2c);
-
-  lv_obj_t * vtitle = lv_label_create(menus->screen);
-  lv_label_set_text(vtitle, "Volume");
-  lv_obj_align_to(vtitle, menus->vol_slider, LV_ALIGN_OUT_LEFT_MID, -5, 0);
-#endif
 
   games->img = lv_image_create(games->screen);
 
@@ -732,13 +734,17 @@ void StartGuiTask(void *args)
 
   audio_config = get_audio_config(&HalDevice);
 
-  if (haldev->boot_mode == BOOTM_A2DP)
+  switch (haldev->boot_mode)
   {
-    postMainRequest(REQ_VERIFY_FONT, NULL, 0);	// Start font file verification
-  }
-  else
-  {
+  case BOOTM_DOOM:
     postMainRequest(REQ_VERIFY_SD, NULL, 0);	// Start SD card verification
+    break;
+  case BOOTM_A2DP:
+    postMainRequest(REQ_VERIFY_FONT, NULL, 0);	// Start font file verification
+    break;
+  default:
+    postGuiEventMessage(GUIEV_OSCM_START, 0, NULL, NULL);
+    break;
   }
 
   timer_interval = 3;
@@ -1006,6 +1012,12 @@ void StartGuiTask(void *args)
           Start_SDLMixer();
         }
         break;
+      case GUIEV_OSCM_START:
+        KickOscMusic(haldev, &OSCMScreen);
+        break;
+      case GUIEV_OSCM_FILE:
+        lv_label_set_text(OSCMScreen.scope_label, event.evarg1);
+        break;
       case GUIEV_FLASH_GAME_SELECT:
         /* Selected game reside on the SPI flash. */
           
@@ -1055,11 +1067,7 @@ void StartGuiTask(void *args)
 #endif
 
         int cvol = bsp_codec_getvol(haldev->codec_i2c);
-#if 0
-        lv_slider_set_value(menus->vol_slider, cvol, LV_ANIM_OFF);
-#else
         lv_slider_set_value(setups->vol_slider, cvol, LV_ANIM_OFF);
-#endif
 
         activate_screen(menus->screen);
 
@@ -1394,6 +1402,9 @@ debug_printf("CHEAT_SEL\n");
 
         /* Prepare ENDOOM screen as LVGL image */
         Board_Endoom(event.evarg1);
+        break;
+      case GUIEV_DRAW:
+        oscDraw(&OSCMScreen, event.evarg1);
         break;
       case GUIEV_AVRCP_CONNECT:
         show_a2dp_buttons();

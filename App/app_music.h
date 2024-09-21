@@ -3,9 +3,9 @@
 #include "doominfo.h"
 
 /* Cover file must be ARGB8888 binary format and 128x128 pixels */
-#define	COVER_MAGIC	((LV_COLOR_FORMAT_ARGB8888<<8) |LV_IMAGE_HEADER_MAGIC)
+//#define	COVER_MAGIC	((LV_COLOR_FORMAT_ARGB8888<<8) |LV_IMAGE_HEADER_MAGIC)
 /* Cover file must be ARGB565 binary format and 128x128 pixels */
-//#define	COVER_MAGIC	((LV_COLOR_FORMAT_RGB565A8<<8) |LV_IMAGE_HEADER_MAGIC)
+#define	COVER_MAGIC	((LV_COLOR_FORMAT_RGB565A8<<8) |LV_IMAGE_HEADER_MAGIC)
 
 typedef struct sCover {
   char          *fname;

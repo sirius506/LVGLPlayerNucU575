@@ -240,6 +240,7 @@ lv_obj_t * _lv_demo_music_main_create(lv_obj_t * parent, lv_group_t *g, lv_style
     lv_obj_set_grid_cell(spectrum_obj, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_CENTER, 1, 9);
 #endif
 
+#ifdef DO_INTRO_ANIM
     /*Animate in the content after the intro time*/
     lv_anim_t a;
 
@@ -276,6 +277,7 @@ lv_obj_t * _lv_demo_music_main_create(lv_obj_t * parent, lv_group_t *g, lv_style
     lv_anim_set_exec_cb(&a, _image_set_scale_anim_cb);
     lv_anim_set_completed_cb(&a, NULL);
     lv_anim_start(&a);
+#endif
 
 #if 0
     /* Create an intro from a logo + label */
@@ -612,29 +614,32 @@ static void slider_event_cb(lv_event_t *e)
   lv_event_code_t code = lv_event_get_code(e);
   lv_obj_t *obj = lv_event_get_target(e);
 
-  if (code == LV_EVENT_DRAW_MAIN_END)
+  /*Provide some extra space for the value*/
+  if(code == LV_EVENT_REFR_EXT_DRAW_SIZE) {
+    lv_event_set_ext_draw_size(e, 50);
+  }
+  else if (code == LV_EVENT_DRAW_MAIN_END)
   {
     int ctime;
     lv_slider_t *slider = (lv_slider_t *)obj;
-    lv_area_t *knob_area = &slider->bar.indic_area;
+    lv_area_t knob_area;
     char buf[16];
+
+    knob_area = slider->right_knob_area;
 
     ctime = lv_slider_get_value(obj);
     lv_snprintf(buf, sizeof(buf), "%d:%02d", ctime/60, ctime%60);
 
     lv_point_t label_size;
-#if 0
-    lv_txt_get_size(&label_size, buf, layout->font_small, 0, 0, LV_COORD_MAX, 0);
-#else
     lv_txt_get_size(&label_size, buf, LV_FONT_DEFAULT, 0, 0, LV_COORD_MAX, 0);
-#endif
+
     lv_area_t label_area;
     label_area.x1 = 0;
     label_area.x2 = label_size.x - 1;
     label_area.y1 = 0;
     label_area.y2 = label_size.y - 1;
 
-    lv_area_align(knob_area, &label_area, LV_ALIGN_OUT_TOP_RIGHT, 20, -5);
+    lv_area_align(&knob_area, &label_area, LV_ALIGN_OUT_TOP_RIGHT, 0, 13);
 
     lv_draw_label_dsc_t label_draw_dsc;
     lv_draw_label_dsc_init(&label_draw_dsc);
@@ -725,6 +730,8 @@ static lv_obj_t * create_ctrl_box(lv_obj_t * parent, lv_group_t *g)
     lv_obj_set_style_anim_time(slider_obj, 100, 0);
     lv_obj_add_flag(slider_obj, LV_OBJ_FLAG_CLICKABLE); /*No input from the slider*/
     lv_obj_remove_flag(slider_obj, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+    lv_obj_add_event_cb(slider_obj, slider_event_cb, LV_EVENT_ALL, NULL);
+    lv_obj_refresh_ext_draw_size(slider_obj);
 
 #if LV_DEMO_MUSIC_LARGE == 0
     lv_obj_set_height(slider_obj, 3);
@@ -946,8 +953,10 @@ static void spectrum_draw_event_cb(lv_event_t * e)
         if(opa < LV_OPA_MIN) return;
 
         lv_point_t center;
-        center.x = obj->coords.x1 + lv_obj_get_width(obj) / 2;
-        center.y = obj->coords.y1 + lv_obj_get_height(obj) / 2;
+        lv_area_t obj_coords;
+        lv_obj_get_coords(obj, &obj_coords);
+        center.x = obj_coords.x1 + lv_obj_get_width(obj) / 2;
+        center.y = obj_coords.y1 + lv_obj_get_height(obj) / 2;
 
         lv_draw_triangle_dsc_t draw_dsc;
         lv_draw_triangle_dsc_init(&draw_dsc);
@@ -1116,8 +1125,10 @@ static lv_obj_t * album_image_create(lv_obj_t * parent)
       lv_image_dsc_t *desc = (lv_image_dsc_t *)(cfp->faddr);
 
       imgdesc = *desc;
-      imgdesc.data_size = desc->header.w * desc->header.h * 2;
+      imgdesc.data_size = desc->header.w * desc->header.h * 3;
       imgdesc.data = cfp->faddr + 12;
+      imgdesc.header.flags = 0;
+
       lv_image_set_src(img, &imgdesc);
     }
     lv_image_set_antialias(img, false);

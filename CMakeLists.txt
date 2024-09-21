@@ -67,12 +67,12 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Middlewares/Third_Party/ff15/source/ff_gen_drv.c
     Middlewares/Third_Party/ff15/source/ffsystem.c
     Middlewares/Third_Party/ff15/source/ffunicode.c
-    App/8bitdozero2.c
     App/app_gui.c
     App/app_main.c
     App/app_a2dp_player.c
     App/app_music_list.c
     App/app_music_main.c
+    App/app_osc_music.c
     App/app_sound.c
     App/app_setup.c
     App/app_shell.c
@@ -81,6 +81,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/doom_helper.c
     App/dualsense.c
     App/dualshock4.c
+    App/8bitdozero2.c
     App/fatfs.c
     App/gamepad.c
     App/mix_player.c
@@ -102,7 +103,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/assets/output/bluetooth_black.c
     App/assets/output/bluetooth_blue.c
     App/assets/output/bluetooth_scan.c
-    App/assets/output/dualsense2.c
     App/assets/output/volume-control.c
     App/assets/output/brightness.c
     App/assets/img_lv_demo_music_icon_1.c
@@ -116,7 +116,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/assets/img_lv_demo_music_btn_prev.c
     App/assets/img_lv_demo_music_btn_next.c
     App/assets/img_lv_demo_music_btn_pause.c
+    App/assets/img_lv_demo_music_btn_pause_large.c
     App/assets/img_lv_demo_music_btn_play.c
+    App/assets/img_lv_demo_music_btn_play_large.c
     App/assets/img_lv_demo_music_wave_top_large.c
     App/assets/img_lv_demo_music_wave_bottom_large.c
     App/assets/img_lv_demo_music_btn_list_play.c

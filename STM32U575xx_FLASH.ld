@@ -45,7 +45,9 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 /* Memories definition */
 MEMORY
 {
-  RAM	(rw)	: ORIGIN = 0x20000000,	LENGTH = 768K
+  RAM	(rw)	: ORIGIN = 0x20000000,	LENGTH = 608K  /* 608K */
+  RTOSHEAP (rw) : ORIGIN = 0x20098000,  LENGTH = 32K
+  LVHEAP   (rw) : ORIGIN = 0x200A0000,  LENGTH = 128K
   ROM	(rx)	: ORIGIN = 0x08000000,	LENGTH = 2048K
   SRAM4	(rw)	: ORIGIN = 0x28000000,	LENGTH = 16K
   BKPSRAM (rw)  : ORIGIN = 0x40036400,  LENGTH = 2K
@@ -185,6 +187,14 @@ SECTIONS
       *decoder-sbc.c.obj (.bss .bss*)
       _eavrcpvar = .;
       __avrcpvar_end = _eavrcpvar;
+    }
+    .OVERLAY_OSCM
+    {
+      _soscmvar = .;
+      __oscmvar_start__ = _soscmvar;
+      *app_osc_music.c.obj (.bss .bss*)
+      _eoscmvar = .;
+      __oscmvar_end = _eoscmvar;
     }
   } > RAM
 

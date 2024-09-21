@@ -96,7 +96,6 @@ typedef struct {
 
 void bsp_init(HAL_DEVICE *haldev);
 int bsp_touch_init(HAL_DEVICE *haldev);
-void bsp_codec_init(DOOM_I2C_Handle *codec_i2c);
 
 int flash_read_id(DOOM_OSPI_Handle *qspi, uint8_t *bp, int idlen);
 int psram_read_id(DOOM_OSPI_Handle *qspi, uint8_t *bp, int idlen);
@@ -112,7 +111,7 @@ void bsp_release_lcd(DOOM_LCD_Handle *lcd_handle);
 void bsp_wait_lcd();
 void bsp_lcd_save(uint8_t *bp);
 
-void bsp_codec_init(DOOM_I2C_Handle *codec_i2c);
+void bsp_codec_init(DOOM_I2C_Handle *codec_i2c, int sample_rate);
 int bsp_codec_getvol(DOOM_I2C_Handle *codec_i2c);
 void bsp_codec_setvol(DOOM_I2C_Handle *codec_i2c, int newvol);
 

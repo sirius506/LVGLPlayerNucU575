@@ -51,11 +51,15 @@ static void slider_event_cb(lv_event_t * e)
   lv_event_code_t code = lv_event_get_code(e);
   lv_obj_t *obj = lv_event_get_target(e);
 
-  if (code == LV_EVENT_DRAW_MAIN_END)
+  /*Provide some extra space for the value*/
+  if(code == LV_EVENT_REFR_EXT_DRAW_SIZE) {
+    lv_event_set_ext_draw_size(e, 50);
+  }
+  else if (code == LV_EVENT_DRAW_MAIN_END)
   {
     int ctime;
     lv_slider_t *slider = (lv_slider_t *)obj;
-    lv_area_t *knob_area = &slider->bar.indic_area;
+    lv_area_t knob_area;
     char buf[16];
 
     ctime = lv_slider_get_value(obj);
@@ -69,7 +73,8 @@ static void slider_event_cb(lv_event_t * e)
     label_area.y1 = 0;
     label_area.y2 = label_size.y - 1;
 
-    lv_area_align(knob_area, &label_area, LV_ALIGN_OUT_TOP_RIGHT, 20, -5);
+    knob_area = slider->right_knob_area;
+    lv_area_align(&knob_area, &label_area, LV_ALIGN_OUT_TOP_RIGHT, 0, 13);
 
     lv_draw_label_dsc_t label_draw_dsc;
     lv_draw_label_dsc_init(&label_draw_dsc);
@@ -209,6 +214,7 @@ static lv_obj_t * create_ctrl_box(A2DP_SCREEN *a2dps, lv_obj_t * parent, lv_grou
     lv_obj_set_style_anim_time(slider_obj, 100, 0);
     lv_obj_remove_flag(slider_obj, LV_OBJ_FLAG_CLICKABLE); /*No input from the slider*/
     lv_obj_add_event_cb(slider_obj, slider_event_cb, LV_EVENT_ALL, NULL);
+    lv_obj_refresh_ext_draw_size(slider_obj);
 
     lv_obj_set_height(slider_obj, 6);
     lv_obj_set_grid_cell(slider_obj, LV_GRID_ALIGN_STRETCH, 1, 4, LV_GRID_ALIGN_CENTER, 1, 1);

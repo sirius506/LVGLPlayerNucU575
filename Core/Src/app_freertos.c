@@ -47,7 +47,7 @@ typedef StaticTask_t osStaticThreadDef_t;
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
-uint32_t MyBufferTask00[ 400 ];
+uint32_t MyBufferTask00[ 500 ];
 osStaticThreadDef_t MycontrolBlocTask00;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",

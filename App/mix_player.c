@@ -581,7 +581,7 @@ static void StartMixPlayerTask(void *args)
 
   debug_printf("Player Started..\n");
 
-  bsp_codec_init(haldev->codec_i2c);
+  bsp_codec_init(haldev->codec_i2c, 44100);
 
   audio_config = get_audio_config(NULL);
 

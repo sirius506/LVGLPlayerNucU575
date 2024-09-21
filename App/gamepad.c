@@ -27,9 +27,15 @@ static lv_point_precise_t points_pitch[2] = { {0, 50}, { 100, 50}};
  * @brief List of supported gamepads.
  */
 const struct sGamePad KnownGamePads[] = {
+#ifdef USE_PAD_IMAGE
   { VID_SONY, PID_DUALSENSE, "DualSense",     &DualSenseDriver, &DualSenseImage },
   { VID_SONY, PID_DUALSHOCK, "DualShock4",    &DualShockDriver, &DualShock4Image },
   { VID_SONY, PID_ZERO2,     "8BitDo Zero 2", &Zero2Driver, &Zero2Image },
+#else
+  { VID_SONY, PID_DUALSENSE, "DualSense",     &DualSenseDriver, NULL },
+  { VID_SONY, PID_DUALSHOCK, "DualShock4",    &DualShockDriver, NULL },
+  { VID_SONY, PID_ZERO2,     "8BitDo Zero 2", &Zero2Driver, NULL },
+#endif
 };
 
 /*

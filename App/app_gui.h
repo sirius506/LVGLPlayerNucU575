@@ -79,6 +79,8 @@ typedef enum {
   GUIEV_SD_REPORT,              // Report REQ_VERIFY_SD result
   GUIEV_FLASH_REPORT,           // Report REQ_VERIFY_FLASH result
   GUIEV_FONT_REPORT,
+  GUIEV_OSCM_START,
+  GUIEV_OSCM_FILE,
   GUIEV_ICON_CHANGE,            // Set/Change Icon label
   GUIEV_MPLAYER_START,          // Start Music Player
   GUIEV_SPLAYER_START,          // Start Sound Player
@@ -110,6 +112,7 @@ typedef enum {
   GUIEV_LVGL_CAPTURE,
   GUIEV_DOOM_CAPTURE,
   GUIEV_ERROR_MESSAGE,
+  GUIEV_DRAW,
 
   GUIEV_AVRCP_CONNECT,
   GUIEV_AVRCP_DISC,
@@ -187,6 +190,12 @@ typedef struct {
   int       cover_count;
   int       cur_cover;
 } A2DP_SCREEN;
+
+typedef struct {
+  lv_obj_t *scope_image;
+  lv_obj_t *scope_label;
+  lv_obj_t *play_button;
+} OSCM_SCREEN;
 
 #define KBDEVENT_DOWN   0
 #define KBDEVENT_UP     1
