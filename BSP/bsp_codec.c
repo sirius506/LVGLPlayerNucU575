@@ -51,7 +51,7 @@ const TLV_SETUP TLV192K_InitData[] = {
   { 0x11, 0x00 },	/* Unmute HPR driver, 0dB Gain */
   { 0x09, 0x30 },	/* Power up HPL/HPR */
 
-  { 0xFE, 250 },
+  { 0xFE, 50 },
   { 0x00, 0x00 },	/* Select Page 0 */
   { 0x3F, 0xD4 },
   { 0x40, 0x00 },	/* Unmute LDAC/RDAC */
@@ -99,7 +99,7 @@ const TLV_SETUP TLV96K_InitData[] = {
   { 0x11, 0x00 },	/* Unmute HPR driver, 0dB Gain */
   { 0x09, 0x30 },	/* Power up HPL/HPR */
 
-  { 0xFE, 250 },
+  { 0xFE, 50 },
   { 0x00, 0x00 },	/* Select Page 0 */
   { 0x3F, 0xD4 },
   { 0x40, 0x00 },	/* Unmute LDAC/RDAC */
@@ -148,7 +148,7 @@ const TLV_SETUP TLVInitData[] = {
   { 0x11, 0x00 },	/* Unmute HPR driver, 0dB Gain */
   { 0x09, 0x30 },	/* Power up HPL/HPR */
 
-  { 0xFE, 250 },
+  { 0xFE, 50 },
   { 0x00, 0x00 },	/* Select Page 0 */
   { 0x3F, 0xD4 },
   { 0x40, 0x00 },	/* Unmute LDAC/RDAC */
@@ -156,6 +156,7 @@ const TLV_SETUP TLVInitData[] = {
 };
 
 const uint8_t TLV_Signature[2] = { 0x11, 0x04 };
+const uint8_t TLV_Signature192[2] = { 0x91, 0x08 };
 
 void bsp_codec_init(DOOM_I2C_Handle *codec_i2c, int sample_rate)
 {
@@ -181,7 +182,8 @@ void bsp_codec_init(DOOM_I2C_Handle *codec_i2c, int sample_rate)
   st = osSemaphoreAcquire(codec_i2c->iosem, 100);
   if (st == osOK)
   {
-    if (memcmp(regvals, TLV_Signature, 2) == 0)
+    if ((memcmp(regvals, TLV_Signature, 2) == 0) ||
+        (memcmp(regvals, TLV_Signature192, 2) == 0))
     {
 
       debug_printf("TLV320DAC3203 detected.\n");

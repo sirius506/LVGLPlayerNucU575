@@ -521,6 +521,8 @@ static int SelectApplication(lv_obj_t *sel_screen)
     lv_obj_center(label);
   }
 
+  activate_screen(sel_screen);
+
   timer_interval = 3;
 
   while (1)
@@ -609,6 +611,8 @@ void StartGuiTask(void *args)
     lv_indev_set_read_cb(indev, touch_read);
   }
 
+  bsp_codec_init(haldev->codec_i2c, 44100);
+
   keydev = lv_indev_create();
   lv_indev_set_type(keydev, LV_INDEV_TYPE_KEYPAD);
   lv_indev_set_read_cb(keydev, keypad_read);
@@ -636,12 +640,15 @@ void StartGuiTask(void *args)
   //lv_label_set_text(icon_label, " " LV_SYMBOL_USB " " LV_SYMBOL_BLUETOOTH);
   lv_label_set_text(icon_label, (const char *)icon_label_string);
 
+  /* Create Setup screen */
+
+  setup_screen_create(setups, haldev);
+  lv_obj_add_event_cb(setups->setup_screen, quit_setup_event, LV_EVENT_GESTURE, NULL);
+
   lv_obj_t *sel_screen;
 
   sel_screen = lv_obj_create(NULL);
-  lv_screen_load(sel_screen);
 
-  Board_Flash_Init(haldev, 1);
   haldev->boot_mode = SelectApplication(sel_screen);
 
   if (haldev->boot_mode < 2)
@@ -653,12 +660,10 @@ void StartGuiTask(void *args)
   games->screen = lv_obj_create(NULL);
   sounds->screen = lv_obj_create(NULL);
 
-  setup_screen_create(setups, haldev);
-  lv_obj_add_event_cb(setups->setup_screen, quit_setup_event, LV_EVENT_GESTURE, NULL);
-
   /* Switch to initial startup screen */
-  
+
   activate_screen(starts->screen);
+  
   lv_obj_delete(sel_screen);
   
   starts->title = lv_label_create(starts->screen);

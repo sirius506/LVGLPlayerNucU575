@@ -1,5 +1,6 @@
 #ifndef APP_GUI_H
 #define APP_GUI_H
+#include "bsp.h"
 #include "target.h"
 
 #include "lvgl.h"
@@ -192,9 +193,14 @@ typedef struct {
 } A2DP_SCREEN;
 
 typedef struct {
+  HAL_DEVICE *haldev;
+  lv_obj_t *scope_screen;
+  lv_obj_t *mlist_screen;
   lv_obj_t *scope_image;
   lv_obj_t *scope_label;
   lv_obj_t *play_button;
+  lv_obj_t *prev_button;
+  lv_obj_t *next_button;
 } OSCM_SCREEN;
 
 #define KBDEVENT_DOWN   0

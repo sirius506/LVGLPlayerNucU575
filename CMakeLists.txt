@@ -115,6 +115,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/assets/img_lv_demo_music_btn_loop.c
     App/assets/img_lv_demo_music_btn_prev.c
     App/assets/img_lv_demo_music_btn_next.c
+    App/assets/img_lv_demo_music_btn_prev_large.c
+    App/assets/img_lv_demo_music_btn_next_large.c
     App/assets/img_lv_demo_music_btn_pause.c
     App/assets/img_lv_demo_music_btn_pause_large.c
     App/assets/img_lv_demo_music_btn_play.c
