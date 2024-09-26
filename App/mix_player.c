@@ -20,7 +20,7 @@
 
 #include "dr_flac.h"
 
-#define PLAYER_STACK_SIZE  250
+#define PLAYER_STACK_SIZE  350
 #define READER_STACK_SIZE  1400
 
 TASK_DEF(mixplayer, PLAYER_STACK_SIZE, osPriorityAboveNormal2)
@@ -581,7 +581,7 @@ static void StartMixPlayerTask(void *args)
 
   debug_printf("Player Started..\n");
 
-  bsp_codec_init(haldev->codec_i2c, 44100);
+  //bsp_codec_init(haldev->codec_i2c, 44100);
 
   audio_config = get_audio_config(NULL);
 
