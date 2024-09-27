@@ -4,3 +4,7 @@
 [submodule "CMSIS-DSP"]
 	path = CMSIS-DSP
 	url = https://github.com/ARM-software/CMSIS-DSP.git
+[submodule "lvgl"]
+	path = lvgl
+	url = https://github.com/lvgl/lvgl.git
+	branch = release/v9.2
