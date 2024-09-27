@@ -52,7 +52,6 @@ static lv_obj_t * create_handle(lv_obj_t * parent);
 #if 0
 static void spectrum_anim_cb(void * a, int32_t v);
 #endif
-static void start_anim_cb(void * var, int32_t v);
 static void spectrum_draw_event_cb(lv_event_t * e);
 static lv_obj_t * album_image_create(lv_obj_t * parent);
 static void album_gesture_event_cb(lv_event_t * e);
@@ -61,7 +60,10 @@ static void prev_click_event_cb(lv_event_t * e);
 static void next_click_event_cb(lv_event_t * e);
 static void menu_click_event_cb(lv_event_t * e);
 static void track_load(uint32_t id);
+#ifdef DO_INTRO_ANIM
+static void start_anim_cb(void * var, int32_t v);
 static void stop_start_anim(lv_timer_t * t);
+#endif
 static void album_fade_anim_cb(void * var, int32_t v);
 static int32_t get_cos(int32_t deg, int32_t a);
 static int32_t get_sin(int32_t deg, int32_t a);
@@ -1098,12 +1100,14 @@ void spectrum_anim_update(int v)
       lv_image_set_scale(album_image_obj, LV_SCALE_NONE);
 }
 
+#ifdef DO_INTRO_ANIM
 static void start_anim_cb(void * var, int32_t v)
 {
     lv_coord_t * av = var;
     *av = v;
     lv_obj_invalidate(spectrum_obj);
 }
+#endif
 
 static lv_image_dsc_t imgdesc;
 
@@ -1143,6 +1147,7 @@ static lv_obj_t * album_image_create(lv_obj_t * parent)
 
 static void album_gesture_event_cb(lv_event_t * e)
 {
+    UNUSED(e);
     lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
     if(dir == LV_DIR_LEFT) _lv_demo_music_album_next(true);
     if(dir == LV_DIR_RIGHT) _lv_demo_music_album_next(false);
@@ -1163,6 +1168,7 @@ static void play_event_click_cb(lv_event_t * e)
 
 static void menu_click_event_cb(lv_event_t * e)
 {
+    UNUSED(e);
 #if 0
   if (playing)
   {
@@ -1196,12 +1202,14 @@ void app_psec_update(int tv)
       lv_slider_set_value(slider_obj, tv, LV_ANIM_ON);
 }
 
+#ifdef DO_INTRO_ANIM
 static void stop_start_anim(lv_timer_t * t)
 {
     LV_UNUSED(t);
     start_anim = false;
     lv_obj_refresh_ext_draw_size(spectrum_obj);
 }
+#endif
 
 static void album_fade_anim_cb(void * var, int32_t v)
 {

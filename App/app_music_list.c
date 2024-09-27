@@ -6,6 +6,7 @@
 #include "DoomPlayer.h"
 #include "fatfs.h"
 #include "app_music.h"
+#include "app_setup.h"
 #include "audio_output.h"
 
 #define	MAX_MUSIC	70
@@ -270,12 +271,11 @@ static lv_obj_t *add_list_btn(lv_obj_t *parent, MUSIC_INFO *mi)
     lv_obj_add_style(artist_label, &style_artist, 0);
     lv_obj_set_grid_cell(artist_label, LV_GRID_ALIGN_START, 1, 1, LV_GRID_ALIGN_CENTER, 1, 1);
 
-#if 0
+    int num_secs = mi->samples/play_frequency;
     lv_obj_t * time_label = lv_label_create(btn);
-    lv_label_set_text(time_label, time);
+    lv_label_set_text_fmt(time_label, "%d:%02d", num_secs / 60, num_secs % 60);
     lv_obj_add_style(time_label, &style_time, 0);
     lv_obj_set_grid_cell(time_label, LV_GRID_ALIGN_END, 2, 1, LV_GRID_ALIGN_CENTER, 0, 2);
-#endif
 
     LV_IMG_DECLARE(img_lv_demo_music_list_border);
     lv_obj_t * border = lv_image_create(btn);
