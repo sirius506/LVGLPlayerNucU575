@@ -319,7 +319,7 @@ void StartWavReaderTask(void *args)
       switch (cmd)
       {
       case READER_START:
-        pfile = OpenFATFile((char *)pinfo->fname);
+        pfile = OpenMusicFile((char *)pinfo->fname);
         if (pfile)
         {
           winfo = wave_open(pfile);
@@ -371,7 +371,7 @@ debug_printf("Output started.\n");
               pinfo->state = WAVP_ST_FLASH;
               pinfo->action = ACTION_NEXT;
               osMessageQueuePut(free_bufqId, &paudio, 0, 10);
-              CloseFATFile(pfile);
+              CloseMusicFile(pfile);
               debug_printf("read finished. %d\n", pinfo->nobuff);
               break;
             }
@@ -380,7 +380,7 @@ debug_printf("Output started.\n");
         break;
       case READER_STOP:
         pinfo->state = WAVP_ST_FLASH;
-        CloseFATFile(pfile);
+        CloseMusicFile(pfile);
         break;
       default:
         break;
@@ -404,14 +404,14 @@ static int build_music_list(OSCMUSICINFO **pinfo)
 
   for (i = 0; i < num_music; i++)
   {
-    pfile = OpenFATFile((char *)MusicList[i]);
+    pfile = OpenMusicFile((char *)MusicList[i]);
     if (pfile)
     {
       winfo = wave_open(pfile);
       oscm->fname = MusicList[i];
       oscm->secs = winfo->fsize / 4 / winfo->sampleRate;
       oscm->rate = winfo->sampleRate;
-      CloseFATFile(pfile);
+      CloseMusicFile(pfile);
 //debug_printf("%s @ %dK: %d:%02d\n", oscm->fname, oscm->rate/1000, oscm->secs/ 60, oscm->secs % 60);
       oscm++;
     }
