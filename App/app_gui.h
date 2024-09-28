@@ -201,6 +201,7 @@ typedef struct {
   lv_obj_t *play_button;
   lv_obj_t *prev_button;
   lv_obj_t *next_button;
+  uint8_t  disp_toggle;
 } OSCM_SCREEN;
 
 #define KBDEVENT_DOWN   0

@@ -6,6 +6,8 @@
 #include "audio_output.h"
 #include "app_setup.h"
 
+#define DOUBLE_IMAGE		/* Use double image buffering */
+
 #define AUDIO_FRAME_SIZE        (192*6) /* 16bit, 192K sampling, 6ms */
 #define OSC_BUF_FACTOR      4
 
@@ -82,6 +84,7 @@ typedef struct {
 } PLAYERINFO;
 
 const char *MusicList[] = {
+   "N-SPHERES/Function.wav",
    "OscMusic/01 Dots.wav",
    "OscMusic/02 Lines.wav",
    "OscMusic/03 Blocks.wav",
@@ -92,7 +95,6 @@ const char *MusicList[] = {
    "OscMusic/08 Shrooms.wav",
    "OscMusic/09 Deconstruct.wav",
    "OscMusic/10 Reconstruct.wav",
-   "N-SPHERES/Function.wav"
 };
 
 typedef struct {
@@ -579,6 +581,32 @@ static const uint8_t index_data[I1_INDEX_SIZE] = {
   0x00,0x00,0x00,0xff,0x80,0xE0,0x00,0xFF,
 };
 
+#ifdef DOUBLE_IMAGE
+uint8_t oscImage_map1[40*320+8];
+uint8_t oscImage_map2[40*320+8];
+
+const lv_image_dsc_t oscImage1 = {
+  .header.magic = LV_IMAGE_HEADER_MAGIC,
+  .header.cf = LV_COLOR_FORMAT_I1,
+  .header.flags = 0,
+  .header.w = 256,
+  .header.h = 256,
+  .header.stride = 32,
+  .data_size = sizeof(oscImage_map1),
+  .data = oscImage_map1,
+}; 
+
+const lv_image_dsc_t oscImage2 = {
+  .header.magic = LV_IMAGE_HEADER_MAGIC,
+  .header.cf = LV_COLOR_FORMAT_I1,
+  .header.flags = 0,
+  .header.w = 256,
+  .header.h = 256,
+  .header.stride = 32,
+  .data_size = sizeof(oscImage_map2),
+  .data = oscImage_map2,
+}; 
+#else
 uint8_t oscImage_map[40*320+8];
 
 const lv_image_dsc_t oscImage = {
@@ -591,6 +619,7 @@ const lv_image_dsc_t oscImage = {
   .data_size = sizeof(oscImage_map),
   .data = oscImage_map,
 }; 
+#endif
 
 /**
  * Called when play button status has changed
@@ -678,12 +707,22 @@ void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
   lv_style_set_image_opa(&style_pr, LV_OPA_100);
   lv_style_set_transition(&style_def, &tr);
 
+#ifdef DOUBLE_IMAGE
+  memcpy(oscImage_map1, index_data, I1_INDEX_SIZE);	/* Copy Index data */
+  memcpy(oscImage_map2, index_data, I1_INDEX_SIZE);	/* Copy Index data */
+  screen->disp_toggle = 0;
+#else
   memcpy(oscImage_map, index_data, I1_INDEX_SIZE);	/* Copy Index data */
+#endif
   lv_style_init(&osc_style);
   lv_style_set_text_color(&osc_style, lv_palette_main(LV_PALETTE_LIME));
 
   screen->scope_image = lv_image_create(cs);
+#ifdef DOUBLE_IMAGE
+  lv_image_set_src(screen->scope_image, &oscImage1);
+#else
   lv_image_set_src(screen->scope_image, &oscImage);
+#endif
   lv_obj_center(screen->scope_image);
   screen->scope_label = lv_label_create(cs);
   lv_obj_add_style(screen->scope_label, &osc_style, 0);
@@ -743,7 +782,12 @@ void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp)
     left += 128;
     right += 128;
 
+#ifdef DOUBLE_IMAGE
+    oscImage_map1[right * 32 + left / 8 + I1_INDEX_SIZE] |= (0x80 >> (left & 7));
+    oscImage_map2[right * 32 + left / 8 + I1_INDEX_SIZE] |= (0x80 >> (left & 7));
+#else
     oscImage_map[right * 32 + left / 8 + I1_INDEX_SIZE] |= (0x80 >> (left & 7));
+#endif
     mp++;
   }
   if (crate == 96000)
@@ -752,11 +796,24 @@ void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp)
     switch (dcount % 4)
     {
     case 0:
+#ifdef DOUBLE_IMAGE
+      lv_image_set_src(screen->scope_image,
+                       (screen->disp_toggle & 1)? &oscImage2 : & oscImage1);
+#else
       lv_obj_invalidate(screen->scope_image);
+#endif
       lv_timer_handler();
       break;
     case 1:
+#ifdef DOUBLE_IMAGE
+      if (screen->disp_toggle & 1)
+        memset(oscImage_map2 + I1_INDEX_SIZE, 0, sizeof(oscImage_map2) - I1_INDEX_SIZE);
+      else
+        memset(oscImage_map1 + I1_INDEX_SIZE, 0, sizeof(oscImage_map1) - I1_INDEX_SIZE);
+      screen->disp_toggle ^= 1;
+#else
       memset(oscImage_map + I1_INDEX_SIZE, 0, sizeof(oscImage_map) - I1_INDEX_SIZE);
+#endif
       break;
     default:
       break;
@@ -768,11 +825,24 @@ void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp)
     switch (dcount % 6)
     {
     case 0:
+#ifdef DOUBLE_IMAGE
+      lv_image_set_src(screen->scope_image,
+                       (screen->disp_toggle & 1)? &oscImage2 : & oscImage1);
+#else
       lv_obj_invalidate(screen->scope_image);
+#endif
       lv_timer_handler();
       break;
     case 2:
+#ifdef DOUBLE_IMAGE
+      if (screen->disp_toggle & 1)
+        memset(oscImage_map2 + I1_INDEX_SIZE, 0, sizeof(oscImage_map2) - I1_INDEX_SIZE);
+      else
+        memset(oscImage_map1 + I1_INDEX_SIZE, 0, sizeof(oscImage_map1) - I1_INDEX_SIZE);
+      screen->disp_toggle ^= 1;
+#else
       memset(oscImage_map + I1_INDEX_SIZE, 0, sizeof(oscImage_map) - I1_INDEX_SIZE);
+#endif
       break;
     default:
       break;
