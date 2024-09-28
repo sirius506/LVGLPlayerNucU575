@@ -42,8 +42,8 @@ void MX_FATFS_Init(void);
 
 FIL *OpenFATFile(char *name);
 void CloseFATFile(FIL *pfile);
-FIL *OpenFlacFile(char *name);
-void CloseFlacFile(FIL *pfile);
+FIL *OpenMusicFile(char *name);
+void CloseMusicFile(FIL *pfile);
 FIL *CreateFATFile(char *name);
 FIL *CreateJpegFile(char *name);
 void CloseJpegFile(FIL *pfile);

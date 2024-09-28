@@ -231,7 +231,7 @@ static drflac_result drflac_fatopen(FIL** ppFile, const char* pFilePath)
         return DRFLAC_INVALID_ARGS;
     }
 
-    *ppFile = OpenFlacFile((char *)pFilePath);
+    *ppFile = OpenMusicFile((char *)pFilePath);
     if (*ppFile == NULL) {
         drflac_result result = DRFLAC_DOES_NOT_EXIST;
         if (result == DRFLAC_SUCCESS) {
@@ -293,7 +293,7 @@ static drflac* drflac_open_fatfile(const char* pFileName, const drflac_allocatio
 
     pFlac = drflac_open_with_metadata(drflac__on_read_fatfs, drflac__on_seek_fatfs,  drflac__on_meta, (void*)piflac, pAllocationCallbacks);
     if (pFlac == NULL) {
-        CloseFlacFile(pFile);
+        CloseMusicFile(pFile);
         return NULL;
     }
 
@@ -314,7 +314,7 @@ static void drflac_close_fatfs(drflac* pFlac)
     was used by looking at the callbacks.
     */
     if (pFlac->bs.onRead == drflac__on_read_fatfs) {
-        CloseFlacFile(piflac->pfile);
+        CloseMusicFile(piflac->pfile);
     }
 
 #ifndef DR_FLAC_NO_OGG
@@ -324,7 +324,7 @@ static void drflac_close_fatfs(drflac* pFlac)
         DRFLAC_ASSERT(pFlac->bs.onRead == drflac__on_read_ogg);
 
         if (oggbs->onRead == drflac__on_read_fatfs) {
-            CloseFlacFile((FIL*)oggbs->pUserData);
+            CloseMusicFile((FIL*)oggbs->pUserData);
         }
     }
 #endif

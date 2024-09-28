@@ -27,7 +27,7 @@ char SDPath[4];   /* SD logical drive path */
 FATFS SDFatFS;    /* File system object for SD logical drive */
 FIL SDFile;       /* File object for SD */
 FILINFO SDInfo;
-FIL FlacFile;
+FIL MusicFile;
 #ifdef USE_JPEG
 FIL JpegFile;
 #endif
@@ -144,17 +144,17 @@ void CloseFATFile(FIL *pfile)
   osSemaphoreRelease(sdfile_semId);
 }
 
-FIL *OpenFlacFile(char *name)
+FIL *OpenMusicFile(char *name)
 {
   FRESULT res;
 
-  res = f_open(&FlacFile, name, FA_READ);
+  res = f_open(&MusicFile, name, FA_READ);
   if (res != FR_OK)
     return NULL;
-  return &FlacFile;
+  return &MusicFile;
 }
 
-void CloseFlacFile(FIL *pfile)
+void CloseMusicFile(FIL *pfile)
 {
   f_close(pfile);
 }
