@@ -1,5 +1,5 @@
+#include "DoomPlayer.h"
 #include <string.h>
-#include "app_gui.h"
 #include "qspi.h"
 #include "board_if.h"
 #include "debug.h"
@@ -544,3 +544,71 @@ void Board_Set_Brightness(HAL_DEVICE *haldev, int brval)
   sConfigOC.Pulse = brval;
   HAL_TIM_PWM_ConfigChannel(haldev->tft_lcd->pwm_timer, &sConfigOC, TIM_CHANNEL_1);
 }
+
+void Board_SAI_ClockConfig(HAL_DEVICE *haldev, int sample_rate)
+{
+
+  RCC_PeriphCLKInitTypeDef rcc_ex_clk_init_struct;
+    
+  rcc_ex_clk_init_struct.PLL3.PLL3Source = RCC_PLLSOURCE_HSI;
+  rcc_ex_clk_init_struct.PLL3.PLL3RGE = 0;
+  rcc_ex_clk_init_struct.PLL3.PLL3FRACN = 0;
+  rcc_ex_clk_init_struct.PLL3.PLL3ClockOut = RCC_PLL3_DIVP;
+  rcc_ex_clk_init_struct.PeriphClockSelection = RCC_PERIPHCLK_SAI1;
+  rcc_ex_clk_init_struct.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLL3;
+  rcc_ex_clk_init_struct.PLL3.PLL3Q = 2;
+  rcc_ex_clk_init_struct.PLL3.PLL3R = 2;
+
+  /* SAI clock config:
+    PLL3_VCO Input = HSI_16Mhz/PLL3M = 16 Mhz
+    PLL3_VCO Output = PLL3_VCO Input * PLL3N = 384 Mhz
+    SAI_CLK_x = PLL3_VCO Output/PLL3P = 384/8 = 48 Mhz */
+  rcc_ex_clk_init_struct.PLL3.PLL3M = 1;
+  rcc_ex_clk_init_struct.PLL3.PLL3N = 24;
+  rcc_ex_clk_init_struct.PLL3.PLL3P = 8;
+  rcc_ex_clk_init_struct.PLL3.PLL3FRACN = 4700;
+
+  HAL_RCCEx_PeriphCLKConfig(&rcc_ex_clk_init_struct);
+
+  __HAL_RCC_SAI1_CLK_ENABLE();
+
+  bsp_codec_init(haldev->codec_i2c, sample_rate);
+}
+
+static void (*osc_half_comp)();
+static void (*osc_full_comp)();
+
+void Board_SAI_Start(HAL_DEVICE *haldev, uint8_t *bp, int len)
+{
+  HAL_SAI_Transmit_DMA(haldev->audio_sai->hsai, bp, len);
+}
+
+static void sai_half_comp(SAI_HandleTypeDef *hsai)
+{
+  UNUSED(hsai);
+  osc_half_comp();
+}
+
+static void sai_full_comp(SAI_HandleTypeDef *hsai)
+{
+  UNUSED(hsai);
+  osc_full_comp();
+}
+
+void Board_SAI_Init(HAL_DEVICE *haldev,  int sampleRate, void (*half_comp)(), void (*full_comp)())
+{
+  SAI_HandleTypeDef *hsai = haldev->audio_sai->hsai;
+
+  hsai->Init.AudioFrequency = sampleRate;
+  osc_half_comp = half_comp;
+  osc_full_comp = full_comp;
+  HAL_SAI_Init(hsai);
+  HAL_SAI_RegisterCallback(hsai, HAL_SAI_TX_HALFCOMPLETE_CB_ID, sai_half_comp);
+  HAL_SAI_RegisterCallback(hsai, HAL_SAI_TX_COMPLETE_CB_ID, sai_full_comp);
+}
+
+void Board_SAI_DeInit(HAL_DEVICE *haldev)
+{
+  HAL_SAI_DeInit(haldev->audio_sai->hsai);
+}
+

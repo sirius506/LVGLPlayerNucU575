@@ -213,16 +213,18 @@ static void DAC_Audio_MixSound(AUDIO_CONF *aconf, const AUDIO_STEREO *psrc, int 
   osMutexRelease(aconf->soundLockId);
 }
 
-void bsp_start_audio_timer(HAL_DEVICE *haldev)
+void bsp_pause_audio(HAL_DEVICE *haldev)
 {
-  if (haldev && haldev->audio_timer)
-    HAL_TIM_Base_Start(haldev->audio_timer);	// Start trigger timer
-}
+  int st;
 
-void bsp_stop_audio_timer(HAL_DEVICE *haldev)
+  DOOM_SAI_Handle *audio = haldev->audio_sai;
+  st = HAL_SAI_DMAPause(audio->hsai);
+  debug_printf("pause: %d\n", st);
+}
+void bsp_resume_audio(HAL_DEVICE *haldev)
 {
-  if (haldev && haldev->audio_timer)
-    HAL_TIM_Base_Stop(haldev->audio_timer);	// Stop trigger timer
+  DOOM_SAI_Handle *audio = haldev->audio_sai;
+  HAL_SAI_DMAResume(audio->hsai);
 }
 
 /**

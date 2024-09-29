@@ -215,65 +215,14 @@ void wavp_request_data(int offset)
 AUDIO_STEREO OscFrameBuffer[AUDIO_FRAME_SIZE*OSC_BUF_FACTOR];
 AUDIO_STEREO FinalOscBuffer[AUDIO_FRAME_SIZE * 2];
 
-static void osc_half_complete(SAI_HandleTypeDef *hsai)
+static void osc_half_complete()
 {
-  UNUSED(hsai);
   wavp_request_data(0);
 }
 
-static void osc_full_complete(SAI_HandleTypeDef *hsai)
+static void osc_full_complete()
 {
-  UNUSED(hsai);
   wavp_request_data(AUDIO_FRAME_SIZE);
-}
-
-static void osc_error(SAI_HandleTypeDef *hsai)
-{
-  debug_printf("SAI Error: %x\n", hsai->ErrorCode);
-}
-
-/**
-  * @brief  SAI1 clock Config.
-  * @param  hsai SAI handle.
-  * @param  SampleRate Audio sample rate used to play the audio stream.
-  * @note   The SAI PLL configuration done within this function assumes that
-  *         the SAI PLL input is MSI clock and that MSI is already enabled at 4 MHz.
-  * @retval HAL status.
-  */
-__weak HAL_StatusTypeDef MX_SAI1_ClockConfig(const SAI_HandleTypeDef *hsai, uint32_t SampleRate)
-{   
-  /* Prevent unused argument(s) compilation warning */
-  UNUSED(hsai);
-  UNUSED(SampleRate);
-    
-  HAL_StatusTypeDef ret = HAL_OK;
-  RCC_PeriphCLKInitTypeDef rcc_ex_clk_init_struct;
-    
-  rcc_ex_clk_init_struct.PLL3.PLL3Source = RCC_PLLSOURCE_HSI;
-  rcc_ex_clk_init_struct.PLL3.PLL3RGE = 0;
-  rcc_ex_clk_init_struct.PLL3.PLL3FRACN = 0;
-  rcc_ex_clk_init_struct.PLL3.PLL3ClockOut = RCC_PLL3_DIVP;
-  rcc_ex_clk_init_struct.PeriphClockSelection = RCC_PERIPHCLK_SAI1;
-  rcc_ex_clk_init_struct.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLL3;
-  rcc_ex_clk_init_struct.PLL3.PLL3Q = 2;
-  rcc_ex_clk_init_struct.PLL3.PLL3R = 2;
-
-    /* SAI clock config:
-    PLL3_VCO Input = HSI_16Mhz/PLL3M = 16 Mhz
-    PLL3_VCO Output = PLL3_VCO Input * PLL3N = 384 Mhz
-    SAI_CLK_x = PLL3_VCO Output/PLL3P = 384/8 = 48 Mhz */
-    rcc_ex_clk_init_struct.PLL3.PLL3M = 1;
-    rcc_ex_clk_init_struct.PLL3.PLL3N = 24;
-    rcc_ex_clk_init_struct.PLL3.PLL3P = 8;
-    rcc_ex_clk_init_struct.PLL3.PLL3FRACN = 4700;
-
-  if (HAL_RCCEx_PeriphCLKConfig(&rcc_ex_clk_init_struct) != HAL_OK)
-  {
-    ret = HAL_ERROR;
-  }
-  __HAL_RCC_SAI1_CLK_ENABLE();
-
-  return ret;
 }
 
 static int crate;
@@ -288,19 +237,11 @@ void StartWavReaderTask(void *args)
   FIL *pfile = NULL;
   UINT nrb;
   HAL_DEVICE *haldev = (HAL_DEVICE *)args;
-  SAI_HandleTypeDef *hsai;
   int frames;
 
-  hsai = haldev->audio_sai->hsai;
-
-#if 1
-  MX_SAI1_ClockConfig(hsai, 192000);
-
   crate = 0;
-#else
-  crate = 0;
-#endif
-  bsp_codec_init(haldev->codec_i2c, crate);
+  Board_SAI_ClockConfig(haldev, crate);
+
   memset(OscFrameBuffer, 0, sizeof(OscFrameBuffer));
 
   paudio = OscFrameBuffer;
@@ -329,25 +270,20 @@ void StartWavReaderTask(void *args)
           frames = 0;
 debug_printf("%s opened.\n", pinfo->fname);
           postGuiEventMessage(GUIEV_OSCM_FILE, 0, (void *)pinfo->fname, NULL);
-          HAL_SAI_DeInit(hsai);
+          Board_SAI_DeInit(haldev);
           while (osMessageQueueGet(free_bufqId, &paudio, 0, 0) == osOK)
           {
             f_read(pfile, paudio, sizeof(AUDIO_STEREO) * AUDIO_FRAME_SIZE, &nrb);
             osMessageQueuePut(play_bufqId, &paudio, 0, 0);
           }
-          hsai->Init.AudioFrequency = winfo->sampleRate;
-          debug_printf("rate change: %d\n", winfo->sampleRate);
+
+          Board_SAI_Init(haldev,  winfo->sampleRate, osc_half_complete, osc_full_complete);
           if (crate != winfo->sampleRate)
           {
             crate = winfo->sampleRate;
             bsp_codec_init(haldev->codec_i2c, crate);
           }
-          HAL_SAI_Init(hsai);
-          HAL_SAI_RegisterCallback(hsai, HAL_SAI_TX_HALFCOMPLETE_CB_ID, osc_half_complete);
-          HAL_SAI_RegisterCallback(hsai, HAL_SAI_TX_COMPLETE_CB_ID, osc_full_complete);
-          HAL_SAI_RegisterCallback(hsai, HAL_SAI_ERROR_CB_ID, osc_error);
-
-          HAL_SAI_Transmit_DMA(hsai, (uint8_t *)FinalOscBuffer, AUDIO_FRAME_SIZE * 4);
+          Board_SAI_Start(haldev, (uint8_t *)FinalOscBuffer, AUDIO_FRAME_SIZE * 4);
 
           pinfo->fsize = winfo->fsize;
           pinfo->nobuff = 0;
