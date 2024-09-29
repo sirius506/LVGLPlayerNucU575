@@ -89,7 +89,6 @@ typedef struct {
   CRC_HandleTypeDef *crc_comp;;
   SD_HandleTypeDef  *sdmmc;
   DOOM_DAC_Handle   *audio_dac;
-  TIM_HandleTypeDef *audio_timer;
   TIM_HandleTypeDef *pwm_timer;
   BOOT_MODE         boot_mode;
 } HAL_DEVICE;

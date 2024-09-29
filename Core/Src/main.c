@@ -75,7 +75,6 @@ DMA_HandleTypeDef handle_GPDMA1_Channel5;
 SD_HandleTypeDef hsd1;
 
 TIM_HandleTypeDef htim3;
-TIM_HandleTypeDef htim6;
 TIM_HandleTypeDef htim15;
 
 UART_HandleTypeDef huart1;
@@ -124,7 +123,6 @@ static void MX_TIM15_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_CRC_Init(void);
 static void MX_ADC1_Init(void);
-static void MX_TIM6_Init(void);
 static void MX_DCACHE1_Init(void);
 static void MX_FLASH_Init(void);
 static void MX_RTC_Init(void);
@@ -192,7 +190,6 @@ int main(void)
   MX_USART2_UART_Init();
   MX_CRC_Init();
   MX_ADC1_Init();
-  MX_TIM6_Init();
   MX_DCACHE1_Init();
   MX_FLASH_Init();
   MX_RTC_Init();
@@ -233,7 +230,6 @@ int main(void)
 
   haldev->audio_dac = &audio_dac;
   haldev->audio_dac->hdac = &hdac1;
-  haldev->audio_timer = &htim6;
 
   haldev->audio_sai = &audio_sai;
   haldev->audio_sai->hsai = &hsai_BlockA1;
@@ -1194,44 +1190,6 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 2 */
   HAL_TIM_MspPostInit(&htim3);
-
-}
-
-/**
-  * @brief TIM6 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM6_Init(void)
-{
-
-  /* USER CODE BEGIN TIM6_Init 0 */
-
-  /* USER CODE END TIM6_Init 0 */
-
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-
-  /* USER CODE BEGIN TIM6_Init 1 */
-
-  /* USER CODE END TIM6_Init 1 */
-  htim6.Instance = TIM6;
-  htim6.Init.Prescaler = 0;
-  htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 3627;
-  htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
-  if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim6, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM6_Init 2 */
-
-  /* USER CODE END TIM6_Init 2 */
 
 }
 
