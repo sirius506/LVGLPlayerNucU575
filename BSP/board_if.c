@@ -545,7 +545,7 @@ void Board_Set_Brightness(HAL_DEVICE *haldev, int brval)
   HAL_TIM_PWM_ConfigChannel(haldev->tft_lcd->pwm_timer, &sConfigOC, TIM_CHANNEL_1);
 }
 
-void Board_SAI_ClockConfig(HAL_DEVICE *haldev, int sample_rate)
+void Board_Audio_ClockConfig(HAL_DEVICE *haldev, int sample_rate)
 {
 
   RCC_PeriphCLKInitTypeDef rcc_ex_clk_init_struct;
@@ -575,7 +575,7 @@ void Board_SAI_ClockConfig(HAL_DEVICE *haldev, int sample_rate)
   bsp_codec_init(haldev->codec_i2c, sample_rate);
 }
 
-void Board_SAI_Start(HAL_DEVICE *haldev, uint8_t *bp, int len)
+void Board_Audio_Start(HAL_DEVICE *haldev, uint8_t *bp, int len)
 {
   HAL_SAI_Transmit_DMA(haldev->audio_sai->hsai, bp, len);
 }
@@ -592,7 +592,7 @@ static void sai_full_comp(SAI_HandleTypeDef *hsai)
   (*sai_audio->saitx_full_comp)();
 }
 
-void Board_SAI_Init(HAL_DEVICE *haldev,  int sampleRate)
+void Board_Audio_Init(HAL_DEVICE *haldev,  int sampleRate)
 {
   SAI_HandleTypeDef *hsai = haldev->audio_sai->hsai;
 
@@ -605,8 +605,25 @@ void Board_SAI_Init(HAL_DEVICE *haldev,  int sampleRate)
   HAL_SAI_RegisterCallback(hsai, HAL_SAI_TX_COMPLETE_CB_ID, sai_full_comp);
 }
 
-void Board_SAI_DeInit(HAL_DEVICE *haldev)
+void Board_Audio_DeInit(HAL_DEVICE *haldev)
 {
   HAL_SAI_DeInit(haldev->audio_sai->hsai);
 }
 
+void Board_Audio_Pause(HAL_DEVICE *haldev)
+{
+  DOOM_SAI_Handle *audio = haldev->audio_sai;
+  HAL_SAI_DMAPause(audio->hsai);
+}
+
+void Board_Audio_Resume(HAL_DEVICE *haldev)
+{
+  DOOM_SAI_Handle *audio = haldev->audio_sai;
+  HAL_SAI_DMAResume(audio->hsai);
+}
+
+void Board_Audio_Stop(HAL_DEVICE *haldev)
+{
+  DOOM_SAI_Handle *audio = haldev->audio_sai;
+  HAL_SAI_DMAStop(audio->hsai);
+}

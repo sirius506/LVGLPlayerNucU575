@@ -24,9 +24,12 @@ extern volatile DOOM_SCREEN_STATUS DoomScreenStatus;
 void Board_Set_Brightness(HAL_DEVICE *haldev, int brval);
 int Board_Get_Brightness();
 
-void Board_SAI_ClockConfig(HAL_DEVICE *haldev, int sample_rate);
-void Board_SAI_Start(HAL_DEVICE *haldev, uint8_t *bp, int len);
-void Board_SAI_DeInit(HAL_DEVICE *haldev);
-void Board_SAI_Init(HAL_DEVICE *haldev,  int sampleRate);
+void Board_Audio_ClockConfig(HAL_DEVICE *haldev, int sample_rate);
+void Board_Audio_Start(HAL_DEVICE *haldev, uint8_t *bp, int len);
+void Board_Audio_DeInit(HAL_DEVICE *haldev);
+void Board_Audio_Init(HAL_DEVICE *haldev,  int sampleRate);
+void Board_Audio_Pause(HAL_DEVICE *haldev);
+void Board_Audio_Resume(HAL_DEVICE *haldev);
+void Board_Audio_Stop(HAL_DEVICE *haldev);
 
 #endif

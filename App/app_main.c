@@ -219,10 +219,10 @@ void StartDefaultTask(void *argument)
     case REQ_SCREEN_SAVE:
       if (screen_buffer)
       {
-        bsp_pause_audio(haldev);
+        Board_Audio_Pause(haldev);
         bsp_lcd_save(screen_buffer);
         SaveScreenFile(screen_buffer, SCREEN_BUFF_SIZE);
-        bsp_resume_audio(haldev);
+        Board_Audio_Resume(haldev);
       }
       break;
     default:

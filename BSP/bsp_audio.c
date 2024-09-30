@@ -96,6 +96,7 @@ static void MixSoundChannels(AUDIO_STEREO *pdst, int num_frame)
   }
 }
 
+#ifdef OLD_CODE
 void bsp_pause_audio(HAL_DEVICE *haldev)
 {
   int st;
@@ -110,6 +111,7 @@ void bsp_resume_audio(HAL_DEVICE *haldev)
   DOOM_SAI_Handle *audio = haldev->audio_sai;
   HAL_SAI_DMAResume(audio->hsai);
 }
+#endif
 
 /**
  * @brief Initialize SAI audio driver
@@ -120,7 +122,7 @@ static void SAI_Audio_Init(AUDIO_CONF *aconf, void (*txhalf_comp)(), void (*txfu
 
   audio->saitx_half_comp = txhalf_comp;
   audio->saitx_full_comp = txfull_comp;
-  Board_SAI_Init(aconf->haldev, 0);
+  Board_Audio_Init(aconf->haldev, 0);
 
   /* Initialize buffer pointers */
   aconf->sound_buffer = FinalAudioBuffer;

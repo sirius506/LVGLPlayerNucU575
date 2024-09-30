@@ -243,7 +243,7 @@ void StartWavReaderTask(void *args)
   crate = 0;
   haldev->audio_sai->saitx_half_comp = osc_half_complete;
   haldev->audio_sai->saitx_full_comp = osc_full_complete;
-  Board_SAI_ClockConfig(haldev, crate);
+  Board_Audio_ClockConfig(haldev, crate);
 
   memset(OscFrameBuffer, 0, sizeof(OscFrameBuffer));
 
@@ -273,20 +273,20 @@ void StartWavReaderTask(void *args)
           frames = 0;
 debug_printf("%s opened.\n", pinfo->fname);
           postGuiEventMessage(GUIEV_OSCM_FILE, 0, (void *)pinfo->fname, NULL);
-          Board_SAI_DeInit(haldev);
+          Board_Audio_DeInit(haldev);
           while (osMessageQueueGet(free_bufqId, &paudio, 0, 0) == osOK)
           {
             f_read(pfile, paudio, sizeof(AUDIO_STEREO) * AUDIO_FRAME_SIZE, &nrb);
             osMessageQueuePut(play_bufqId, &paudio, 0, 0);
           }
 
-          Board_SAI_Init(haldev,  winfo->sampleRate);
+          Board_Audio_Init(haldev,  winfo->sampleRate);
           if (crate != winfo->sampleRate)
           {
             crate = winfo->sampleRate;
             bsp_codec_init(haldev->codec_i2c, crate);
           }
-          Board_SAI_Start(haldev, (uint8_t *)FinalOscBuffer, AUDIO_FRAME_SIZE * 4);
+          Board_Audio_Start(haldev, (uint8_t *)FinalOscBuffer, AUDIO_FRAME_SIZE * 4);
 
           pinfo->fsize = winfo->fsize;
           pinfo->nobuff = 0;
