@@ -39,7 +39,7 @@ typedef struct {
 } AUDIO_CONF;
 
 typedef struct {
-  void    (*Init)(AUDIO_CONF *audio_conf);
+  void    (*Init)(AUDIO_CONF *audio_conf, void (*txhalf_comp)(), void (*txfull_comp)());
   void    (*Start)(AUDIO_CONF *audio_conf);
   void    (*Stop)(AUDIO_CONF *audio_conf);
   void    (*MixSound)(AUDIO_CONF *audio_conf, const AUDIO_STEREO *psrc, int num_frame);
@@ -55,5 +55,8 @@ typedef struct s_adevconf {
 
 AUDIO_CONF *get_audio_config(HAL_DEVICE *haldev);
 extern CHANINFO ChanInfo[NUM_CHANNELS];
+
+extern void bsp_pause_audio(HAL_DEVICE *haldev);
+extern void bsp_resume_audio(HAL_DEVICE *haldev);
 
 #endif

@@ -575,9 +575,6 @@ void Board_SAI_ClockConfig(HAL_DEVICE *haldev, int sample_rate)
   bsp_codec_init(haldev->codec_i2c, sample_rate);
 }
 
-static void (*osc_half_comp)();
-static void (*osc_full_comp)();
-
 void Board_SAI_Start(HAL_DEVICE *haldev, uint8_t *bp, int len)
 {
   HAL_SAI_Transmit_DMA(haldev->audio_sai->hsai, bp, len);
@@ -585,23 +582,24 @@ void Board_SAI_Start(HAL_DEVICE *haldev, uint8_t *bp, int len)
 
 static void sai_half_comp(SAI_HandleTypeDef *hsai)
 {
-  UNUSED(hsai);
-  osc_half_comp();
+  DOOM_SAI_Handle *sai_audio = (DOOM_SAI_Handle *)hsai->UserPointer;
+  (*sai_audio->saitx_half_comp)();
 }
 
 static void sai_full_comp(SAI_HandleTypeDef *hsai)
 {
-  UNUSED(hsai);
-  osc_full_comp();
+  DOOM_SAI_Handle *sai_audio = (DOOM_SAI_Handle *)hsai->UserPointer;
+  (*sai_audio->saitx_full_comp)();
 }
 
-void Board_SAI_Init(HAL_DEVICE *haldev,  int sampleRate, void (*half_comp)(), void (*full_comp)())
+void Board_SAI_Init(HAL_DEVICE *haldev,  int sampleRate)
 {
   SAI_HandleTypeDef *hsai = haldev->audio_sai->hsai;
 
-  hsai->Init.AudioFrequency = sampleRate;
-  osc_half_comp = half_comp;
-  osc_full_comp = full_comp;
+  if (sampleRate)
+  {
+    hsai->Init.AudioFrequency = sampleRate;
+  }
   HAL_SAI_Init(hsai);
   HAL_SAI_RegisterCallback(hsai, HAL_SAI_TX_HALFCOMPLETE_CB_ID, sai_half_comp);
   HAL_SAI_RegisterCallback(hsai, HAL_SAI_TX_COMPLETE_CB_ID, sai_full_comp);

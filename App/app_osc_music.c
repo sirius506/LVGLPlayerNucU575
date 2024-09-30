@@ -2,6 +2,7 @@
  *  Oscilloscope Music Player
  */
 #include "DoomPlayer.h"
+#include "board_if.h"
 #include "fatfs.h"
 #include "audio_output.h"
 #include "app_setup.h"
@@ -240,6 +241,8 @@ void StartWavReaderTask(void *args)
   int frames;
 
   crate = 0;
+  haldev->audio_sai->saitx_half_comp = osc_half_complete;
+  haldev->audio_sai->saitx_full_comp = osc_full_complete;
   Board_SAI_ClockConfig(haldev, crate);
 
   memset(OscFrameBuffer, 0, sizeof(OscFrameBuffer));
@@ -277,7 +280,7 @@ debug_printf("%s opened.\n", pinfo->fname);
             osMessageQueuePut(play_bufqId, &paudio, 0, 0);
           }
 
-          Board_SAI_Init(haldev,  winfo->sampleRate, osc_half_complete, osc_full_complete);
+          Board_SAI_Init(haldev,  winfo->sampleRate);
           if (crate != winfo->sampleRate)
           {
             crate = winfo->sampleRate;
@@ -695,7 +698,7 @@ void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
 
   screen->haldev = haldev;
 
-  osThreadNew(StartOscMusic, screen, &attributes_mixplayer);
+  osThreadNew((osThreadFunc_t)StartOscMusic, screen, &attributes_mixplayer);
 }
 
 void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp)

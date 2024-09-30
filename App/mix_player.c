@@ -37,6 +37,7 @@ enum {
 static uint8_t readqBuffer[MIXREADQ_DEPTH * sizeof(uint16_t)];
 
 static AUDIO_STEREO *musicqBuffer[BUF_FACTOR];
+static void mix_request_data(int full);
 
 MESSAGEQ_DEF(flacreadq, readqBuffer, sizeof(readqBuffer))
 MESSAGEQ_DEF(musicbufq, musicqBuffer, sizeof(musicqBuffer))
@@ -563,6 +564,16 @@ debug_printf("PCM seek %d\n", flacInfo->seek_pos);
   }
 }
 
+static void mix_half_comp()
+{
+  mix_request_data(0);
+}
+
+static void mix_full_comp()
+{
+  mix_request_data(1);
+}
+
 static void StartMixPlayerTask(void *args)
 {
   UNUSED(args);
@@ -607,7 +618,9 @@ static void StartMixPlayerTask(void *args)
   soundLockId = audio_config->soundLockId = osMutexNew(&attributes_sound_lock);
 
   if (haldev->boot_mode == BOOTM_DOOM)
-    pDriver->Init(audio_config);
+  {
+    pDriver->Init(audio_config, mix_half_comp, mix_full_comp);
+  }
 
   mixInfo->mixevqId = osMessageQueueNew(MIX_EV_DEPTH, sizeof(MIXCONTROL_EVENT), &attributes_mixevq);
   mixInfo->volume = 80;
@@ -1191,7 +1204,7 @@ int Mix_AllocateChannels(int chans)
   return 1;
 }
 
-void mix_request_data(int full)
+static void mix_request_data(int full)
 {
   MIXCONTROL_EVENT evcode;
   int st;

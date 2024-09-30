@@ -27,6 +27,6 @@ int Board_Get_Brightness();
 void Board_SAI_ClockConfig(HAL_DEVICE *haldev, int sample_rate);
 void Board_SAI_Start(HAL_DEVICE *haldev, uint8_t *bp, int len);
 void Board_SAI_DeInit(HAL_DEVICE *haldev);
-void Board_SAI_Init(HAL_DEVICE *haldev,  int sampleRate, void (*half_comp)(), void (*full_comp)());
+void Board_SAI_Init(HAL_DEVICE *haldev,  int sampleRate);
 
 #endif

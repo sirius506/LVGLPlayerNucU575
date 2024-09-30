@@ -31,6 +31,8 @@ typedef struct {
 typedef struct {
   SAI_HandleTypeDef  *hsai;
   osSemaphoreId_t    *iosem;
+  void (*saitx_half_comp)();
+  void (*saitx_full_comp)();
 } DOOM_SAI_Handle;
 
 typedef struct {

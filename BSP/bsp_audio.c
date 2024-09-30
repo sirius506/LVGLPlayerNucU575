@@ -13,7 +13,7 @@ SECTION_SRDSRAM AUDIO_STEREO FinalAudioBuffer[BUF_FRAMES];
 
 extern void mix_request_data(int full);
 
-static void SAI_Audio_Init(AUDIO_CONF *aconf);
+static void SAI_Audio_Init(AUDIO_CONF *aconf, void (*txhalf_comp)(), void (*txfull_comp)());
 static void SAI_Audio_Start(AUDIO_CONF *aconf);
 static void SAI_Audio_Stop(AUDIO_CONF *aconf);
 static void SAI_Audio_MixSound(AUDIO_CONF *aconf, const AUDIO_STEREO *psrc, int num_frame);
@@ -104,6 +104,7 @@ void bsp_pause_audio(HAL_DEVICE *haldev)
   st = HAL_SAI_DMAPause(audio->hsai);
   debug_printf("pause: %d\n", st);
 }
+
 void bsp_resume_audio(HAL_DEVICE *haldev)
 {
   DOOM_SAI_Handle *audio = haldev->audio_sai;
@@ -111,41 +112,15 @@ void bsp_resume_audio(HAL_DEVICE *haldev)
 }
 
 /**
- * @brief Called by SAI DMA half complete interrupt
- */
-static void sai_half_complete(SAI_HandleTypeDef *hsai)
-{
-  UNUSED(hsai);
-
-  mix_request_data(0);
-}
-
-/**
- * @brief Called by SAI DMA full complete interrupt
- */
-static void sai_full_complete(SAI_HandleTypeDef *hsai)
-{
-  UNUSED(hsai);
-
-  mix_request_data(1);
-}
-
-static void sai_error(SAI_HandleTypeDef *hsai)
-{
-  debug_printf("SAI Error: %x\n", hsai->ErrorCode);
-}
-
-/**
  * @brief Initialize SAI audio driver
  */
-static void SAI_Audio_Init(AUDIO_CONF *aconf)
+static void SAI_Audio_Init(AUDIO_CONF *aconf, void (*txhalf_comp)(), void (*txfull_comp)())
 {
   DOOM_SAI_Handle *audio = aconf->haldev->audio_sai;
 
-  /* Register DMA complete callbacks */
-  HAL_SAI_RegisterCallback(audio->hsai, HAL_SAI_TX_HALFCOMPLETE_CB_ID, sai_half_complete);
-  HAL_SAI_RegisterCallback(audio->hsai, HAL_SAI_TX_COMPLETE_CB_ID, sai_full_complete);
-  HAL_SAI_RegisterCallback(audio->hsai, HAL_SAI_ERROR_CB_ID, sai_error);
+  audio->saitx_half_comp = txhalf_comp;
+  audio->saitx_full_comp = txfull_comp;
+  Board_SAI_Init(aconf->haldev, 0);
 
   /* Initialize buffer pointers */
   aconf->sound_buffer = FinalAudioBuffer;
