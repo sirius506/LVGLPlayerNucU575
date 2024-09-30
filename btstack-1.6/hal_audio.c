@@ -59,13 +59,13 @@ int BSP_AUDIO_OUT_GetFrequency()
     return 44100;
 }
 
-void  btaudio_HalfTransfer_CallBack(uint32_t Instance){
-
+void  btaudio_HalfTransfer_CallBack()
+{
     (*audio_played_handler)(0);
 }
 
-void btaudio_TransferComplete_CallBack(uint32_t Instance){
-
+void btaudio_TransferComplete_CallBack()
+{
     (*audio_played_handler)(1);
 }
 
@@ -131,12 +131,10 @@ void hal_audio_sink_start(void)
   playback_started = 1;
 
 debug_printf("%s:\n", __FUNCTION__);
-#if 1
-  HAL_SAI_RegisterCallback(haldev->audio_sai->hsai, HAL_SAI_TX_HALFCOMPLETE_CB_ID, btaudio_HalfTransfer_CallBack);
-  HAL_SAI_RegisterCallback(haldev->audio_sai->hsai, HAL_SAI_TX_COMPLETE_CB_ID, btaudio_TransferComplete_CallBack);
-
-  HAL_SAI_Transmit_DMA(haldev->audio_sai->hsai, (const uint32_t *)FinalAudioBuffer, BUF_FRAMES*2);
-#endif
+  haldev->audio_sai->saitx_half_comp = btaudio_HalfTransfer_CallBack;
+  haldev->audio_sai->saitx_full_comp = btaudio_TransferComplete_CallBack;
+  Board_Audio_Init(haldev, 0);
+  Board_Audio_Start(haldev, (const uint32_t *)FinalAudioBuffer, BUF_FRAMES*2);
 }
 
 /**
@@ -146,10 +144,7 @@ void hal_audio_sink_stop(void){
   HAL_DEVICE *haldev = &HalDevice;
 
   playback_started = 0;
-  HAL_SAI_DMAStop(haldev->audio_sai->hsai);
-#ifdef XX
-    BSP_AUDIO_OUT_Stop(0);
-#endif
+  Board_Audio_Stop(haldev);
 }
 
 /**
