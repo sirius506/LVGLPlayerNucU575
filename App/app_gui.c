@@ -500,6 +500,10 @@ static int SelectApplication(lv_obj_t *sel_screen)
   unsigned int new_interval, timer_interval;
   osStatus_t st;
   lv_obj_t *title;
+  lv_obj_t *mbox;
+  lv_obj_t *btn;
+  lv_obj_t *label;
+  char sbuff[30];
 
   title = lv_label_create(sel_screen);
   lv_obj_add_style(title, &style_title, 0);
@@ -510,7 +514,6 @@ static int SelectApplication(lv_obj_t *sel_screen)
 
   for (unsigned int i = 0; i < NUM_APPLICATION; i++)
   {
-    lv_obj_t *btn, *label;
 
     btn = lv_btn_create(sel_screen);
     lv_obj_align(btn, LV_ALIGN_TOP_MID,  0, lv_pct(app_labels[i].label_pos));
@@ -532,9 +535,31 @@ static int SelectApplication(lv_obj_t *sel_screen)
     st = osMessageQueueGet(guievqId, &event, NULL, timer_interval);
     if (st == osOK)
     {
-      if (event.evcode == GUIEV_APP_SELECT)
+      switch (event.evcode)
       {
+      case GUIEV_APP_SELECT:
         return (event.evval0);
+        break;
+      case GUIEV_SD_REPORT:
+        /* SD card verification failed. Show message box to reboot. */
+
+        lv_snprintf(sbuff, sizeof(sbuff)-1, "%s %s", (char *)event.evarg1, (char *)event.evarg2);
+        mbox = lv_msgbox_create(NULL);
+        lv_msgbox_add_title(mbox, "Bad SD Card");
+        lv_msgbox_add_text(mbox, sbuff);
+        btn = lv_msgbox_add_footer_button(mbox, "Reboot");
+        lv_obj_update_layout(btn);
+        debug_printf("btn size = %d x %d\n", lv_obj_get_width(btn), lv_obj_get_height(btn));
+
+        lv_obj_add_event_cb(btn, reboot_event_cb, LV_EVENT_PRESSED, NULL);
+        lv_obj_center(mbox);
+        break;
+      case GUIEV_REBOOT:
+        osDelay(200);
+        NVIC_SystemReset();
+        break;
+      default:
+        break;
       }
     }
     else

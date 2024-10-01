@@ -99,7 +99,7 @@ void StartDefaultTask(void *argument)
   reqcmdqId = osMessageQueueNew(REQCMD_DEPTH, sizeof(REQUEST_CMD), &attributes_reqcmdq);
 
   tft_init(haldev);
-  //osThreadNew(StartGuiTask, haldev, &attributes_guitask);
+  osThreadNew(StartGuiTask, haldev, &attributes_guitask);
 
   osThreadNew(StartShellTask, NULL, &attributes_shelltask);
 
@@ -107,7 +107,7 @@ void StartDefaultTask(void *argument)
 
   errs1 = NULL;
 
-  osDelay(500);
+  osDelay(400);
 
   if (bsp_sdcard_inserted())
   {
@@ -156,8 +156,6 @@ void StartDefaultTask(void *argument)
 
   /* Reserve screen_buffer space to hold RGB888 image data. */
   screen_buffer = (uint8_t *)malloc(SCREEN_BUFF_SIZE);
-
-  osThreadNew(StartGuiTask, haldev, &attributes_guitask);
 
   for(;;)
   {
