@@ -3,7 +3,7 @@
 #include "ntopt.h"
 #include "ntstdio.h"
 #include "ntlibc.h"
-#include "bsp.h"
+#include "board_if.h"
 #include "task.h"
 
 typedef int (*USRCMDFUNC)(int argc, char **argv);
@@ -42,16 +42,14 @@ static const char *estate_string[] = {
   "Invalid",
 };
 
-void read_comp(UART_HandleTypeDef *huart)
+void read_comp(DOOM_UART_Handle *shell_uart)
 {
-  DOOM_UART_Handle *shell_uart = (DOOM_UART_Handle *)huart->UserPointer;
 
   osSemaphoreRelease(shell_uart->recv_sem);
 }
 
-void write_comp(UART_HandleTypeDef *huart)
+void write_comp(DOOM_UART_Handle *shell_uart)
 {
-  DOOM_UART_Handle *shell_uart = (DOOM_UART_Handle *)huart->UserPointer;
 
   osSemaphoreRelease(shell_uart->send_sem);
 }
@@ -60,7 +58,7 @@ static int cons_read(char *buf, int cnt, void *extobj)
 {
   DOOM_UART_Handle *shell_uart = (DOOM_UART_Handle *)extobj;
 
-  HAL_UART_Receive_IT(shell_uart->huart, (uint8_t *)buf, 1);
+  Board_Uart_Receive_IT(shell_uart, (uint8_t *)buf, 1);
   osSemaphoreAcquire(shell_uart->recv_sem, osWaitForever);
   return cnt;
 }
@@ -69,7 +67,7 @@ static int cons_write(const char *buf, int cnt, void *extobj)
 {
   DOOM_UART_Handle *shell_uart = (DOOM_UART_Handle *)extobj;
 
-  HAL_UART_Transmit_DMA(shell_uart->huart, (uint8_t *)buf, cnt);
+  Board_Uart_Transmit_DMA(shell_uart, (uint8_t *)buf, cnt);
   osSemaphoreAcquire(shell_uart->send_sem, osWaitForever);
   return cnt;
 }
@@ -221,8 +219,9 @@ void StartShellTask(void *argp)
   shell_uart->recv_sem = osSemaphoreNew(1, 0, &attributes_conread_sem);
   shell_uart->send_sem = osSemaphoreNew(1, 0, &attributes_conwrite_sem);
 
-  HAL_UART_RegisterCallback(shell_uart->huart, HAL_UART_RX_COMPLETE_CB_ID, read_comp);
-  HAL_UART_RegisterCallback(shell_uart->huart, HAL_UART_TX_COMPLETE_CB_ID, write_comp);
+  shell_uart->uartrx_comp = read_comp;
+  shell_uart->uarttx_comp = write_comp;
+  Board_Uart_Init(shell_uart);
 
   ntshell_init(&nts, cons_read, cons_write, user_callback, (void*)shell_uart);
   ntshell_set_prompt(&nts, ">");

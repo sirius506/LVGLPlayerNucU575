@@ -32,4 +32,8 @@ void Board_Audio_Pause(HAL_DEVICE *haldev);
 void Board_Audio_Resume(HAL_DEVICE *haldev);
 void Board_Audio_Stop(HAL_DEVICE *haldev);
 
+void Board_Uart_Init(DOOM_UART_Handle *uart);
+void Board_Uart_Receive_IT(DOOM_UART_Handle *uart, uint8_t *buf, int len);
+void Board_Uart_Transmit_DMA(DOOM_UART_Handle *uart, uint8_t *buf, int cnt);
+
 #endif

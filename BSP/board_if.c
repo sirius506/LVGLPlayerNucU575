@@ -627,3 +627,31 @@ void Board_Audio_Stop(HAL_DEVICE *haldev)
   DOOM_SAI_Handle *audio = haldev->audio_sai;
   HAL_SAI_DMAStop(audio->hsai);
 }
+
+static void read_comp(UART_HandleTypeDef *huart)
+{
+  DOOM_UART_Handle *uart = (DOOM_UART_Handle *)huart->UserPointer;
+  (*uart->uartrx_comp)(uart);
+}
+
+static void write_comp(UART_HandleTypeDef *huart)
+{
+  DOOM_UART_Handle *uart = (DOOM_UART_Handle *)huart->UserPointer;
+  (*uart->uarttx_comp)(uart);
+}
+
+void Board_Uart_Init(DOOM_UART_Handle *uart)
+{
+  HAL_UART_RegisterCallback(uart->huart, HAL_UART_RX_COMPLETE_CB_ID, read_comp);
+  HAL_UART_RegisterCallback(uart->huart, HAL_UART_TX_COMPLETE_CB_ID, write_comp);
+}
+
+void Board_Uart_Receive_IT(DOOM_UART_Handle *uart, uint8_t *buf, int len)
+{
+  HAL_UART_Receive_IT(uart->huart, buf, len);
+}
+
+void Board_Uart_Transmit_DMA(DOOM_UART_Handle *uart, uint8_t *buf, int cnt)
+{
+  HAL_UART_Transmit_DMA(uart->huart, buf, cnt);
+}

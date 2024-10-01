@@ -56,6 +56,8 @@ typedef struct {
   osSemaphoreId_t    *send_sem;
   DMA_HandleTypeDef  *rxdma_handle;
   DMA_HandleTypeDef  *txdma_handle;
+  void (*uarttx_comp)();
+  void (*uartrx_comp)();
 } DOOM_UART_Handle;
 
 typedef struct {
