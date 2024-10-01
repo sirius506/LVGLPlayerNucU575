@@ -584,6 +584,7 @@ static void StartMixPlayerTask(void *args)
   FLACINFO *flacInfo = &FlacInfo;
   GUI_EVENT guiev;
   int argval;
+  uint8_t stream_toggle = 0;
   uint32_t psec;
   AUDIO_CONF *audio_config;
   HAL_DEVICE *haldev = &HalDevice;
@@ -840,7 +841,7 @@ debug_printf("Music Finish.\n");
       mp = (AUDIO_STEREO *)ctrl.arg;
       if (ctrl.option != NUM_FRAMES)
         debug_printf("%d frames.\n", ctrl.option);
-      if (process_fft(fftInfo, mp, ctrl.option))
+      if (stream_toggle && (process_fft(fftInfo, mp, ctrl.option)))
       {
         guiev.evcode = GUIEV_FFT_UPDATE;
         guiev.evval0 = fft_count;
@@ -848,6 +849,7 @@ debug_printf("Music Finish.\n");
         postGuiEvent(&guiev);
         fft_count++;
       }
+      stream_toggle ^= 1;
       mixInfo->ppos += ctrl.option;
       psec = mixInfo->ppos / 44100;
       if (psec != mixInfo->psec)
