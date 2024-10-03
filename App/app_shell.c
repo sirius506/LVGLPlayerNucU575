@@ -6,7 +6,7 @@
 #include "board_if.h"
 #include "task.h"
 
-typedef int (*USRCMDFUNC)(int argc, char **argv);
+typedef int (*USRCMDFUNC)(DOOM_UART_Handle *shell_uart, int argc, char **argv);
 
 typedef struct {
   char *cmd;
@@ -17,13 +17,11 @@ typedef struct {
 SEMAPHORE_DEF(conread_sem)
 SEMAPHORE_DEF(conwrite_sem)
 
-static DOOM_UART_Handle *shell_uart;
-
-static int date_command(int argc, char **argv);
-static int time_command(int argc, char **argv);
-static int ps_command(int argc, char **argv);
-static int flash_command(int argc, char **argv);
-static int help_command(int argc, char **argv);
+static int date_command(DOOM_UART_Handle *shell_uart, int argc, char **argv);
+static int time_command(DOOM_UART_Handle *shell_uart, int argc, char **argv);
+static int ps_command(DOOM_UART_Handle *shell_uart, int argc, char **argv);
+static int flash_command(DOOM_UART_Handle *shell_uart, int argc, char **argv);
+static int help_command(DOOM_UART_Handle *shell_uart, int argc, char **argv);
 
 static const cmd_table_t cmdlist[] = {
   { "date",  date_command,  "Usage: date [YY-MM-DD]" },
@@ -42,15 +40,13 @@ static const char *estate_string[] = {
   "Invalid",
 };
 
-void read_comp(DOOM_UART_Handle *shell_uart)
+static void read_comp(DOOM_UART_Handle *shell_uart)
 {
-
   osSemaphoreRelease(shell_uart->recv_sem);
 }
 
-void write_comp(DOOM_UART_Handle *shell_uart)
+static void write_comp(DOOM_UART_Handle *shell_uart)
 {
-
   osSemaphoreRelease(shell_uart->send_sem);
 }
 
@@ -74,7 +70,8 @@ static int cons_write(const char *buf, int cnt, void *extobj)
 
 static int usercmd_callback(int argc, char **argv, void *extobj)
 {
-  UNUSED(extobj);
+  DOOM_UART_Handle *shell_uart = (DOOM_UART_Handle *)extobj;
+
   if (argc == 0)
     return 0;
 
@@ -84,7 +81,7 @@ static int usercmd_callback(int argc, char **argv, void *extobj)
   {
     if (ntlibc_strcmp((const char *)argv[0], p->cmd) == 0)
     {
-      return p->func(argc, argv);
+      return p->func(shell_uart, argc, argv);
     }
     p++;
   }
@@ -94,11 +91,10 @@ static int usercmd_callback(int argc, char **argv, void *extobj)
 
 static int user_callback(const char *text, void *extobj)
 {
-  UNUSED(extobj);
-  return ntopt_parse(text, usercmd_callback, 0);
+  return ntopt_parse(text, usercmd_callback, extobj);
 }
 
-static int date_command(int argc, char **argp)
+static int date_command(DOOM_UART_Handle *shell_uart, int argc, char **argp)
 {
   char tb[30];
   int slen;
@@ -118,7 +114,7 @@ static int date_command(int argc, char **argp)
   return 0;
 }
 
-static int time_command(int argc, char **argp)
+static int time_command(DOOM_UART_Handle *shell_uart, int argc, char **argp)
 {
   char tb[30];
   int slen;
@@ -142,7 +138,7 @@ static int time_command(int argc, char **argp)
 
 TaskStatus_t DPTaskTable[MAX_DP_TASK];
 
-static int ps_command(int argc, char **argp)
+static int ps_command(DOOM_UART_Handle *shell_uart, int argc, char **argp)
 {
   UNUSED(argc);
   UNUSED(argp);
@@ -164,7 +160,7 @@ static int ps_command(int argc, char **argp)
   return 0;
 }
 
-static int help_command(int argc, char **argp)
+static int help_command(DOOM_UART_Handle *shell_uart, int argc, char **argp)
 {
   UNUSED(argc);
   UNUSED(argp);
@@ -180,7 +176,7 @@ static int help_command(int argc, char **argp)
   return 0;
 }
 
-static int flash_command(int argc, char **argp)
+static int flash_command(DOOM_UART_Handle *shell_uart, int argc, char **argp)
 {
   UNUSED(argc);
   UNUSED(argp);
@@ -213,8 +209,10 @@ void StartShellTask(void *argp)
 {
   UNUSED(argp);
   ntshell_t nts;
+  DOOM_UART_Handle *shell_uart;
 
   shell_uart = HalDevice.shell_uart;
+
 
   shell_uart->recv_sem = osSemaphoreNew(1, 0, &attributes_conread_sem);
   shell_uart->send_sem = osSemaphoreNew(1, 0, &attributes_conwrite_sem);
