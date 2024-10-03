@@ -4,7 +4,7 @@
 
 #define NUM_CHANNELS    16
 
-#define	AUDIO_DEF_VOL	70
+#define	AUDIO_DEF_VOL	60
 
 typedef struct {
   int16_t ch0;

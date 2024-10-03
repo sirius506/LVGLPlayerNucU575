@@ -233,7 +233,7 @@ static void osc_full_complete()
 const AUDIO_INIT_PARAMS oscm_audio_params = {
   .buffer = FinalOscBuffer,
   .buffer_size = sizeof(FinalOscBuffer),
-  .volume = 80,
+  .volume = AUDIO_DEF_VOL,
   .sample_rate = 192000,
   .txhalf_comp = osc_half_complete,
   .txfull_comp = osc_full_complete,

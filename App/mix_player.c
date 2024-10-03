@@ -31,7 +31,7 @@ static void mix_full_comp();
 const AUDIO_INIT_PARAMS doom_audio_params = {
   .buffer = FinalAudioBuffer,
   .buffer_size = sizeof(FinalAudioBuffer),
-  .volume = 80,
+  .volume = AUDIO_DEF_VOL,
   .sample_rate = 44100,
   .txhalf_comp = mix_half_comp,
   .txfull_comp = mix_full_comp,

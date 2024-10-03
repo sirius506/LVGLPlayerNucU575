@@ -1,8 +1,19 @@
+/**
+ *  TLV320DAC3203 codec driver
+ */
 #include "string.h"
 #include "bsp.h"
 #include "debug.h"
 
 #define CODEC_ADDR	(0x18 << 1)
+
+/* Although TLV320DAC320 allows volume control ranges [-127..48],
+ * but value -127 (-63.5dB) is too small on our board.
+ * We limit lowest value as -52. This allows us to simplify
+ * convesion from logical [0..100] volume values to register value.
+ */
+#define	DAC_MINVOL	-52
+#define	DAC_MAXVOL	48	/* 0x30 */
 
 typedef struct {
  uint8_t reg;
@@ -158,6 +169,8 @@ const TLV_SETUP TLVInitData[] = {
 const uint8_t TLV_Signature[2] = { 0x11, 0x04 };
 const uint8_t TLV_Signature192[2] = { 0x91, 0x08 };
 
+void bsp_codec_setvol(DOOM_I2C_Handle *codec_i2c, int newvol);
+
 void bsp_codec_init(DOOM_I2C_Handle *codec_i2c, int volume, int sample_rate)
 {
   osStatus_t st;
@@ -204,10 +217,12 @@ void bsp_codec_init(DOOM_I2C_Handle *codec_i2c, int volume, int sample_rate)
       }
       debug_printf("TLV initialize finished.\n");
 
-      /* Select page 0 for latter volume control */
+      /* Select page 0 for volume control */
       regvals[0] = 0;
       HAL_I2C_Mem_Write_IT(codec_i2c->hi2c, CODEC_ADDR, 0, I2C_MEMADD_SIZE_8BIT, regvals, 1);
+
       st = osSemaphoreAcquire(codec_i2c->iosem, 100);
+      bsp_codec_setvol(codec_i2c, volume);
     }
     else
     {
@@ -223,20 +238,34 @@ void bsp_codec_init(DOOM_I2C_Handle *codec_i2c, int volume, int sample_rate)
 int bsp_codec_getvol(DOOM_I2C_Handle *codec_i2c)
 {
   int8_t regvals[2];
+  int volval;
+  int oval;
 
   HAL_I2C_Mem_Read_IT(codec_i2c->hi2c, CODEC_ADDR, 65, I2C_MEMADD_SIZE_8BIT, (uint8_t *)regvals, 2);
   osSemaphoreAcquire(codec_i2c->iosem, 100);
-  return (int) regvals[0];
+
+  volval = (int) regvals[0];
+  oval = volval;
+  if (volval < DAC_MINVOL)
+    volval = DAC_MINVOL;
+  if (volval > DAC_MAXVOL)
+    volval = DAC_MAXVOL;
+  volval += (100 - DAC_MAXVOL);
+debug_printf("%s: %d -> %d\n", __FUNCTION__, oval, volval);
+  return volval;
 }
 
 void bsp_codec_setvol(DOOM_I2C_Handle *codec_i2c, int newvol)
 {
   int8_t regvals[2];
 
-  if (newvol > 24)
-    newvol = 24;
-  if (newvol < -63)
-    newvol = -63;
+  int oval = newvol;
+  if (newvol > 100)
+    newvol = 100;
+  if (newvol < 0)
+    newvol = 0;
+  newvol = newvol + DAC_MINVOL;
+debug_printf("%s: %d -> %d\n", __FUNCTION__, oval, newvol);
   regvals[0] = regvals[1] = newvol;
 
   HAL_I2C_Mem_Write_IT(codec_i2c->hi2c, CODEC_ADDR, 65, I2C_MEMADD_SIZE_8BIT, (uint8_t *)regvals, 2);
