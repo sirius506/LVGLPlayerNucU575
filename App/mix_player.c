@@ -23,6 +23,20 @@
 #define PLAYER_STACK_SIZE  350
 #define READER_STACK_SIZE  1400
 
+SECTION_SRDSRAM AUDIO_STEREO FinalAudioBuffer[BUF_FRAMES];
+
+static void mix_half_comp();
+static void mix_full_comp();
+
+const AUDIO_INIT_PARAMS doom_audio_params = {
+  .buffer = FinalAudioBuffer,
+  .buffer_size = sizeof(FinalAudioBuffer),
+  .volume = 80,
+  .sample_rate = 44100,
+  .txhalf_comp = mix_half_comp,
+  .txfull_comp = mix_full_comp,
+};
+
 TASK_DEF(mixplayer, PLAYER_STACK_SIZE, osPriorityAboveNormal2)
 TASK_DEF(flacreader, READER_STACK_SIZE, osPriorityAboveNormal)
 
@@ -134,7 +148,6 @@ MIX_INFO MixInfo;
 
 #define	MIX_EV_DEPTH	5
 
-MUTEX_DEF(sound_lock)
 static osMutexId_t soundLockId;
 
 static MIXCONTROL_EVENT mix_buffer[MIX_EV_DEPTH];
@@ -576,7 +589,6 @@ static void mix_full_comp()
 
 static void StartMixPlayerTask(void *args)
 {
-  UNUSED(args);
   AUDIO_OUTPUT_DRIVER *pDriver;
   FFTINFO *fftInfo;
   int fft_count;
@@ -590,10 +602,9 @@ static void StartMixPlayerTask(void *args)
   HAL_DEVICE *haldev = &HalDevice;
   uint16_t cmd;
   int mix_frames;
+  AUDIO_INIT_PARAMS *param = (AUDIO_INIT_PARAMS *)args;
 
   debug_printf("Player Started..\n");
-
-  //bsp_codec_init(haldev->codec_i2c, 44100);
 
   audio_config = get_audio_config(NULL);
 
@@ -616,23 +627,27 @@ static void StartMixPlayerTask(void *args)
   pDriver = (AUDIO_OUTPUT_DRIVER *)audio_config->devconf->pDriver;
   mix_frames = NUM_FRAMES;
 
-  soundLockId = audio_config->soundLockId = osMutexNew(&attributes_sound_lock);
-
-  if (haldev->boot_mode == BOOTM_DOOM)
-  {
-    pDriver->Init(audio_config, mix_half_comp, mix_full_comp);
-  }
-
   mixInfo->mixevqId = osMessageQueueNew(MIX_EV_DEPTH, sizeof(MIXCONTROL_EVENT), &attributes_mixevq);
-  mixInfo->volume = 80;
+  mixInfo->volume = AUDIO_DEF_VOL;
   mixInfo->state = MIX_ST_IDLE;
 
-  pDriver->SetVolume(audio_config, mixInfo->volume);
+  if (haldev->boot_mode != BOOTM_OSCM)
+  {
+    mixInfo->volume = param->volume;
+    pDriver->Init(audio_config, param);
+  }
+  else
+  {
+    pDriver->SetVolume(audio_config, mixInfo->volume);
+  }
+  soundLockId = audio_config->soundLockId;
 
   /* We'll keep sending contents of FinalSoundBuffer using DMA */
 
   if (haldev->boot_mode == BOOTM_DOOM)
+  {
     pDriver->Start(audio_config);
+  }
 
   while (1)
   {
@@ -1027,15 +1042,20 @@ void Start_SDLMixer()
 {
   if (mixid == 0)
   {
-    mixid = osThreadNew(StartMixPlayerTask, NULL, &attributes_mixplayer);
+    mixid = osThreadNew(StartMixPlayerTask, (void *)&doom_audio_params, &attributes_mixplayer);
   }
+}
+
+void Start_A2DPMixer(AUDIO_INIT_PARAMS *params)
+{
+    osThreadNew(StartMixPlayerTask, (void *)params, &attributes_mixplayer);
 }
 
 void Start_Doom_SDLMixer()
 {
   if (mixid == 0)
   {
-    mixid = osThreadNew(StartMixPlayerTask, NULL, &attributes_mixplayer);
+    mixid = osThreadNew(StartMixPlayerTask, (void *)&doom_audio_params, &attributes_mixplayer);
   }
 }
 

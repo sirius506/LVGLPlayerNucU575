@@ -69,6 +69,26 @@ void btaudio_TransferComplete_CallBack()
     (*audio_played_handler)(1);
 }
 
+const AUDIO_INIT_PARAMS a2dp_audio_params = {
+  .buffer = FinalAudioBuffer,
+  .buffer_size = sizeof(FinalAudioBuffer),
+  .volume = 80,
+  .sample_rate = 44100,
+  .txhalf_comp = btaudio_HalfTransfer_CallBack,
+  .txfull_comp = btaudio_TransferComplete_CallBack,
+};
+
+static AUDIO_OUTPUT_DRIVER *pDriver;
+static AUDIO_CONF *audio_config;
+
+void hal_audio_setup()
+{
+
+  audio_config = get_audio_config(NULL);
+  pDriver = (AUDIO_OUTPUT_DRIVER *)audio_config->devconf->pDriver;
+  Start_A2DPMixer(&a2dp_audio_params);
+}
+
 /**
  * @brief Setup audio codec for specified samplerate and number channels
  * @param Channels
@@ -126,25 +146,19 @@ int16_t * hal_audio_sink_get_output_buffer(uint8_t buffer_index){
  */
 void hal_audio_sink_start(void)
 {
-  HAL_DEVICE *haldev = &HalDevice;
-
   playback_started = 1;
 
 debug_printf("%s:\n", __FUNCTION__);
-  haldev->audio_sai->saitx_half_comp = btaudio_HalfTransfer_CallBack;
-  haldev->audio_sai->saitx_full_comp = btaudio_TransferComplete_CallBack;
-  Board_Audio_Init(haldev, 0);
-  Board_Audio_Start(haldev, (const uint32_t *)FinalAudioBuffer, BUF_FRAMES*2);
+  pDriver->Start(audio_config);
 }
 
 /**
  * @brief Stop stream
  */
 void hal_audio_sink_stop(void){
-  HAL_DEVICE *haldev = &HalDevice;
 
   playback_started = 0;
-  Board_Audio_Stop(haldev);
+  pDriver->Stop(audio_config);
 }
 
 /**

@@ -2,6 +2,7 @@
 #include <string.h>
 #include "qspi.h"
 #include "board_if.h"
+#include "audio_output.h"
 #include "debug.h"
 
 typedef struct
@@ -545,87 +546,30 @@ void Board_Set_Brightness(HAL_DEVICE *haldev, int brval)
   HAL_TIM_PWM_ConfigChannel(haldev->tft_lcd->pwm_timer, &sConfigOC, TIM_CHANNEL_1);
 }
 
-void Board_Audio_ClockConfig(HAL_DEVICE *haldev, int sample_rate)
-{
-
-  RCC_PeriphCLKInitTypeDef rcc_ex_clk_init_struct;
-    
-  rcc_ex_clk_init_struct.PLL3.PLL3Source = RCC_PLLSOURCE_HSI;
-  rcc_ex_clk_init_struct.PLL3.PLL3RGE = 0;
-  rcc_ex_clk_init_struct.PLL3.PLL3FRACN = 0;
-  rcc_ex_clk_init_struct.PLL3.PLL3ClockOut = RCC_PLL3_DIVP;
-  rcc_ex_clk_init_struct.PeriphClockSelection = RCC_PERIPHCLK_SAI1;
-  rcc_ex_clk_init_struct.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLL3;
-  rcc_ex_clk_init_struct.PLL3.PLL3Q = 2;
-  rcc_ex_clk_init_struct.PLL3.PLL3R = 2;
-
-  /* SAI clock config:
-    PLL3_VCO Input = HSI_16Mhz/PLL3M = 16 Mhz
-    PLL3_VCO Output = PLL3_VCO Input * PLL3N = 384 Mhz
-    SAI_CLK_x = PLL3_VCO Output/PLL3P = 384/8 = 48 Mhz */
-  rcc_ex_clk_init_struct.PLL3.PLL3M = 1;
-  rcc_ex_clk_init_struct.PLL3.PLL3N = 24;
-  rcc_ex_clk_init_struct.PLL3.PLL3P = 8;
-  rcc_ex_clk_init_struct.PLL3.PLL3FRACN = 4700;
-
-  HAL_RCCEx_PeriphCLKConfig(&rcc_ex_clk_init_struct);
-
-  __HAL_RCC_SAI1_CLK_ENABLE();
-
-  bsp_codec_init(haldev->codec_i2c, sample_rate);
-}
-
-void Board_Audio_Start(HAL_DEVICE *haldev, uint8_t *bp, int len)
-{
-  HAL_SAI_Transmit_DMA(haldev->audio_sai->hsai, bp, len);
-}
-
-static void sai_half_comp(SAI_HandleTypeDef *hsai)
-{
-  DOOM_SAI_Handle *sai_audio = (DOOM_SAI_Handle *)hsai->UserPointer;
-  (*sai_audio->saitx_half_comp)();
-}
-
-static void sai_full_comp(SAI_HandleTypeDef *hsai)
-{
-  DOOM_SAI_Handle *sai_audio = (DOOM_SAI_Handle *)hsai->UserPointer;
-  (*sai_audio->saitx_full_comp)();
-}
-
-void Board_Audio_Init(HAL_DEVICE *haldev,  int sampleRate)
-{
-  SAI_HandleTypeDef *hsai = haldev->audio_sai->hsai;
-
-  if (sampleRate)
-  {
-    hsai->Init.AudioFrequency = sampleRate;
-  }
-  HAL_SAI_Init(hsai);
-  HAL_SAI_RegisterCallback(hsai, HAL_SAI_TX_HALFCOMPLETE_CB_ID, sai_half_comp);
-  HAL_SAI_RegisterCallback(hsai, HAL_SAI_TX_COMPLETE_CB_ID, sai_full_comp);
-}
-
-void Board_Audio_DeInit(HAL_DEVICE *haldev)
-{
-  HAL_SAI_DeInit(haldev->audio_sai->hsai);
-}
-
 void Board_Audio_Pause(HAL_DEVICE *haldev)
 {
-  DOOM_SAI_Handle *audio = haldev->audio_sai;
-  HAL_SAI_DMAPause(audio->hsai);
+  AUDIO_CONF *aconf;
+  AUDIO_OUTPUT_DRIVER *pDriver;
+
+  aconf = get_audio_config(NULL);
+  if (aconf->status == AUDIO_ST_PLAY)
+  {
+    pDriver = (AUDIO_OUTPUT_DRIVER *)aconf->devconf->pDriver;
+    pDriver->Pause(aconf);
+  }
 }
 
 void Board_Audio_Resume(HAL_DEVICE *haldev)
 {
-  DOOM_SAI_Handle *audio = haldev->audio_sai;
-  HAL_SAI_DMAResume(audio->hsai);
-}
+  AUDIO_CONF *aconf;
+  AUDIO_OUTPUT_DRIVER *pDriver;
 
-void Board_Audio_Stop(HAL_DEVICE *haldev)
-{
-  DOOM_SAI_Handle *audio = haldev->audio_sai;
-  HAL_SAI_DMAStop(audio->hsai);
+  aconf = get_audio_config(NULL);
+  if (aconf->status == AUDIO_ST_PAUSE)
+  {
+    pDriver = (AUDIO_OUTPUT_DRIVER *)aconf->devconf->pDriver;
+    pDriver->Resume(aconf);
+  }
 }
 
 static void read_comp(UART_HandleTypeDef *huart)

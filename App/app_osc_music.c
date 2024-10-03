@@ -86,6 +86,10 @@ typedef struct {
 
 const char *MusicList[] = {
    "N-SPHERES/Function.wav",
+   "N-SPHERES/Intersect.wav",
+   "N-SPHERES/Attractor.wav",
+   "N-SPHERES/Flux.wav",
+   "N-SPHERES/Core.wav",
    "OscMusic/01 Dots.wav",
    "OscMusic/02 Lines.wav",
    "OscMusic/03 Blocks.wav",
@@ -226,6 +230,15 @@ static void osc_full_complete()
   wavp_request_data(AUDIO_FRAME_SIZE);
 }
 
+const AUDIO_INIT_PARAMS oscm_audio_params = {
+  .buffer = FinalOscBuffer,
+  .buffer_size = sizeof(FinalOscBuffer),
+  .volume = 80,
+  .sample_rate = 192000,
+  .txhalf_comp = osc_half_complete,
+  .txfull_comp = osc_full_complete,
+};
+
 static int crate;
 
 void StartWavReaderTask(void *args)
@@ -234,6 +247,8 @@ void StartWavReaderTask(void *args)
   uint16_t cmd;
   AUDIO_STEREO *paudio;
   WAVEINFO *winfo;
+  AUDIO_OUTPUT_DRIVER *pDriver;
+  AUDIO_CONF *audio_config;
   PLAYERINFO *pinfo = &PlayerInfo;
   FIL *pfile = NULL;
   UINT nrb;
@@ -243,7 +258,10 @@ void StartWavReaderTask(void *args)
   crate = 0;
   haldev->audio_sai->saitx_half_comp = osc_half_complete;
   haldev->audio_sai->saitx_full_comp = osc_full_complete;
-  Board_Audio_ClockConfig(haldev, crate);
+  audio_config = get_audio_config(NULL);
+  pDriver = (AUDIO_OUTPUT_DRIVER *)audio_config->devconf->pDriver;
+
+  pDriver->Init(audio_config, &oscm_audio_params);
 
   memset(OscFrameBuffer, 0, sizeof(OscFrameBuffer));
 
@@ -273,20 +291,22 @@ void StartWavReaderTask(void *args)
           frames = 0;
 debug_printf("%s opened.\n", pinfo->fname);
           postGuiEventMessage(GUIEV_OSCM_FILE, 0, (void *)pinfo->fname, NULL);
-          Board_Audio_DeInit(haldev);
+          pDriver->Stop(audio_config);
+
           while (osMessageQueueGet(free_bufqId, &paudio, 0, 0) == osOK)
           {
             f_read(pfile, paudio, sizeof(AUDIO_STEREO) * AUDIO_FRAME_SIZE, &nrb);
             osMessageQueuePut(play_bufqId, &paudio, 0, 0);
           }
 
-          Board_Audio_Init(haldev,  winfo->sampleRate);
+          pDriver->SetRate(audio_config, winfo->sampleRate);
+
           if (crate != winfo->sampleRate)
           {
             crate = winfo->sampleRate;
-            bsp_codec_init(haldev->codec_i2c, crate);
+            bsp_codec_init(haldev->codec_i2c, 70, crate);
           }
-          Board_Audio_Start(haldev, (uint8_t *)FinalOscBuffer, AUDIO_FRAME_SIZE * 4);
+          pDriver->Start(audio_config);
 
           pinfo->fsize = winfo->fsize;
           pinfo->nobuff = 0;
@@ -335,9 +355,11 @@ static int build_music_list(OSCMUSICINFO **pinfo)
   WAVEINFO *winfo;
   OSCMUSICINFO *oscm;
   int num_music;
+  int nums;
 
   num_music = sizeof(MusicList)/sizeof(char *);
   oscm = (OSCMUSICINFO *)malloc(sizeof(OSCMUSICINFO) * num_music);
+  nums = 0;
   
   *pinfo = oscm;
 
@@ -353,10 +375,11 @@ static int build_music_list(OSCMUSICINFO **pinfo)
       CloseMusicFile(pfile);
 //debug_printf("%s @ %dK: %d:%02d\n", oscm->fname, oscm->rate/1000, oscm->secs/ 60, oscm->secs % 60);
       oscm++;
+      nums++;
     }
   }
 
-  return num_music;
+  return nums;
 }
 
 static lv_obj_t *osc_mlist_create(OSCMUSICINFO *oscmInfo, int num_music, OSCM_SCREEN *screen);

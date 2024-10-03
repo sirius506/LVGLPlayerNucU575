@@ -158,7 +158,7 @@ const TLV_SETUP TLVInitData[] = {
 const uint8_t TLV_Signature[2] = { 0x11, 0x04 };
 const uint8_t TLV_Signature192[2] = { 0x91, 0x08 };
 
-void bsp_codec_init(DOOM_I2C_Handle *codec_i2c, int sample_rate)
+void bsp_codec_init(DOOM_I2C_Handle *codec_i2c, int volume, int sample_rate)
 {
   osStatus_t st;
   uint8_t regvals[4];

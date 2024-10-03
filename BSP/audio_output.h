@@ -4,6 +4,8 @@
 
 #define NUM_CHANNELS    16
 
+#define	AUDIO_DEF_VOL	70
+
 typedef struct {
   int16_t ch0;
   int16_t ch1;
@@ -27,23 +29,47 @@ typedef struct {
 #define BUF_FACTOR      2       /* Two for double buffering */
 #define BUF_FRAMES      (NUM_FRAMES*BUF_FACTOR)
 
+typedef enum {
+  AUDIO_ST_INIT = 0,
+  AUDIO_ST_IDLE,
+  AUDIO_ST_PLAY,
+  AUDIO_ST_PAUSE,
+  AUDIO_ST_STOP,
+} AUDIO_STATUS;
+
 typedef struct {
   const struct s_adevconf   *devconf;
   HAL_DEVICE      *haldev;
+  AUDIO_STATUS    status;
   AUDIO_STEREO    *sound_buffer;
   int             sound_buffer_size;
   AUDIO_STEREO    *freebuffer_ptr;
   AUDIO_STEREO    *playbuffer_ptr;
-  uint16_t        volume;		// Current volume value
+  uint16_t        volume;		/* Current volume value */
+  uint32_t        sample_rate;		/* Sampling rate */
   osMutexId_t     soundLockId;
 } AUDIO_CONF;
 
 typedef struct {
-  void    (*Init)(AUDIO_CONF *audio_conf, void (*txhalf_comp)(), void (*txfull_comp)());
+  AUDIO_STEREO *buffer;
+  int      buffer_size;
+  int      volume;
+  uint32_t sample_rate;
+  void   (*txhalf_comp)();
+  void   (*txfull_comp)();
+} AUDIO_INIT_PARAMS;
+
+typedef struct {
+  void    (*Init)(AUDIO_CONF *audio_conf, const AUDIO_INIT_PARAMS *parm);
   void    (*Start)(AUDIO_CONF *audio_conf);
   void    (*Stop)(AUDIO_CONF *audio_conf);
+  void    (*Pause)(AUDIO_CONF *audio_conf);
+  void    (*Resume)(AUDIO_CONF *audio_conf);
   void    (*MixSound)(AUDIO_CONF *audio_conf, const AUDIO_STEREO *psrc, int num_frame);
   void    (*SetVolume)(AUDIO_CONF *audio_conf, int vol);
+  int     (*GetVolume)(AUDIO_CONF *audio_conf);
+  void    (*SetRate)(AUDIO_CONF *audio_conf, uint32_t rate);
+  uint32_t (*GetRate)(AUDIO_CONF *audio_conf);
 } AUDIO_OUTPUT_DRIVER;
 
 typedef struct s_adevconf {

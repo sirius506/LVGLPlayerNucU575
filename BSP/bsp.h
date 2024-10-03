@@ -20,7 +20,8 @@ typedef enum {
 
 typedef enum {
   BOOTM_DOOM = 0,
-  BOOTM_A2DP
+  BOOTM_A2DP,
+  BOOTM_OSCM
 } BOOT_MODE;
 
 typedef struct {
@@ -114,7 +115,7 @@ void bsp_release_lcd(DOOM_LCD_Handle *lcd_handle);
 void bsp_wait_lcd();
 void bsp_lcd_save(uint8_t *bp);
 
-void bsp_codec_init(DOOM_I2C_Handle *codec_i2c, int sample_rate);
+void bsp_codec_init(DOOM_I2C_Handle *codec_i2c, int volume, int sample_rate);
 int bsp_codec_getvol(DOOM_I2C_Handle *codec_i2c);
 void bsp_codec_setvol(DOOM_I2C_Handle *codec_i2c, int newvol);
 

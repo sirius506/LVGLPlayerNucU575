@@ -35,6 +35,7 @@ static hal_flash_bank_memory_t hal_flash_bank_context;
 SECTION_BKPSRAM static uint8_t tlvStorage_p[STORAGE_SIZE];
 
 extern int btstack_audio_main(int argc, HAL_DEVICE *haldev);
+extern int btstack_main(int argc, HAL_DEVICE *haldev);
 
 #include "hal_time_ms.h"
 uint32_t hal_time_ms(void)
@@ -163,6 +164,7 @@ void StartBtstackTask(void *arg)
   {
     // setup audio
     btstack_audio_sink_set_instance(btstack_audio_embedded_sink_get_instance());
+    hal_audio_setup();
   }
   btstack_main(0, haldev);
 

@@ -636,7 +636,7 @@ void StartGuiTask(void *args)
     lv_indev_set_read_cb(indev, touch_read);
   }
 
-  bsp_codec_init(haldev->codec_i2c, 44100);
+  bsp_codec_init(haldev->codec_i2c, AUDIO_DEF_VOL, 44100);
 
   keydev = lv_indev_create();
   lv_indev_set_type(keydev, LV_INDEV_TYPE_KEYPAD);
@@ -675,6 +675,8 @@ void StartGuiTask(void *args)
   sel_screen = lv_obj_create(NULL);
 
   haldev->boot_mode = SelectApplication(sel_screen);
+
+  audio_config = get_audio_config(&HalDevice);
 
   if (haldev->boot_mode < 2)
     osThreadNew(StartBtstackTask, haldev, &attributes_btstacktask);
@@ -762,7 +764,6 @@ void StartGuiTask(void *args)
   menus->sub_scr = NULL;
   sound_list = NULL;
 
-  audio_config = get_audio_config(&HalDevice);
 
   switch (haldev->boot_mode)
   {
@@ -1039,7 +1040,7 @@ void StartGuiTask(void *args)
           activate_screen(scr);
           menus->play_scr = scr;
           a2dp_player_create(a2dps, scr, NULL);
-          Start_SDLMixer();
+          //Start_SDLMixer();
         }
         break;
       case GUIEV_OSCM_START:
