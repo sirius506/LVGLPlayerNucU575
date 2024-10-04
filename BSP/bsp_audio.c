@@ -118,20 +118,10 @@ static void sai_full_comp(SAI_HandleTypeDef *hsai)
   (*sai_audio->saitx_full_comp)();
 }
 
-/**
- * @brief Initialize SAI audio driver
- */
-static void Player_Audio_Init(AUDIO_CONF *aconf, const AUDIO_INIT_PARAMS *param)
+void set_sai_pll(int sample_rate)
 {
-  DOOM_SAI_Handle *audio = aconf->haldev->audio_sai;
   RCC_PeriphCLKInitTypeDef rcc_ex_clk_init_struct = { 0};
 
-  if (aconf->soundLockId == 0)
-  {
-    aconf->soundLockId = osMutexNew(&attributes_sound_lock);
-  }
-
-  osMutexAcquire(aconf->soundLockId, osWaitForever);
   rcc_ex_clk_init_struct.PLL3.PLL3Source = RCC_PLLSOURCE_HSI;
   rcc_ex_clk_init_struct.PLL3.PLL3RGE = 0;
   rcc_ex_clk_init_struct.PLL3.PLL3FRACN = 0;
@@ -142,7 +132,7 @@ static void Player_Audio_Init(AUDIO_CONF *aconf, const AUDIO_INIT_PARAMS *param)
   rcc_ex_clk_init_struct.PLL3.PLL3R = 2;
   rcc_ex_clk_init_struct.PLL3.PLL3M = 1;
 
-  if (param->sample_rate == 44100)
+  if (sample_rate == 44100)
   {
     rcc_ex_clk_init_struct.PLL3.PLL3N = 21;
     rcc_ex_clk_init_struct.PLL3.PLL3P = 30;
@@ -162,6 +152,23 @@ static void Player_Audio_Init(AUDIO_CONF *aconf, const AUDIO_INIT_PARAMS *param)
   HAL_RCCEx_PeriphCLKConfig(&rcc_ex_clk_init_struct);
 
   __HAL_RCC_SAI1_CLK_ENABLE();
+}
+
+/**
+ * @brief Initialize SAI audio driver
+ */
+static void Player_Audio_Init(AUDIO_CONF *aconf, const AUDIO_INIT_PARAMS *param)
+{
+  DOOM_SAI_Handle *audio = aconf->haldev->audio_sai;
+
+  if (aconf->soundLockId == 0)
+  {
+    aconf->soundLockId = osMutexNew(&attributes_sound_lock);
+  }
+
+  osMutexAcquire(aconf->soundLockId, osWaitForever);
+
+  set_sai_pll(param->sample_rate);
 
   HAL_SAI_DeInit(audio->hsai);
 
@@ -273,9 +280,20 @@ static int Player_Audio_GetVolume(AUDIO_CONF *conf)
 
 static void Player_Audio_SetRate(AUDIO_CONF *conf, uint32_t rate)
 {
+  DOOM_SAI_Handle *audio = conf->haldev->audio_sai;
+
   if (conf->sample_rate != rate)
   {
     conf->sample_rate = rate;
+    set_sai_pll(rate);
+
+    HAL_SAI_DeInit(audio->hsai);
+
+    audio->hsai->Init.AudioFrequency = rate;
+    HAL_SAI_Init(audio->hsai);
+    HAL_SAI_RegisterCallback(audio->hsai, HAL_SAI_TX_HALFCOMPLETE_CB_ID, sai_half_comp);
+    HAL_SAI_RegisterCallback(audio->hsai, HAL_SAI_TX_COMPLETE_CB_ID, sai_full_comp);
+
     bsp_codec_init(conf->haldev->codec_i2c, conf->volume, rate);
   }
 }

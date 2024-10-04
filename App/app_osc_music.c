@@ -299,12 +299,10 @@ debug_printf("%s opened.\n", pinfo->fname);
             osMessageQueuePut(play_bufqId, &paudio, 0, 0);
           }
 
-          pDriver->SetRate(audio_config, winfo->sampleRate);
-
           if (crate != winfo->sampleRate)
           {
             crate = winfo->sampleRate;
-            bsp_codec_init(haldev->codec_i2c, 70, crate);
+            pDriver->SetRate(audio_config, winfo->sampleRate);
           }
           pDriver->Start(audio_config);
 
