@@ -80,6 +80,7 @@ typedef struct s_adevconf {
 } AUDIO_DEVCONF;
 
 AUDIO_CONF *get_audio_config(HAL_DEVICE *haldev);
+AUDIO_OUTPUT_DRIVER *get_audio_driver();
 extern CHANINFO ChanInfo[NUM_CHANNELS];
 
 extern void bsp_pause_audio(HAL_DEVICE *haldev);

@@ -2,6 +2,7 @@
 #include "app_setup.h"
 #include "btapi.h"
 #include "board_if.h"
+#include "audio_output.h"
 
 /* Declare Bluetooth button images on the menu screen */
 
@@ -124,15 +125,11 @@ void activate_screen(lv_obj_t *screen)
 static void vol_event_cb(lv_event_t *e)
 {
   lv_obj_t *obj = lv_event_get_target(e);
-  HAL_DEVICE *haldev = (HAL_DEVICE *)lv_event_get_user_data(e);
+  AUDIO_CONF *aconf = (AUDIO_CONF *)lv_event_get_user_data(e);
   int32_t v;
 
   v = lv_slider_get_value(obj);
-#ifdef OLD_CODE
-  bsp_codec_setvol(haldev->codec_i2c, v * 2);
-#else
-  bsp_codec_setvol(haldev->codec_i2c, v);
-#endif
+  aconf->devconf->pDriver->SetVolume(aconf, v);
 }
 
 static void brightness_event_cb(lv_event_t *e)
@@ -191,12 +188,8 @@ lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev)
   lv_obj_add_style(bar, &style_indicator, LV_PART_INDICATOR);
   lv_obj_remove_flag(bar, LV_OBJ_FLAG_GESTURE_BUBBLE);
   setups->vol_slider = bar;
-#ifdef OLD_CODE
-  lv_slider_set_range(setups->vol_slider, -63, 64);
-#else
   lv_slider_set_range(setups->vol_slider, 0, 100);
-#endif
-  lv_obj_add_event_cb(setups->vol_slider, vol_event_cb, LV_EVENT_VALUE_CHANGED, haldev);
+  lv_obj_add_event_cb(setups->vol_slider, vol_event_cb, LV_EVENT_VALUE_CHANGED, get_audio_config(haldev));
   img = lv_image_create(scr);
   lv_image_set_src(img, &volume_control);
   lv_obj_align_to(img, bar, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);

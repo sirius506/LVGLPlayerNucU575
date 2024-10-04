@@ -64,6 +64,11 @@ AUDIO_CONF *get_audio_config(HAL_DEVICE *haldev)
   return aconf;
 }
 
+AUDIO_OUTPUT_DRIVER *get_audio_driver()
+{
+  return &sai_output_driver;
+}
+
 /**
  * @brief Mix all sound channels
  */
@@ -271,10 +276,12 @@ static void Player_Audio_Resume(AUDIO_CONF *aconf)
 static void Player_Audio_SetVolume(AUDIO_CONF *conf, int vol)
 {
   conf->volume = vol;
+  bsp_codec_setvol(conf->haldev->codec_i2c, vol);
 }
 
 static int Player_Audio_GetVolume(AUDIO_CONF *conf)
 {
+  conf->volume = bsp_codec_getvol(conf->haldev->codec_i2c);
   return conf->volume;
 }
 

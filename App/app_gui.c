@@ -573,7 +573,7 @@ static int SelectApplication(lv_obj_t *sel_screen)
   }
 }
 
-void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp);
+extern void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress);
 
 void StartGuiTask(void *args)
 {
@@ -584,6 +584,7 @@ void StartGuiTask(void *args)
   SETUP_SCREEN *setups = &SetupScreen;
   SOUND_SCREEN *sounds = &SoundScreen;
   A2DP_SCREEN  *a2dps = &A2DPScreen;
+  OSCM_SCREEN *oscms = &OSCMScreen;
   HAL_DEVICE *haldev = (HAL_DEVICE *)args;
   const GUI_LAYOUT *layout = &GuiLayout;
   osStatus_t st;
@@ -1044,10 +1045,14 @@ void StartGuiTask(void *args)
         }
         break;
       case GUIEV_OSCM_START:
-        KickOscMusic(haldev, &OSCMScreen);
+        KickOscMusic(haldev, oscms);
         break;
       case GUIEV_OSCM_FILE:
-        lv_label_set_text(OSCMScreen.scope_label, event.evarg1);
+        lv_label_set_text(oscms->scope_label, event.evarg1);
+        /* Place  progress bar at proper position */
+        lv_obj_update_layout(oscms->scope_label);
+        lv_obj_set_width(oscms->progress_bar, lv_obj_get_width(oscms->scope_label));
+        lv_obj_align_to(oscms->progress_bar, oscms->scope_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 1);
         break;
       case GUIEV_FLASH_GAME_SELECT:
         /* Selected game reside on the SPI flash. */
@@ -1435,7 +1440,7 @@ debug_printf("CHEAT_SEL\n");
         Board_Endoom(event.evarg1);
         break;
       case GUIEV_DRAW:
-        oscDraw(&OSCMScreen, event.evarg1);
+        oscDraw(oscms, event.evarg1, (int)event.evarg2);
         break;
       case GUIEV_AVRCP_CONNECT:
         show_a2dp_buttons();

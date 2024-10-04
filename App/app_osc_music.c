@@ -82,6 +82,7 @@ typedef struct {
   int  nobuff;
   uint8_t  action;
   FSIZE_t fsize;
+  uint32_t ppos;
 } PLAYERINFO;
 
 const char *MusicList[] = {
@@ -290,6 +291,7 @@ void StartWavReaderTask(void *args)
         {
           frames = 0;
 debug_printf("%s opened.\n", pinfo->fname);
+          pinfo->ppos = 0;
           postGuiEventMessage(GUIEV_OSCM_FILE, 0, (void *)pinfo->fname, NULL);
           pDriver->Stop(audio_config);
 
@@ -436,10 +438,16 @@ void StartOscMusic(OSCM_SCREEN *screen)
         st = osMessageQueueGet(play_bufqId, &mp, 0, 0);
         if (st == osOK)
         {
+          int progress;
+
           audiop = FinalOscBuffer + ctrl.option;
           memcpy(audiop, mp, sizeof(OscSilentBuffer));
           osMessageQueuePut(free_bufqId, &mp, 0, 0);
-          postGuiEventMessage(GUIEV_DRAW, AUDIO_FRAME_SIZE, (void *)mp, NULL);
+          pinfo->ppos += AUDIO_FRAME_SIZE * sizeof(AUDIO_STEREO);
+          progress = (int) ((float)pinfo->ppos / (float)pinfo->fsize * 100);
+          if (progress > 100)
+            progress = 100;
+          postGuiEventMessage(GUIEV_DRAW, AUDIO_FRAME_SIZE, (void *)mp, (void *)progress);
         }
         else  
         {   
@@ -467,6 +475,7 @@ debug_printf("in flash.\n");
         {
           pinfo->state = WAVP_ST_PAUSE;
 debug_printf("in pause.\n");
+          postGuiEventMessage(GUIEV_DRAW, AUDIO_FRAME_SIZE, NULL, 0);
         }
         break;
      case WAVP_ST_PAUSE:
@@ -683,13 +692,23 @@ void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
 #else
   lv_image_set_src(screen->scope_image, &oscImage);
 #endif
+#if 0
   lv_obj_center(screen->scope_image);
+#else
+  lv_obj_align(screen->scope_image, LV_ALIGN_TOP_MID, 0, 20);
+#endif
   screen->scope_label = lv_label_create(cs);
   lv_obj_add_style(screen->scope_label, &osc_style, 0);
   lv_label_set_text(screen->scope_label, "");
   lv_obj_add_flag(screen->scope_label, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_align(screen->scope_label, LV_ALIGN_BOTTOM_MID, 0, -15);
+  lv_obj_align(screen->scope_label, LV_ALIGN_BOTTOM_MID, 0, -18);
+  lv_obj_set_height(screen->scope_label, 20);
   lv_obj_add_event_cb(screen->scope_label, list_handler, LV_EVENT_PRESSED, screen);
+
+  screen->progress_bar = lv_bar_create(cs);
+  lv_obj_set_size(screen->progress_bar, lv_obj_get_width(screen->scope_label), 6);
+  lv_obj_align_to(screen->progress_bar, screen->scope_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 1);
+  lv_bar_set_value(screen->progress_bar, 80, LV_ANIM_OFF);
 
   screen->play_button = lv_imagebutton_create(screen->scope_image);
   lv_imagebutton_set_src(screen->play_button, LV_IMAGEBUTTON_STATE_CHECKED_RELEASED, NULL, &img_lv_demo_music_btn_playlarge, NULL);
@@ -722,13 +741,22 @@ void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
   osThreadNew((osThreadFunc_t)StartOscMusic, screen, &attributes_mixplayer);
 }
 
-void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp)
+void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress)
 {
   int i;
   int left, right;
   static int dcount;
 
   dcount++;
+
+  if (mp == NULL)
+  {
+    memset(oscImage_map2 + I1_INDEX_SIZE, 0, sizeof(oscImage_map2) - I1_INDEX_SIZE);
+    memset(oscImage_map1 + I1_INDEX_SIZE, 0, sizeof(oscImage_map1) - I1_INDEX_SIZE);
+    lv_image_set_src(screen->scope_image, &oscImage1);
+    lv_timer_handler();
+    return;
+  }
 
   for (i = 0; i < AUDIO_FRAME_SIZE; i++)
   {
@@ -758,10 +786,11 @@ void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp)
     case 0:
 #ifdef DOUBLE_IMAGE
       lv_image_set_src(screen->scope_image,
-                       (screen->disp_toggle & 1)? &oscImage2 : & oscImage1);
+                       (screen->disp_toggle & 1)? &oscImage2 : &oscImage1);
 #else
       lv_obj_invalidate(screen->scope_image);
 #endif
+      lv_bar_set_value(screen->progress_bar, progress, LV_ANIM_OFF);
       lv_timer_handler();
       break;
     case 1:
@@ -787,10 +816,11 @@ void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp)
     case 0:
 #ifdef DOUBLE_IMAGE
       lv_image_set_src(screen->scope_image,
-                       (screen->disp_toggle & 1)? &oscImage2 : & oscImage1);
+                       (screen->disp_toggle & 1)? &oscImage2 : &oscImage1);
 #else
       lv_obj_invalidate(screen->scope_image);
 #endif
+      lv_bar_set_value(screen->progress_bar, progress, LV_ANIM_OFF);
       lv_timer_handler();
       break;
     case 2:
