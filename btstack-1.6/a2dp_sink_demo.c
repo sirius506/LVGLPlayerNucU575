@@ -100,6 +100,8 @@ static btstack_sample_rate_compensation_t sample_rate_compensation;
 
 static btstack_packet_callback_registration_t hci_event_callback_registration;
 
+extern BTSTACK_INFO BtStackInfo;
+
 static uint8_t  sdp_avdtp_sink_service_buffer[150];
 static uint8_t  sdp_avrcp_target_service_buffer[150];
 static uint8_t  sdp_avrcp_controller_service_buffer[200];
@@ -1026,6 +1028,7 @@ static void a2dp_sink_packet_handler(uint8_t packet_type, uint16_t channel, uint
     uint8_t status;
 
     uint8_t allocation_method;
+    BTSTACK_INFO *pinfo = &BtStackInfo;
 
     if (packet_type != HCI_EVENT_PACKET) return;
     if (hci_event_packet_get_type(packet) != HCI_EVENT_A2DP_META) return;
@@ -1089,6 +1092,8 @@ static void a2dp_sink_packet_handler(uint8_t packet_type, uint16_t channel, uint
             // use address for outgoing connections
             memcpy(device_addr, a2dp_conn->addr, 6);
             postGuiEventMessage(GUIEV_BTDEV_CONNECTED, 1, NULL, NULL);
+            pinfo->a2dp_cid = a2dp_conn->a2dp_cid;
+            pinfo->state = BTSTACK_STATE_CONNECT;
             break;
         
 #ifdef ENABLE_AVDTP_ACCEPTOR_EXPLICIT_START_STREAM_CONFIRMATION
@@ -1119,6 +1124,8 @@ static void a2dp_sink_packet_handler(uint8_t packet_type, uint16_t channel, uint
             printf("A2DP  Sink      : Stream released\n");
             a2dp_conn->stream_state = STREAM_STATE_CLOSED;
             media_processing_close();
+            pinfo->a2dp_cid = 0;
+            pinfo->state = BTSTACK_STATE_ACTIVE;
             postGuiEventMessage(GUIEV_BTDEV_CONNECTED, 0, NULL, NULL);
             break;
         

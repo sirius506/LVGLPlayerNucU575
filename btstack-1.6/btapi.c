@@ -42,9 +42,17 @@ void process_btapi_request(BTSTACK_INFO *info)
       break;
     case BTREQ_DISCONNECT:
     case BTREQ_SHUTDOWN:
-      if ((info->state == BTSTACK_STATE_CONNECT) && (info->hid_host_cid != 0))
+      if (info->state == BTSTACK_STATE_CONNECT) 
       {
-        hid_host_disconnect(info->hid_host_cid);
+debug_printf("disc: %d, %d\n", info->hid_host_cid, info->a2dp_cid);
+        if (info->hid_host_cid != 0)
+        {
+          hid_host_disconnect(info->hid_host_cid);
+        }
+        if (info->a2dp_cid != 0)
+          a2dp_sink_disconnect(info->a2dp_cid);
+        {
+        }
         if (req.code == BTREQ_SHUTDOWN)
           info->state = BTSTACK_STATE_CLOSING;
       }
@@ -176,6 +184,7 @@ void btapi_disconnect()
 
   req.code = BTREQ_DISCONNECT;
   osMessageQueuePut(btreqqId, &req, 0, 0);
+  btstack_run_loop_freertos_trigger();
 }
 
 void btapi_shutdown()

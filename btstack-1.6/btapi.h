@@ -36,6 +36,7 @@ typedef enum {
 typedef struct {
   BTSTACK_STATE state;
   uint16_t      avrcp_cid;
+  uint16_t      a2dp_cid;
   uint16_t      hid_host_cid;
 } BTSTACK_INFO;
 
