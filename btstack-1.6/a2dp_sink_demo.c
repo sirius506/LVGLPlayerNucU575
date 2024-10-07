@@ -1091,6 +1091,7 @@ static void a2dp_sink_packet_handler(uint8_t packet_type, uint16_t channel, uint
                    bd_addr_to_str(a2dp_conn->addr), a2dp_conn->a2dp_cid, a2dp_conn->a2dp_local_seid);
             // use address for outgoing connections
             memcpy(device_addr, a2dp_conn->addr, 6);
+            postGuiEventMessage(GUIEV_ICON_CHANGE, ICON_SET | ICON_BLUETOOTH, NULL, NULL);
             postGuiEventMessage(GUIEV_BTDEV_CONNECTED, 1, NULL, NULL);
             pinfo->a2dp_cid = a2dp_conn->a2dp_cid;
             pinfo->state = BTSTACK_STATE_CONNECT;
@@ -1126,6 +1127,7 @@ static void a2dp_sink_packet_handler(uint8_t packet_type, uint16_t channel, uint
             media_processing_close();
             pinfo->a2dp_cid = 0;
             pinfo->state = BTSTACK_STATE_ACTIVE;
+            postGuiEventMessage(GUIEV_ICON_CHANGE, ICON_CLEAR | ICON_BLUETOOTH, NULL, NULL);
             postGuiEventMessage(GUIEV_BTDEV_CONNECTED, 0, NULL, NULL);
             break;
         
