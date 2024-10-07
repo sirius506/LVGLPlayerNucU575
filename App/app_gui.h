@@ -74,7 +74,7 @@ typedef enum {
   GUIEV_DOOM_REFRESH,
   GUIEV_DOOM_ACTIVE,
   GUIEV_BTSTACK_READY,		// BTStack Ready
-  GUIEV_HID_CONNECTED,		// Bluetooth HID device connected/disconnected
+  GUIEV_BTDEV_CONNECTED,	// Bluetooth device connected/disconnected
   GUIEV_GAMEPAD_READY,          // Gamepad controller has found
   GUIEV_APP_SELECT,
   GUIEV_SD_REPORT,              // Report REQ_VERIFY_SD result

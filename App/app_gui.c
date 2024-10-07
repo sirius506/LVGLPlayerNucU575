@@ -1405,7 +1405,7 @@ debug_printf("KBD_CANCEL\n");
         if (doomtaskId) osThreadResume(doomtaskId);
 debug_printf("CHEAT_SEL\n");
         break;
-      case GUIEV_HID_CONNECTED:
+      case GUIEV_BTDEV_CONNECTED:
         if (menus->screen)
         {
           if (event.evval0 == 0)

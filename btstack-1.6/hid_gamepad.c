@@ -376,7 +376,7 @@ debug_printf("vid, pid: %x, %x\n", hid_vid, hid_pid);
                 debug_printf("Connect to HID dev (%s).\n", bd_addr_to_str(remote_addr));
                 status = hid_host_connect(remote_addr, hid_host_report_mode, &pinfo->hid_host_cid);
                 postGuiEventMessage(GUIEV_ICON_CHANGE, ICON_SET | ICON_BLUETOOTH, NULL, NULL);
-                postGuiEventMessage(GUIEV_HID_CONNECTED, 1, NULL, NULL);
+                postGuiEventMessage(GUIEV_BTDEV_CONNECTED, 1, NULL, NULL);
                 break;
               }
             }
@@ -445,7 +445,7 @@ debug_printf("vid, pid: %x, %x\n", hid_vid, hid_pid);
             pinfo->hid_host_cid = hid_subevent_connection_opened_get_hid_cid(packet);
             debug_printf("HID Host connected (%04x, %04x).\n", hid_vid, hid_pid);
             postGuiEventMessage(GUIEV_ICON_CHANGE, ICON_SET | ICON_BLUETOOTH, NULL, NULL);
-            postGuiEventMessage(GUIEV_HID_CONNECTED, 1, NULL, NULL);
+            postGuiEventMessage(GUIEV_BTDEV_CONNECTED, 1, NULL, NULL);
 
             padInfo = IsSupportedGamePad(hid_vid, hid_pid);
             if (padInfo)
@@ -519,7 +519,7 @@ hid_subevent_set_report_response_get_handshake_status(packet));
             hid_host_descriptor_available = false;
             debug_printf("HID Host disconnected.\n");
             postGuiEventMessage(GUIEV_ICON_CHANGE, ICON_CLEAR | ICON_BLUETOOTH, NULL, NULL);
-            postGuiEventMessage(GUIEV_HID_CONNECTED, 0, NULL, NULL);
+            postGuiEventMessage(GUIEV_BTDEV_CONNECTED, 0, NULL, NULL);
             gap_disconnect(con_handle);
 #ifdef USE_NEW_BTAPI
 #else

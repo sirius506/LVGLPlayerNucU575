@@ -1088,6 +1088,7 @@ static void a2dp_sink_packet_handler(uint8_t packet_type, uint16_t channel, uint
                    bd_addr_to_str(a2dp_conn->addr), a2dp_conn->a2dp_cid, a2dp_conn->a2dp_local_seid);
             // use address for outgoing connections
             memcpy(device_addr, a2dp_conn->addr, 6);
+            postGuiEventMessage(GUIEV_BTDEV_CONNECTED, 1, NULL, NULL);
             break;
         
 #ifdef ENABLE_AVDTP_ACCEPTOR_EXPLICIT_START_STREAM_CONFIRMATION
@@ -1118,6 +1119,7 @@ static void a2dp_sink_packet_handler(uint8_t packet_type, uint16_t channel, uint
             printf("A2DP  Sink      : Stream released\n");
             a2dp_conn->stream_state = STREAM_STATE_CLOSED;
             media_processing_close();
+            postGuiEventMessage(GUIEV_BTDEV_CONNECTED, 0, NULL, NULL);
             break;
         
         case A2DP_SUBEVENT_SIGNALING_CONNECTION_RELEASED:
