@@ -1589,6 +1589,7 @@ void MPU_Config(void)
 {
   MPU_Region_InitTypeDef MPU_InitStruct = {0};
   MPU_Attributes_InitTypeDef MPU_AttributesInit = {0};
+  MPU_Attributes_InitTypeDef Flash_AttributesInit = {0};
 
   /* Disables the MPU */
   HAL_MPU_Disable();
@@ -1611,17 +1612,20 @@ void MPU_Config(void)
 
   HAL_MPU_ConfigMemoryAttributes(&MPU_AttributesInit);
 
+#ifdef MPU_FLASH
   /** Initializes and configures the Region and the memory to be protected
   */
   MPU_InitStruct.Number = MPU_REGION_NUMBER1;
   MPU_InitStruct.BaseAddress = 0x90000000;
   MPU_InitStruct.LimitAddress = 0x900FFFFF;
   MPU_InitStruct.AttributesIndex = MPU_ATTRIBUTES_NUMBER1;
-
   HAL_MPU_ConfigRegion(&MPU_InitStruct);
-  MPU_AttributesInit.Number = MPU_REGION_NUMBER1;
 
-  HAL_MPU_ConfigMemoryAttributes(&MPU_AttributesInit);
+  Flash_AttributesInit.Number = MPU_REGION_NUMBER1;
+  Flash_AttributesInit.Attributes = MPU_DEVICE_nGnRnE | MPU_NOT_CACHEABLE|MPU_R_ALLOCATE;
+
+  HAL_MPU_ConfigMemoryAttributes(&Flash_AttributesInit);
+#endif
 
   /** Initializes and configures the Region and the memory to be protected
   */
