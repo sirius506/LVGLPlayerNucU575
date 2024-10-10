@@ -652,6 +652,14 @@ static void next_handler(lv_event_t *e)
 
 static const lv_style_prop_t trans_props[] = { LV_STYLE_IMAGE_OPA, 0 };
 
+static void list_proc(OSCM_SCREEN *screen)
+{
+  if (screen->mlist_screen)
+  {
+    lv_screen_load_anim(screen->mlist_screen, LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
+  }
+}
+
 void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
 {
   lv_obj_t *cs;
@@ -662,7 +670,7 @@ void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
 
   screen->scope_screen = cs = lv_obj_create(NULL);
   lv_screen_load(cs);
-  activate_screen(cs);
+  activate_screen(cs, list_proc, screen);
   lv_obj_set_size(cs, 480, 320);
   lv_obj_set_style_bg_color(cs, lv_color_black(), LV_PART_MAIN);
 

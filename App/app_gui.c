@@ -524,7 +524,7 @@ static int SelectApplication(lv_obj_t *sel_screen)
     lv_obj_center(label);
   }
 
-  activate_screen(sel_screen);
+  activate_screen(sel_screen, NULL, NULL);
 
   timer_interval = 3;
 
@@ -669,7 +669,6 @@ void StartGuiTask(void *args)
   /* Create Setup screen */
 
   setup_screen_create(setups, haldev);
-  lv_obj_add_event_cb(setups->setup_screen, quit_setup_event, LV_EVENT_GESTURE, NULL);
 
   lv_obj_t *sel_screen;
 
@@ -690,7 +689,7 @@ void StartGuiTask(void *args)
 
   /* Switch to initial startup screen */
 
-  activate_screen(starts->screen);
+  activate_screen(starts->screen, NULL, NULL);
   
   lv_obj_delete(sel_screen);
   
@@ -1038,7 +1037,7 @@ void StartGuiTask(void *args)
           lv_obj_t *scr;
 
           scr = lv_obj_create(NULL);
-          activate_screen(scr);
+          activate_screen(scr, NULL, NULL);
           menus->play_scr = scr;
           a2dp_player_create(a2dps, scr, NULL);
           //Start_SDLMixer();
@@ -1105,7 +1104,7 @@ void StartGuiTask(void *args)
         int cvol = bsp_codec_getvol(haldev->codec_i2c);
         lv_slider_set_value(setups->vol_slider, cvol, LV_ANIM_OFF);
 
-        activate_screen(menus->screen);
+        activate_screen(menus->screen, NULL, NULL);
 
         /* We no longer need start screen. */
 
@@ -1119,7 +1118,7 @@ void StartGuiTask(void *args)
          * Copy it into the SPI flash.
          */
         lv_label_set_text(copys->title, sel_sd_game->wadInfo->title);
-        activate_screen(copys->screen);
+        activate_screen(copys->screen, NULL, NULL);
 
         g = lv_group_create();
         copys->mbox = lv_msgbox_create(copys->screen);
@@ -1149,7 +1148,7 @@ void StartGuiTask(void *args)
          * Copy operation has aborted.
          * Redraw start screen.
          */ 
-        activate_screen(starts->screen);
+        activate_screen(starts->screen, NULL, NULL);
         lv_indev_set_group(keydev, starts->ing);
         break;
       case GUIEV_REBOOT:
@@ -1238,7 +1237,7 @@ void StartGuiTask(void *args)
         {
           sound_list = sound_screen_create(sounds->screen, sounds->ing, &style_menubtn);
         } 
-        activate_screen(sounds->screen);
+        activate_screen(sounds->screen, NULL, NULL);
         lv_indev_set_group(keydev, sounds->ing);
         break;
       case GUIEV_MPLAYER_START:
@@ -1247,11 +1246,11 @@ void StartGuiTask(void *args)
           menus->player_ing = lv_group_create();
           lv_indev_set_group(keydev, menus->player_ing);
           menus->play_scr = music_player_create(audio_config, menus->player_ing, &style_menubtn, keydev);
-          activate_screen(menus->play_scr);
+          activate_screen(menus->play_scr, NULL, NULL);
         }
         else
         {
-          activate_screen(menus->play_scr);
+          activate_screen(menus->play_scr, NULL, NULL);
           lv_indev_set_group(keydev, menus->player_ing);
         }
         break;
@@ -1266,7 +1265,7 @@ void StartGuiTask(void *args)
         {
           menus->sub_scr = padtest_create(padInfo, g);
         }
-        activate_screen(menus->sub_scr);
+        activate_screen(menus->sub_scr, NULL, NULL);
         break;
       case GUIEV_PADTEST_UPDATE:
         if (padInfo->hid_mode == HID_MODE_TEST)
@@ -1283,7 +1282,7 @@ void StartGuiTask(void *args)
         /*
          * Restore menu screen and its input group
          */
-        activate_screen(menus->screen);
+        activate_screen(menus->screen, NULL, NULL);
         lv_indev_set_group(keydev, menus->ing);
         if (menus->sub_scr)
         {
@@ -1299,7 +1298,7 @@ void StartGuiTask(void *args)
 
         Mix_HaltMusic();                // Make sure to stop music playing
 
-        activate_screen(games->screen);
+        activate_screen(games->screen, NULL, NULL);
 
         if (menus->sub_scr)
         {
@@ -1416,8 +1415,10 @@ debug_printf("CHEAT_SEL\n");
               lv_obj_add_state(menus->btn_dual, LV_STATE_DISABLED);
 #endif
             padInfo = &nullPad;
+#ifdef USE_FUSION
             if (menus->sub_scr)
               postGuiEventMessage(GUIEV_PADTEST_DONE, 0, NULL, NULL);
+#endif
           }
           else
           {
@@ -1589,6 +1590,7 @@ void postMusicInfo(int code, void *ptr, int size)
   }
 }
 
+#ifdef USE_FUSION
 void Display_GamePad_Info(struct gamepad_inputs *rp, uint32_t vbutton)
 { 
   GUI_EVENT ev;
@@ -1599,6 +1601,7 @@ void Display_GamePad_Info(struct gamepad_inputs *rp, uint32_t vbutton)
   ev.evarg2 = NULL;
   postGuiEvent(&ev);
 } 
+#endif
 
 void app_screenshot()
 {       

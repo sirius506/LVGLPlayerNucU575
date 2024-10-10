@@ -73,6 +73,7 @@ static void bt_button_handler(lv_event_t *e)
 void enter_setup_event(lv_event_t *e)
 {
   UNUSED(e);
+  SETUP_SCREEN *setups;
   lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_active());
   HAL_DEVICE *haldev = (HAL_DEVICE *)&HalDevice;
 
@@ -80,11 +81,19 @@ void enter_setup_event(lv_event_t *e)
   {
      DoomScreenStatus = DOOM_SCREEN_SUSPEND;
   }
+  setups = &SetupScreen;
   if (dir == LV_DIR_BOTTOM)
   {
-    lv_slider_set_value(SetupScreen.vol_slider,
+    lv_slider_set_value(setups->vol_slider,
           bsp_codec_getvol(haldev->codec_i2c), LV_ANIM_OFF);
-    lv_screen_load_anim(SetupScreen.setup_screen, LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
+    lv_screen_load_anim(setups->setup_screen, LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
+  }
+  else if (dir == LV_DIR_TOP)
+  {
+    if (setups->list_action)
+    {
+      (setups->list_action)(setups->arg_ptr);
+    }
   }
 }
 
@@ -104,7 +113,7 @@ void start_setup()
   lv_screen_load_anim(SetupScreen.setup_screen, LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
 }
 
-void quit_setup_event(lv_event_t *e)
+static void quit_setup_event(lv_event_t *e)
 {
   UNUSED(e);
   lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_active());
@@ -115,11 +124,13 @@ void quit_setup_event(lv_event_t *e)
   }
 }
 
-void activate_screen(lv_obj_t *screen)
+void activate_screen(lv_obj_t *screen, void (*list_action)(), void *arg_ptr)
 {
   lv_screen_load(screen);
   lv_obj_add_event_cb(screen, enter_setup_event, LV_EVENT_GESTURE, NULL);
   SetupScreen.active_screen = screen;
+  SetupScreen.list_action = list_action;
+  SetupScreen.arg_ptr = arg_ptr;
 }
 
 static void vol_event_cb(lv_event_t *e)
@@ -217,5 +228,6 @@ lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev)
   lv_obj_add_flag(setups->cont_bt, LV_OBJ_FLAG_HIDDEN);
 
   setups->bt_button_info.btn = setups->cont_bt;
+  lv_obj_add_event_cb(setups->setup_screen, quit_setup_event, LV_EVENT_GESTURE, NULL);
   return scr;
 }

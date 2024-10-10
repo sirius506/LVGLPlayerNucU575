@@ -18,12 +18,13 @@ typedef struct {
   lv_obj_t *cont_bt;
   lv_obj_t *vol_slider;
   lv_obj_t *bright_slider;
+  void     (*list_action)(void *ptr);
+  void     *arg_ptr;
   BT_BUTTON_INFO bt_button_info;
 } SETUP_SCREEN;
 
 void start_setup();
-void activate_screen(lv_obj_t *screen);
-void quit_setup_event(lv_event_t *e);
+void activate_screen(lv_obj_t *screen, void (*list_action)(), void *arg_ptr);
 lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev);
 void SetBluetoothButtonState(BT_BUTTON_INFO *binfo, BT_STATE new_state);
 
