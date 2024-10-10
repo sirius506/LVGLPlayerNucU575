@@ -53,11 +53,17 @@ ZERO2_INPUT_REPORT zero2_prev_report;
 
 static void Zero2_LVGL_Keycode(struct zero2_input_report *rp, uint32_t vbutton);
 static void Zero2_DOOM_Keycode(struct zero2_input_report *rp, uint32_t vbutton);
+#ifdef USE_FUSION
 static void Zero2_Display_Status(struct zero2_input_report *rp, uint32_t vbutton);
+#endif
 
 static void (*zero2HidProcTable[])(struct zero2_input_report *rp, uint32_t vbutton) = {
       Zero2_LVGL_Keycode,
+#ifdef USE_FUSION
       Zero2_Display_Status,
+#else
+      NULL,
+#endif
       Zero2_DOOM_Keycode,
 };
 
@@ -242,6 +248,7 @@ void Zero2BtProcessCalibReport(const uint8_t *bp, int len)
   UNUSED(len);
 }
 
+#ifdef USE_FUSION
 static struct gamepad_inputs zero2_inputs;
 
 static void Zero2_Display_Status(struct zero2_input_report *rp, uint32_t vbutton)
@@ -252,6 +259,7 @@ static void Zero2_Display_Status(struct zero2_input_report *rp, uint32_t vbutton
   gin->vbutton = vbutton;
   Display_GamePad_Info(gin, vbutton);
 }
+#endif
 
 const struct sGamePadDriver Zero2Driver = {
   Zero2DecodeInputReport,		// USB and BT

@@ -21,11 +21,17 @@ extern void GetPlayerHealthColor(uint8_t *cval);
 
 static void DS4_LVGL_Keycode(struct ds4_input_report *rp, uint8_t hat, uint32_t vbutton, HID_REPORT *rep);
 static void DualShock_DOOM_Keycode(struct ds4_input_report *rp, uint8_t hat, uint32_t vbutton, HID_REPORT *rep);
+#ifdef USE_FUSION
 static void DualShock_Display_Status(struct ds4_input_report *rp, uint8_t hat, uint32_t vbutton, HID_REPORT *rep);
+#endif
 
 static const void (*ds4HidProcTable[])(struct ds4_input_report *rp, uint8_t hat, uint32_t vbutton, HID_REPORT *rep) = {
       DS4_LVGL_Keycode,
+#ifdef USE_FUSION
       DualShock_Display_Status,
+#else
+      NULL,
+#endif
       DualShock_DOOM_Keycode,
 };
 
@@ -322,13 +328,13 @@ static void DualShockDecodeInputReport(HID_REPORT *report)
 #ifdef USE_FUSION
   if (dcount & 1)
     ds4_process_fusion(rp);
-#endif
 
   if (report->hid_mode == HID_MODE_TEST)
   {
     if (dcount & 7)
       return;
   }
+#endif
 
   {
     uint8_t hat;
@@ -527,6 +533,7 @@ void DualShockBtProcessCalibReport(const uint8_t *bp, int len)
 
 static struct gamepad_inputs ds4_inputs;
 
+#ifdef USE_FUSION
 static void DualShock_Display_Status(struct ds4_input_report *rp, uint8_t hat, uint32_t vbutton, HID_REPORT *rep)
 {
   UNUSED(hat);
@@ -575,6 +582,7 @@ static void DualShock_Display_Status(struct ds4_input_report *rp, uint8_t hat, u
   }
   Display_GamePad_Info(gin, vbutton);
 }
+#endif
 
 const struct sGamePadDriver DualShockDriver = {
   DualShockDecodeInputReport,		// USB and BT

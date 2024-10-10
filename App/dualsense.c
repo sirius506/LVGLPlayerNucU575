@@ -28,11 +28,17 @@ extern void GetPlayerHealthColor(uint8_t *cval);
 
 static void DualSense_LVGL_Keycode(struct dualsense_input_report *rp, uint8_t hat, uint32_t vbutton);
 static void DualSense_DOOM_Keycode(struct dualsense_input_report *rp, uint8_t hat, uint32_t vbutton);
+#ifdef USE_FUSION
 static void DualSense_Display_Status(struct dualsense_input_report *rp, uint8_t hat, uint32_t vbutton);
+#endif
 
 static void (*HidProcTable[])(struct dualsense_input_report *rp, uint8_t hat, uint32_t vbutton) = {
       DualSense_LVGL_Keycode,
+#ifdef USE_FUSION
       DualSense_Display_Status,
+#else
+      NULL,
+#endif
       DualSense_DOOM_Keycode,
 };
 
@@ -352,13 +358,13 @@ static void DualSenseDecodeInputReport(HID_REPORT *report)
 #ifdef USE_FUSION
   if (dcount & 1)
     dualsense_process_fusion(rp);
-#endif
 
   if (report->hid_mode == HID_MODE_TEST)
   {
     if (dcount & 7)
       return;
   }
+#endif
 
   decode_report(rp, report->hid_mode);
   process_bt_reports(report->hid_mode);
@@ -672,6 +678,7 @@ static void DualSense_DOOM_Keycode(struct dualsense_input_report *rp, uint8_t ha
 
 static struct gamepad_inputs dualsense_inputs;
 
+#ifdef USE_FUSION
 static void DualSense_Display_Status(struct dualsense_input_report *rp, uint8_t hat, uint32_t vbutton)
 {
   UNUSED(hat);
@@ -701,6 +708,7 @@ static void DualSense_Display_Status(struct dualsense_input_report *rp, uint8_t 
 
   Display_GamePad_Info(gin, vbutton);
 }
+#endif
 
 const struct sGamePadDriver DualSenseDriver = {
   DualSenseDecodeInputReport,		// USB and BT
