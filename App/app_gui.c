@@ -678,8 +678,7 @@ void StartGuiTask(void *args)
 
   audio_config = get_audio_config(&HalDevice);
 
-  if (haldev->boot_mode < 2)
-    osThreadNew(StartBtstackTask, haldev, &attributes_btstacktask);
+  osThreadNew(StartBtstackTask, haldev, &attributes_btstacktask);
 
   starts->screen = lv_obj_create(NULL);
   menus->screen = lv_obj_create(NULL);
@@ -816,10 +815,18 @@ void StartGuiTask(void *args)
         break;
       case GUIEV_RIGHT_XDIR:
       case GUIEV_RIGHT_YDIR:
-        if (lv_scr_act() == sounds->screen)
-          sound_process_stick(event.evcode, event.evval0);
-        else if (lv_scr_act() == menus->play_scr)
-          music_process_stick(event.evcode, event.evval0);
+        {
+          lv_obj_t *act_screen = lv_scr_act();
+
+          if (act_screen == sounds->screen)
+            sound_process_stick(event.evcode, event.evval0);
+          else if (act_screen == menus->play_scr)
+            music_process_stick(event.evcode, event.evval0);
+          else if (act_screen == oscms->scope_screen)
+            oscm_process_stick(oscms, event.evcode, event.evval0, 0);
+          else if (act_screen == oscms->mlist_screen)
+            oscm_process_stick(oscms, event.evcode, event.evval0, 1);
+        }
         break;
       case GUIEV_LEFT_XDIR:
         {

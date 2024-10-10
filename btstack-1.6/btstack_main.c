@@ -30,7 +30,7 @@ int btstack_main(int argc, HAL_DEVICE *haldev)
 
   btapi_setup();
 
-  if (haldev->boot_mode)
+  if (haldev->boot_mode == BOOTM_A2DP)
   {
     btstack_audio_main(0, haldev);
     return 0;

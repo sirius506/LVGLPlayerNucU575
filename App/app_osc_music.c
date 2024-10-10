@@ -994,3 +994,18 @@ lv_obj_t *osc_mlist_create(OSCMUSICINFO *mlist, int num_music, OSCM_SCREEN *scre
 
   return list;
 }
+
+void oscm_process_stick(OSCM_SCREEN *screen, int evcode, int direction, int cflag)
+{
+  if (evcode == GUIEV_RIGHT_YDIR)
+  {
+    if (direction > 0 && cflag)
+    {
+      lv_screen_load_anim(screen->scope_screen, LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
+    }
+    else if ((direction < 0) && (cflag == 0))
+    {
+      lv_screen_load_anim(screen->mlist_screen, LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
+    }
+  }
+}

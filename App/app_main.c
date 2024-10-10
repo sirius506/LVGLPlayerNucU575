@@ -90,6 +90,7 @@ void StartDefaultTask(void *argument)
 
   bsp_init(haldev);
 
+debug_printf("MCU Rev: %x\n",  HAL_GetREVID());
   val = Board_PSRAMInfo(haldev);
   debug_printf("PSRAM: %d MBit\n", val);
   Board_PSRAM_Init(haldev);
@@ -107,7 +108,7 @@ void StartDefaultTask(void *argument)
 
   errs1 = NULL;
 
-  osDelay(400);
+  //osDelay(400);
 
   if (bsp_sdcard_inserted())
   {

@@ -160,7 +160,7 @@ void StartBtstackTask(void *arg)
   hci_add_event_handler(&hci_event_callback_registration);
 
   // hand over to btstack embedded code
-  if (haldev->boot_mode)
+  if (haldev->boot_mode == BOOTM_A2DP)
   {
     // setup audio
     btstack_audio_sink_set_instance(btstack_audio_embedded_sink_get_instance());
