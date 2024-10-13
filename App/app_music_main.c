@@ -284,11 +284,11 @@ lv_obj_t * _lv_demo_music_main_create(lv_obj_t * parent, lv_group_t *g, lv_style
 #if 0
     /* Create an intro from a logo + label */
     LV_IMG_DECLARE(img_lv_demo_music_logo);
-    lv_obj_t * logo = lv_image_create(lv_scr_act());
+    lv_obj_t * logo = lv_image_create(lv_screen_active());
     lv_img_set_src(logo, &img_lv_demo_music_logo);
     lv_obj_move_foreground(logo);
 
-    lv_obj_t * title = lv_label_create(lv_scr_act());
+    lv_obj_t * title = lv_label_create(lv_screen_active());
     lv_label_set_text(title, "LVGL Demo\nMusic player");
     lv_obj_set_style_text_align(title, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_font(title, font_large, 0);

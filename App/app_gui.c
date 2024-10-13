@@ -661,7 +661,8 @@ void StartGuiTask(void *args)
   padkeyqId = osMessageQueueNew(PADKEYQ_DEPTH, sizeof(lv_indev_data_t), &attributes_padkeyq);
 
   icon_label = lv_label_create(lv_layer_top());
-  lv_obj_set_style_text_color(icon_label, lv_color_black(), 0);
+  //lv_obj_set_style_text_color(icon_label, lv_color_black(), 0);
+  lv_obj_set_style_text_color(icon_label, lv_palette_main(LV_PALETTE_BLUE), 0);
   lv_obj_align(icon_label, LV_ALIGN_TOP_LEFT, 0, 0);
   //lv_label_set_text(icon_label, " " LV_SYMBOL_USB " " LV_SYMBOL_BLUETOOTH);
   lv_label_set_text(icon_label, (const char *)icon_label_string);
@@ -803,11 +804,11 @@ void StartGuiTask(void *args)
       case GUIEV_PSEC_UPDATE:
         if (haldev->boot_mode)
           app_ppos_update((MIX_INFO *)event.evarg1);
-        else if (lv_scr_act() == menus->play_scr)
+        else if (lv_screen_active() == menus->play_scr)
           app_psec_update(event.evval0);
         break;
       case GUIEV_FFT_UPDATE:
-        if ((lv_scr_act() == menus->play_scr) && (padInfo->hid_mode != HID_MODE_DOOM))
+        if ((lv_screen_active() == menus->play_scr) && (padInfo->hid_mode != HID_MODE_DOOM))
         {
           app_spectrum_update(event.evval0);
         }
@@ -816,7 +817,7 @@ void StartGuiTask(void *args)
       case GUIEV_RIGHT_XDIR:
       case GUIEV_RIGHT_YDIR:
         {
-          lv_obj_t *act_screen = lv_scr_act();
+          lv_obj_t *act_screen = lv_screen_active();
 
           if (act_screen == sounds->screen)
             sound_process_stick(event.evcode, event.evval0);
