@@ -2,9 +2,6 @@
  * @brief SONY Dual Sense Controller driver
  */
 #include "DoomPlayer.h"
-#ifdef USE_FUSION
-#include "Fusion.h"
-#endif
 #include "gamepad.h"
 #include "SDL.h"
 #include "SDL_joystick.h"
@@ -14,31 +11,15 @@
 
 static int initial_report;
 
-
-#ifdef OLD_CODE
-#define	SAMPLE_PERIOD	(0.00125f)
-#define	SAMPLE_RATE	(800)
-#else
-#define	SAMPLE_PERIOD	(0.0025f)
-#define	SAMPLE_RATE	(400)
-#endif
-
 extern int fft_getcolor(uint8_t *p);
 extern void GetPlayerHealthColor(uint8_t *cval);
 
 static void DualSense_LVGL_Keycode(struct dualsense_input_report *rp, uint8_t hat, uint32_t vbutton);
 static void DualSense_DOOM_Keycode(struct dualsense_input_report *rp, uint8_t hat, uint32_t vbutton);
-#ifdef USE_FUSION
-static void DualSense_Display_Status(struct dualsense_input_report *rp, uint8_t hat, uint32_t vbutton);
-#endif
 
 static void (*HidProcTable[])(struct dualsense_input_report *rp, uint8_t hat, uint32_t vbutton) = {
       DualSense_LVGL_Keycode,
-#ifdef USE_FUSION
-      DualSense_Display_Status,
-#else
       NULL,
-#endif
       DualSense_DOOM_Keycode,
 };
 
@@ -67,20 +48,6 @@ static const uint32_t hatmap[16] = {
 			 VBMASK_UP|VBMASK_PS|VBMASK_TRIANGLE| \
                          VBMASK_L1|VBMASK_R1| \
 			 VBMASK_CIRCLE|VBMASK_CROSS|VBMASK_SQUARE)
-
-#ifdef USE_FUSION
-static struct dsense_data DsData;
-
-#define	le16_to_cpu(x)	(x)
-
-static int16_t get_le16val(uint8_t *bp)
-{
-  int16_t val;
-
-  val = bp[0] + (bp[1] << 8);
-  return val;
-}
-#endif
 
 #define	TRIG_FEEDBACK	0x21
 
@@ -126,173 +93,6 @@ static void set_joystick_params()
   joystick->hats = 0;
   joystick->buttons = 0;;
 }
-
-#ifdef CALIB_DEBUG
-int16_t calibVals[17];
-#endif
-
-#ifdef USE_FUSION
-static void process_calibdata(struct dsense_data *ds, uint8_t *dp)
-{
-  int16_t gyro_pitch_bias, gyro_yaw_bias, gyro_roll_bias;
-  int16_t gyro_pitch_plus, gyro_pitch_minus;
-  int16_t gyro_yaw_plus, gyro_yaw_minus;
-  int16_t gyro_roll_plus, gyro_roll_minus;
-  int16_t gyro_speed_plus, gyro_speed_minus;
-  int16_t acc_x_plus, acc_x_minus;
-  int16_t acc_y_plus, acc_y_minus;
-  int16_t acc_z_plus, acc_z_minus;
-
-  float flNumerator;
-  int range_2g;
-
-#ifdef CALIB_DEBUG
-  calibVals[0] = gyro_pitch_bias = get_le16val(dp + 1);
-  calibVals[1] = gyro_yaw_bias = get_le16val(dp + 3);
-  calibVals[2] = gyro_roll_bias = get_le16val(dp + 5);
-  calibVals[3] = gyro_pitch_plus = get_le16val(dp + 7);
-  calibVals[4] = gyro_pitch_minus = get_le16val(dp + 9);
-  calibVals[5] = gyro_yaw_plus = get_le16val(dp + 11);
-  calibVals[6] = gyro_yaw_minus = get_le16val(dp + 13);
-  calibVals[7] = gyro_roll_plus = get_le16val(dp + 15);
-  calibVals[8] = gyro_roll_minus = get_le16val(dp + 17);
-  calibVals[9] = gyro_speed_plus = get_le16val(dp + 19);
-  calibVals[10] = gyro_speed_minus = get_le16val(dp + 21);
-  calibVals[11] = acc_x_plus = get_le16val(dp + 23);
-  calibVals[12] = acc_x_minus = get_le16val(dp + 25);
-  calibVals[13] = acc_y_plus = get_le16val(dp + 27);
-  calibVals[14] = acc_y_minus = get_le16val(dp + 29);
-  calibVals[15] = acc_z_plus = get_le16val(dp + 31);
-  calibVals[16] = acc_z_minus = get_le16val(dp + 33);
-#else
-  gyro_pitch_bias = get_le16val(dp + 1);
-  gyro_yaw_bias = get_le16val(dp + 3);
-  gyro_roll_bias = get_le16val(dp + 5);
-  gyro_pitch_plus = get_le16val(dp + 7);
-  gyro_pitch_minus = get_le16val(dp + 9);
-  gyro_yaw_plus = get_le16val(dp + 11);
-  gyro_yaw_minus = get_le16val(dp + 13);
-  gyro_roll_plus = get_le16val(dp + 15);
-  gyro_roll_minus = get_le16val(dp + 17);
-  gyro_speed_plus = get_le16val(dp + 19);
-  gyro_speed_minus = get_le16val(dp + 21);
-  acc_x_plus = get_le16val(dp + 23);
-  acc_x_minus = get_le16val(dp + 25);
-  acc_y_plus = get_le16val(dp + 27);
-  acc_y_minus = get_le16val(dp + 29);
-  acc_z_plus = get_le16val(dp + 31);
-  acc_z_minus = get_le16val(dp + 33);
-#endif
-
-  /*
-   * Set gyroscope calibration and normalization parameters.
-   * Data values will be normalized to 1/DS_GYRO_RES_PER_DEG_S degree/s.
-   */
-
-  flNumerator = (gyro_speed_plus + gyro_speed_minus) * DS_GYRO_RES_PER_DEG_S;
-
-  ds->gyro_calib_data[0].bias = gyro_pitch_bias;
-  ds->gyro_calib_data[0].sensitivity = flNumerator / (gyro_pitch_plus - gyro_pitch_minus);
-
-  ds->gyro_calib_data[1].bias = gyro_yaw_bias;
-  ds->gyro_calib_data[1].sensitivity = flNumerator / (gyro_yaw_plus - gyro_yaw_minus);
-
-  ds->gyro_calib_data[2].bias = gyro_roll_bias;
-  ds->gyro_calib_data[2].sensitivity = flNumerator / (gyro_roll_plus - gyro_roll_minus);
-
-  /*
-   * Set accelerometer calibration and normalization parameters.
-   * Data values will be normalized to 1/DS_ACC_RES_PER_G g.
-   */
-  range_2g = acc_x_plus - acc_x_minus;
-  ds->accel_calib_data[0].bias = acc_x_plus - range_2g / 2;
-  ds->accel_calib_data[0].sensitivity = 2.0f * DS_ACC_RES_PER_G / (float)range_2g;
-
-  range_2g = acc_y_plus - acc_y_minus;
-  ds->accel_calib_data[1].bias = acc_y_plus - range_2g / 2;
-  ds->accel_calib_data[1].sensitivity = 2.0f * DS_ACC_RES_PER_G / (float)range_2g;
-
-  range_2g = acc_z_plus - acc_z_minus;
-  ds->accel_calib_data[2].bias = acc_z_plus - range_2g / 2;
-  ds->accel_calib_data[2].sensitivity = 2.0f * DS_ACC_RES_PER_G / (float)range_2g;
-}
-#endif
-
-#ifdef USE_FUSION
-// Set AHRS algorithm settings
-static const FusionAhrsSettings settings = {
-    .gain = 0.5f,
-    .accelerationRejection = 10.0f,
-    .rejectionTimeout = 10 * SAMPLE_RATE,
-};
-
-static void DualSenseResetFusion()
-{
-  gamepad_reset_fusion();
-}
-
-static void dualsense_process_fusion(struct dualsense_input_report *rp)
-{
-  struct dsense_data *ds = &DsData;
-  int i;
-  FusionVector gyroscope;
-  FusionVector accelerometer;
-  int raw_data;
-  float calib_data;
-
-  for (i = 0; i < 3; i++)
-  {
-      raw_data = le16_to_cpu(rp->gyro[i]);
-      calib_data = (float)(raw_data - ds->gyro_calib_data[i].bias) * ds->gyro_calib_data[i].sensitivity;
-#define	SWAP_ZY
-#ifdef SWAP_ZY
-      switch (i)
-      {
-      case 0:
-        gyroscope.array[1] = calib_data / DS_GYRO_RES_PER_DEG_S;
-        break;
-      case 1:
-        gyroscope.array[2] = calib_data / DS_GYRO_RES_PER_DEG_S;
-        break;
-      case 2:
-      default:
-        gyroscope.array[0] = calib_data / DS_GYRO_RES_PER_DEG_S;
-        break;
-      }
-#else
-      gyroscope.array[i] = calib_data / DS_GYRO_RES_PER_DEG_S;
-#endif
-  }
-
-  for (i = 0; i < 3; i++)
-  {
-      raw_data = le16_to_cpu(rp->accel[i]);
-      calib_data = (float)(raw_data - ds->accel_calib_data[i].bias) * ds->accel_calib_data[i].sensitivity;
-#ifdef SWAP_ZY
-      switch (i)
-      {
-      case 0:
-        accelerometer.array[1] = calib_data / DS_ACC_RES_PER_G;
-        break;
-      case 1:
-        accelerometer.array[2] = calib_data / DS_ACC_RES_PER_G;
-        break;
-      case 2:
-      default:
-        accelerometer.array[0] = calib_data / DS_ACC_RES_PER_G;
-        break;
-      }
-#else
-      accelerometer.array[i] = calib_data / DS_ACC_RES_PER_G;
-#endif
-  }
-
-  gyroscope.array[0] = -gyroscope.array[0];
-  accelerometer.array[0] = -accelerometer.array[0];
-
-  gamepad_process_fusion(SAMPLE_PERIOD, gyroscope, accelerometer);
-}
-#endif
 
 static uint8_t prev_blevel;
 
@@ -355,16 +155,6 @@ static void DualSenseDecodeInputReport(HID_REPORT *report)
   }
 
   dcount++;
-#ifdef USE_FUSION
-  if (dcount & 1)
-    dualsense_process_fusion(rp);
-
-  if (report->hid_mode == HID_MODE_TEST)
-  {
-    if (dcount & 7)
-      return;
-  }
-#endif
 
   decode_report(rp, report->hid_mode);
   process_bt_reports(report->hid_mode);
@@ -391,20 +181,6 @@ static void bt_emit_report(struct dualsense_btout_report *brp)
   brp->crc = bt_comp_crc((uint8_t *)brp, len);
   btapi_send_report((uint8_t *)brp, len);
 }
-
-#ifdef USE_FUSION
-void DualSenseProcessCalibReport(const uint8_t *bp, int len)
-{
-debug_printf("%s: %d\n", __FUNCTION__, len);
-  if (len == DS_FEATURE_REPORT_CALIBRATION_SIZE)
-  {
-    process_calibdata(&DsData, (uint8_t *)bp);
-
-    initial_report = 0;
-    set_joystick_params();
-  }
-}
-#endif
 
 static void SetBarColor(DS_OUTPUT_REPORT *rp, int seq, int mode)
 {
@@ -646,11 +422,7 @@ void DualSenseBtSetup(uint16_t hid_host_cid)
 
   gpb->out_toggle = 0;
 
-#ifdef USE_FUSION
-  setup_fusion(SAMPLE_RATE, &settings);
-#else
   set_joystick_params();
-#endif
   hid_host_send_get_report(hid_host_cid, HID_REPORT_TYPE_FEATURE, DS_FEATURE_REPORT_CALIBRATION);
 }
 
@@ -663,104 +435,14 @@ static const uint8_t sdl_hatmap[16] = {
 
 static void DualSense_DOOM_Keycode(struct dualsense_input_report *rp, uint8_t hat, uint32_t vbutton)
 {
-#ifdef USE_FUSION
-  int16_t angle;
-
-  angle = ImuAngle.roll;
-  if (angle > 15)
-    vbutton |= VBMASK_R2;
-  if (angle < -15)
-    vbutton |= VBMASK_L2;
-#endif
   SDL_JoyStickSetButtons(sdl_hatmap[hat], vbutton & 0x7FFF);
   decode_stick(rp);
 }
 
-static struct gamepad_inputs dualsense_inputs;
-
-#ifdef USE_FUSION
-static void DualSense_Display_Status(struct dualsense_input_report *rp, uint8_t hat, uint32_t vbutton)
-{
-  UNUSED(hat);
-  struct gamepad_inputs *gin = &dualsense_inputs;
-
-  static int disp_count;
-
-  disp_count++;
-  if (disp_count & 7)
-    return;
-  gin->x = rp->x;
-  gin->y = rp->y;
-  gin->z = rp->z;
-  gin->rx = rp->rx;
-  gin->ry = rp->ry;
-  gin->rz = rp->rz;
-  gin->vbutton = vbutton;
-  memcpy(gin->gyro, rp->gyro, sizeof(int16_t) * 3);
-  memcpy(gin->accel, rp->accel, sizeof(int16_t) * 3);
-
-  gin->points[0].contact = rp->points[0].contact;
-  gin->points[0].xpos = (rp->points[0].x_hi << 8) | (rp->points[0].x_lo);
-  gin->points[0].ypos = (rp->points[0].y_hi << 4) | (rp->points[0].y_lo);
-  gin->points[1].contact = rp->points[1].contact;
-  gin->points[1].xpos = (rp->points[1].x_hi << 8) | (rp->points[1].x_lo);
-  gin->points[1].ypos = (rp->points[1].y_hi << 4) | (rp->points[1].y_lo);
-
-  Display_GamePad_Info(gin, vbutton);
-}
-#endif
-
 const struct sGamePadDriver DualSenseDriver = {
   DualSenseDecodeInputReport,		// USB and BT
   DualSenseBtSetup,			// BT
-#ifdef USE_FUSION
-  DualSenseProcessCalibReport,		// BT
-  DualSenseResetFusion,			// USB and BT
-#else
   NULL,
   NULL,
-#endif
   DualSenseBtDisconnect,		// BT
-};
-
-const struct sGamePadImage DualSenseImage = {
-  .ibin_name = "dualsense.ibin",		// Name of Image file
-  .ibin_width = 363,
-  //.ibin_height = 272,
-  .ibin_height = 253,
-#if 1
-  .image_flag = (PADIMG_IMU|PADIMG_STICK|PADIMG_TPAD),
-#else
-  .image_flag = (PADIMG_STICK|PADIMG_TPAD),
-#endif
-  .tpad_hor_res = 1920,
-  .tpad_ver_res = 1080,
-  .tpad_width = 110,
-  .tpad_height = 60,
-  .tpad_xpos = 125,
-  .tpad_ypos = 35,
-  .lstick_x = 128,
-  .rstick_x = 237,
-  .stick_y =  200,
-  .ButtonPositions = {
-    { 261,  90 }, /* Square */
-    { 284, 115 }, /* Cross */
-    { 310,  89 }, /* Circle */
-    { 284,  65 }, /* Triangle */
-    {  80,  34 }, /* L1 */
-    { 287,  34 }, /* R1 */
-    {  53,  24 }, /* L2 */
-    { 297,  24 }, /* R2 */
-    { 104,  54 }, /* Create */
-    { 261,  54 }, /* Option */
-    { 126, 138 }, /* L3 */
-    { 237, 138 }, /* R3 */
-    { 182, 137 }, /* PS */
-    { 182,  25 }, /* Touch */
-    { 182, 157 }, /* MUTE */
-    {  75,  70 }, /* 15 - Up */
-    {  57,  90 }, /* 16 - Left */
-    {  94,  90 }, /* 17 - Right */
-    {  75, 109 }, /* 18 - Down */
-  },
 };

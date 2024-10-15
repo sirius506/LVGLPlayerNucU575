@@ -98,9 +98,6 @@ typedef enum {
   GUIEV_FLASH_GAME_SELECT,      // Flash game image selected
   GUIEV_SD_GAME_SELECT,         // SD game image selected
   GUIEV_REDRAW_START,
-  GUIEV_PADTEST_START,
-  GUIEV_PADTEST_UPDATE,
-  GUIEV_PADTEST_DONE,
   GUIEV_LEFT_XDIR,
   GUIEV_LEFT_YDIR,
   GUIEV_RIGHT_XDIR,

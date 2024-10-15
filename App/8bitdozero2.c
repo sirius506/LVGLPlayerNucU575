@@ -53,17 +53,10 @@ ZERO2_INPUT_REPORT zero2_prev_report;
 
 static void Zero2_LVGL_Keycode(struct zero2_input_report *rp, uint32_t vbutton);
 static void Zero2_DOOM_Keycode(struct zero2_input_report *rp, uint32_t vbutton);
-#ifdef USE_FUSION
-static void Zero2_Display_Status(struct zero2_input_report *rp, uint32_t vbutton);
-#endif
 
 static void (*zero2HidProcTable[])(struct zero2_input_report *rp, uint32_t vbutton) = {
       Zero2_LVGL_Keycode,
-#ifdef USE_FUSION
-      Zero2_Display_Status,
-#else
       NULL,
-#endif
       Zero2_DOOM_Keycode,
 };
 
@@ -248,51 +241,10 @@ void Zero2BtProcessCalibReport(const uint8_t *bp, int len)
   UNUSED(len);
 }
 
-#ifdef USE_FUSION
-static struct gamepad_inputs zero2_inputs;
-
-static void Zero2_Display_Status(struct zero2_input_report *rp, uint32_t vbutton)
-{
-  UNUSED(rp);
-  struct gamepad_inputs *gin = &zero2_inputs;
-
-  gin->vbutton = vbutton;
-  Display_GamePad_Info(gin, vbutton);
-}
-#endif
-
 const struct sGamePadDriver Zero2Driver = {
   Zero2DecodeInputReport,		// USB and BT
   Zero2BtSetup,			// BT
   Zero2BtProcessCalibReport,	// BT
   Zero2ResetFusion,			// USB and BT
   Zero2BtDisconnect,		// BT
-};
-
-const struct sGamePadImage Zero2Image = {
-  .ibin_name = "8bitZero.ibin",				// Name of Image file
-  .ibin_width = 367,
-  .ibin_height = 175,
-  .image_flag = 0,
-  .ButtonPositions = {
-    { 238,  90 }, /* Square */
-    { 274, 125 }, /* Cross */
-    { 308,  90 }, /* Circle */
-    { 272,  54 }, /* Triangle */
-    {  91,  12 }, /* L1 */
-    { 274,  12 }, /* R1 */
-    {   0,   0 }, /* L2 */
-    {   0,   0 }, /* R2 */
-    { 164, 130 }, /* Create */
-    {   0,   0 }, /* Option */
-    {   0,   0 }, /* L3 */
-    {   0,   0 }, /* R3 */
-    { 202, 130 }, /* PS */
-    {   0,   0 }, /* Touch */
-    {   0,   0 }, /* MUTE */
-    {  94,  58 }, /* 15 - Up */
-    {  60,  90 }, /* 16 - Left */
-    { 125,  90 }, /* 17 - Right */
-    {  94, 124 }, /* 18 - Down */
-  },
 };

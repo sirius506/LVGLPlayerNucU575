@@ -1097,18 +1097,7 @@ void StartGuiTask(void *args)
 
         ADD_MENU_BUTTON(btn_music, "Music", GUIEV_MPLAYER_START)
         ADD_MENU_BUTTON(btn_sound, "Sound", GUIEV_SPLAYER_START)
-#ifdef USE_FUSION
-        ADD_MENU_BUTTON(btn_dual, "Game Pad\n Demo", GUIEV_PADTEST_START)
-#endif
         ADD_MENU_BUTTON(btn_game, "Game", GUIEV_GAME_START)
-
-#ifdef USE_FUSION
-        if (padInfo == &nullPad)
-        {
-          /* DualSense is not detected, yet. Disable DualSense demo button. */
-          lv_obj_add_state(menus->btn_dual, LV_STATE_DISABLED);
-        }
-#endif
 
         int cvol = bsp_codec_getvol(haldev->codec_i2c);
         lv_slider_set_value(setups->vol_slider, cvol, LV_ANIM_OFF);
@@ -1263,30 +1252,6 @@ void StartGuiTask(void *args)
           lv_indev_set_group(keydev, menus->player_ing);
         }
         break;
-#ifdef USE_FUSION
-      case GUIEV_PADTEST_START:
-        if (padInfo->padDriver && padInfo->padDriver->ResetFusion)
-        {
-          padInfo->padDriver->ResetFusion();
-          GamepadHidMode(padInfo, HID_MODE_TEST);
-        } 
-        if (menus->sub_scr == NULL)
-        {
-          menus->sub_scr = padtest_create(padInfo, g);
-        }
-        activate_screen(menus->sub_scr, NULL, NULL);
-        break;
-      case GUIEV_PADTEST_UPDATE:
-        if (padInfo->hid_mode == HID_MODE_TEST)
-        {
-          padtest_update(padInfo, event.evarg1, event.evval0);
-          //lv_refr_now(NULL);
-        }
-        break;
-      case GUIEV_PADTEST_DONE:
-        GamepadHidMode(padInfo, HID_MODE_LVGL);
-        /* Fall down to .. */
-#endif
       case GUIEV_MPLAYER_DONE:
         /*
          * Restore menu screen and its input group
@@ -1419,15 +1384,7 @@ debug_printf("CHEAT_SEL\n");
           if (event.evval0 == 0)
           {
             SetBluetoothButtonState(&setups->bt_button_info, BT_STATE_READY);
-#ifdef USE_FUSION
-            if (menus->btn_dual)
-              lv_obj_add_state(menus->btn_dual, LV_STATE_DISABLED);
-#endif
             padInfo = &nullPad;
-#ifdef USE_FUSION
-            if (menus->sub_scr)
-              postGuiEventMessage(GUIEV_PADTEST_DONE, 0, NULL, NULL);
-#endif
           }
           else
           {
@@ -1438,10 +1395,6 @@ debug_printf("CHEAT_SEL\n");
       case GUIEV_GAMEPAD_READY:
         padInfo = (GAMEPAD_INFO *)event.evarg1;
         debug_printf("%s Detected.\n", padInfo->name);
-#ifdef USE_FUSION
-        if (menus->btn_dual)
-          lv_obj_clear_state(menus->btn_dual, LV_STATE_DISABLED);
-#endif
         break;
       case GUIEV_ENDOOM:
         debug_printf("ENDOOM called.\n");
@@ -1598,19 +1551,6 @@ void postMusicInfo(int code, void *ptr, int size)
     postGuiEventMessage(GUIEV_MUSIC_INFO, code, bp, NULL);
   }
 }
-
-#ifdef USE_FUSION
-void Display_GamePad_Info(struct gamepad_inputs *rp, uint32_t vbutton)
-{ 
-  GUI_EVENT ev;
-
-  ev.evcode = GUIEV_PADTEST_UPDATE;
-  ev.evval0 = vbutton;
-  ev.evarg1 = rp;
-  ev.evarg2 = NULL;
-  postGuiEvent(&ev);
-} 
-#endif
 
 void app_screenshot()
 {       

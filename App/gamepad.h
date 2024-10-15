@@ -3,9 +3,6 @@
 #include "lvgl.h"
 #include "dualsense_report.h"
 #include "dualshock4_report.h"
-#ifdef USE_FUSION
-#include "Fusion.h"
-#endif
 
 #define	HID_MODE_LVGL	0
 #define	HID_MODE_TEST	1
@@ -40,7 +37,6 @@
 #define VBMASK_DOWN     (1<<18)
 
 #define	NUM_VBUTTONS	15	// Number of virtual buttons exclude direciton keys
-#define	NUM_PAD_BUTTONS	19	// include direction keys
 
 typedef struct {
   uint8_t  *ptr;
@@ -56,44 +52,10 @@ struct sGamePadDriver {
   void (*btDisconnect)(void);
 };
 
-#define	PADIMG_IMU	(1<<0)
-#define	PADIMG_STICK	(1<<1)
-#define	PADIMG_TPAD	(1<<2)
-
-/**
- *   GamePad Image Information
- */
-struct sGamePadImage {
-  char       *ibin_name;	// Name of Image file
-  uint16_t   ibin_width;	// Width of Image bitmap
-  uint16_t   ibin_height;	// Height of Image bitmap
-  uint8_t    image_flag;
-  uint16_t   tpad_hor_res;	// Touchpad horizonatal resolution
-  uint16_t   tpad_ver_res;	// Touchpad vertical resolution
-  uint16_t   tpad_width;	// Touchpad image width
-  uint16_t   tpad_height;	// Touchpad image height
-  uint16_t   tpad_xpos;
-  uint16_t   tpad_ypos;
-  uint16_t   lstick_x;		// Left stick xpos
-  uint16_t   rstick_x;		// Right stick xpos
-  uint16_t   stick_y;		// Left/Right stick ypos
-  lv_point_t ButtonPositions[NUM_PAD_BUTTONS];
-};
-
 typedef struct sGamePadInfo {
   char   *name;					// Name of Gamepad
   int    hid_mode;
   const struct sGamePadDriver *padDriver;
-  const struct sGamePadImage  *padImage;
-  lv_obj_t *img;	/* Game Pad Image object */
-  lv_obj_t *pad1;	/* LED object for two pad touch positions */
-  lv_obj_t *pad2;
-  lv_obj_t *yaw;
-  lv_obj_t *pitch;
-  lv_obj_t *roll_bar;
-  lv_obj_t *joyleft;
-  lv_obj_t *joyright;
-  lv_obj_t *ButtonLeds[NUM_PAD_BUTTONS];
 } GAMEPAD_INFO;
 
 typedef struct {
@@ -106,7 +68,6 @@ struct sGamePad {
   uint16_t  pid;
   char      *name;
   const struct sGamePadDriver *padDriver;
-  const struct sGamePadImage  *padImage;
 };
 
 struct gamepad_touch_point {
@@ -129,15 +90,6 @@ struct gamepad_inputs {
 };
 
 
-typedef struct {
-  int16_t roll;
-  int16_t pitch;
-  int16_t yaw;
-} FUSION_ANGLE;
-
-extern FUSION_ANGLE ImuAngle;
-
-#define	CALIB_BUF_SIZE	(DS_FEATURE_REPORT_CALIBRATION_SIZE+3)
 #define	INREP_SIZE	sizeof(struct dualsense_input_report)
 #define	OUTREP_SIZE	sizeof(struct dualsense_btout_report)
 
@@ -152,9 +104,11 @@ extern GAMEPAD_BUFFERS *GetGamePadBuffer();
 extern const struct sGamePadDriver DualShockDriver;
 extern const struct sGamePadDriver DualSenseDriver;
 extern const struct sGamePadDriver Zero2Driver;
+#ifdef USE_PAD_IMAGE
 extern const struct sGamePadImage DualShock4Image;
 extern const struct sGamePadImage DualSenseImage;
 extern const struct sGamePadImage Zero2Image;
+#endif
 
 extern GAMEPAD_INFO *IsSupportedGamePad(uint16_t vid, uint16_t pid);
 extern int get_bt_hid_mode();
@@ -162,11 +116,6 @@ extern void SDL_JoyStickSetButtons(uint8_t hat, uint32_t vbutton);
 
 extern uint32_t bt_comp_crc(uint8_t *ptr, int len);
 extern const PADKEY_DATA PadKeyDefs[];
-
-#ifdef USE_FUSUION
-extern void setup_fusion(int sample_rate, const FusionAhrsSettings *psettings);
-extern void gamepad_process_fusion(float sample_period, FusionVector gyroscope, FusionVector accelerometer);
-#endif
 
 extern void Display_GamePad_Info(struct gamepad_inputs *rp, uint32_t vbutton);
 extern void GamepadHidMode(GAMEPAD_INFO *padInfo, int mode_bit);
