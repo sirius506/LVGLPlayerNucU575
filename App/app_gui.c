@@ -790,9 +790,6 @@ void StartGuiTask(void *args)
     {
       switch (event.evcode)
       {
-      case GUIEV_TOUCH_INT:
-        bsp_process_touch(&tp_data);
-        break;
       case GUIEV_DOOM_REFRESH:
         lv_image_set_src(games->img, event.evarg1);
         lv_refr_now(NULL);
@@ -1052,6 +1049,10 @@ void StartGuiTask(void *args)
         }
         break;
       case GUIEV_OSCM_START:
+        oscms->scope_ing = lv_group_create();
+        oscms->list_ing = lv_group_create();
+        oscms->keydev = keydev;
+        lv_indev_set_group(keydev, oscms->scope_ing);
         KickOscMusic(haldev, oscms);
         break;
       case GUIEV_OSCM_FILE:

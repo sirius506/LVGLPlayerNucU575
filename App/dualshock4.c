@@ -16,6 +16,9 @@
 #define	SAMPLE_PERIOD	(0.00250f)
 #define	SAMPLE_RATE	(400)
 
+#define	TPAD_HOR_RES	1920
+#define	TPAD_VER_RES	943
+
 extern int fft_getcolor(uint8_t *p);
 extern void GetPlayerHealthColor(uint8_t *cval);
 
@@ -374,6 +377,54 @@ static uint32_t last_button;
 static int pad_timer;
 static int16_t left_xinc, left_yinc;
 static int16_t right_xinc, right_yinc;
+extern lv_indev_data_t tp_data;
+
+static void decode_tp(struct ds4_input_report *rp, HID_REPORT *rep)
+{
+  UNUSED(rp);
+  struct ds4_bt_input_report *bt_rep;
+  struct ds4_touch_report *tp;
+  int num_report;
+  uint16_t state, xpos, ypos;
+
+  if (rep->ptr[0] != DS4_INPUT_REPORT_BT)
+    return;
+
+  bt_rep = (struct ds4_bt_input_report *)rep->ptr;
+  num_report = bt_rep->num_touch_reports;
+  tp = bt_rep->reports;
+
+  if (num_report > 0 && tp)
+  {
+    state = (tp->points[0].contact & 0x80)? LV_INDEV_STATE_RELEASED : LV_INDEV_STATE_PRESSED;
+    xpos = (tp->points[0].x_hi << 8) | (tp->points[0].x_lo);
+    ypos = (tp->points[0].y_hi << 4) | (tp->points[0].y_lo);
+    xpos = xpos * 480 / TPAD_HOR_RES;
+    ypos = ypos * 320 / TPAD_VER_RES;
+  }
+  else
+  {
+    state = LV_INDEV_STATE_RELEASED;
+  }
+  if (tp_data.state != state)
+  {
+    if (state == LV_INDEV_STATE_PRESSED)
+    {
+      tp_data.state = state;
+      gamepad_grab_owner();
+    }
+    else if (gamepad_is_owner())
+    {
+      tp_data.state = state;
+      gamepad_ungrab_owner();
+    }
+  }
+  if (state == LV_INDEV_STATE_PRESSED)
+  {
+      tp_data.point.x = xpos;
+      tp_data.point.y = ypos;
+  }
+}
 
 static void decode_stick(struct ds4_input_report *rp)
 {
@@ -481,6 +532,7 @@ static void DS4_LVGL_Keycode(struct ds4_input_report *rp, uint8_t hat, uint32_t 
 #endif
   }
   decode_stick(rp);
+  decode_tp(rp, rep);
 }
 
 static const uint8_t sdl_hatmap[16] = {
@@ -492,6 +544,7 @@ static const uint8_t sdl_hatmap[16] = {
 
 static void DualShock_DOOM_Keycode(struct ds4_input_report *rp, uint8_t hat, uint32_t vbutton, HID_REPORT *rep)
 {
+  UNUSED(rep);
 #ifdef USE_FUSION
   int16_t angle;
 
@@ -503,6 +556,7 @@ static void DualShock_DOOM_Keycode(struct ds4_input_report *rp, uint8_t hat, uin
 #endif
   SDL_JoyStickSetButtons(sdl_hatmap[hat], vbutton & 0x7FFF);
   decode_stick(rp);
+  decode_tp(rp, rep);
 }
 
 void DualShockBtSetup(uint16_t hid_host_cid)
@@ -531,9 +585,9 @@ void DualShockBtProcessCalibReport(const uint8_t *bp, int len)
 }
 #endif
 
+#ifdef USE_FUSION
 static struct gamepad_inputs ds4_inputs;
 
-#ifdef USE_FUSION
 static void DualShock_Display_Status(struct ds4_input_report *rp, uint8_t hat, uint32_t vbutton, HID_REPORT *rep)
 {
   UNUSED(hat);

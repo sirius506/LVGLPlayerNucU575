@@ -126,4 +126,7 @@ void bsp_lcd_flush(HAL_DEVICE *iodev, uint8_t * ptr, int x1, int x2,  int y1,  i
 void bsp_ledpwm_update(HAL_DEVICE *haldev, int *pval);
 int bsp_sdcard_inserted();
 
+void gamepad_grab_owner();
+void gamepad_ungrab_owner();
+int gamepad_is_owner();
 #endif

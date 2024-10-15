@@ -70,8 +70,7 @@ typedef struct {
 /* GUI task event definitions */
 
 typedef enum {
-  GUIEV_TOUCH_INT = 1,
-  GUIEV_DOOM_REFRESH,
+  GUIEV_DOOM_REFRESH = 1,
   GUIEV_DOOM_ACTIVE,
   GUIEV_BTSTACK_READY,		// BTStack Ready
   GUIEV_BTDEV_CONNECTED,	// Bluetooth device connected/disconnected
@@ -190,6 +189,7 @@ typedef struct {
   lv_obj_t  *artist_label;
   int       cover_count;
   int       cur_cover;
+  lv_group_t *ing;              // Input group
 } A2DP_SCREEN;
 
 typedef struct {
@@ -202,6 +202,9 @@ typedef struct {
   lv_obj_t *play_button;
   lv_obj_t *prev_button;
   lv_obj_t *next_button;
+  lv_group_t *scope_ing;        /* Input group for scope screen */
+  lv_group_t *list_ing;		/* Input group for list screen */
+  lv_indev_t *keydev;
   uint8_t  disp_toggle;
 } OSCM_SCREEN;
 

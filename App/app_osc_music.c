@@ -610,6 +610,7 @@ static void style_handler(lv_event_t *e)
   }
 }
 
+#ifdef USE_LABEL_BUTTON
 static void list_handler(lv_event_t *e)
 {
   OSCM_SCREEN *screen = (OSCM_SCREEN *)lv_event_get_user_data(e);
@@ -617,8 +618,10 @@ static void list_handler(lv_event_t *e)
   if (screen->mlist_screen)
   {
     lv_screen_load(screen->mlist_screen);
+    lv_indev_set_group(screen->keydev, screen->list_ing);
   }
 }
+#endif
 
 /**
  * Called when play button has pressed.
@@ -657,6 +660,7 @@ static void list_proc(OSCM_SCREEN *screen)
   if (screen->mlist_screen)
   {
     lv_screen_load_anim(screen->mlist_screen, LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
+    lv_indev_set_group(screen->keydev, screen->list_ing);
   }
 }
 
@@ -700,18 +704,16 @@ void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
 #else
   lv_image_set_src(screen->scope_image, &oscImage);
 #endif
-#if 0
-  lv_obj_center(screen->scope_image);
-#else
   lv_obj_align(screen->scope_image, LV_ALIGN_TOP_MID, 0, 20);
-#endif
   screen->scope_label = lv_label_create(cs);
   lv_obj_add_style(screen->scope_label, &osc_style, 0);
   lv_label_set_text(screen->scope_label, "");
-  lv_obj_add_flag(screen->scope_label, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_align(screen->scope_label, LV_ALIGN_BOTTOM_MID, 0, -18);
   lv_obj_set_height(screen->scope_label, 20);
+#ifdef USE_LABEL_BUTTON
+  lv_obj_add_flag(screen->scope_label, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_add_event_cb(screen->scope_label, list_handler, LV_EVENT_PRESSED, screen);
+#endif
 
   screen->progress_bar = lv_bar_create(cs);
   lv_obj_set_size(screen->progress_bar, lv_obj_get_width(screen->scope_label), 6);
@@ -723,6 +725,7 @@ void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
   lv_imagebutton_set_src(screen->play_button, LV_IMAGEBUTTON_STATE_RELEASED, NULL, &img_lv_demo_music_btn_pauselarge, NULL);
   lv_obj_add_event_cb(screen->play_button, pb_handler, LV_EVENT_PRESSED, screen);
   lv_obj_center(screen->play_button);
+  lv_group_add_obj(screen->scope_ing, screen->play_button);
 
   screen->prev_button = lv_image_create(cs);
   lv_image_set_src(screen->prev_button, &img_lv_demo_music_btn_prevlarge);
@@ -886,13 +889,14 @@ static void btn_click_event_cb(lv_event_t *e)
 
   postWaveRequest(WAV_SELECT + idx, &PlayerInfo);
   lv_screen_load(screen->scope_screen);
+  lv_indev_set_group(screen->keydev, screen->scope_ing);
 }
 
 static lv_obj_t *add_mlist_btn(lv_obj_t *parent, OSCMUSICINFO *mi, OSCM_SCREEN *screen)
 {
     lv_obj_t * btn = lv_obj_create(parent);
     lv_obj_remove_style_all(btn);
-    lv_obj_set_size(btn, lv_pct(100), 60);
+    lv_obj_set_size(btn, lv_pct(100), 50);
 
     lv_obj_add_style(btn, &style_btn, 0);
     lv_obj_add_style(btn, &style_button_pr, LV_STATE_PRESSED);
@@ -901,6 +905,7 @@ static lv_obj_t *add_mlist_btn(lv_obj_t *parent, OSCMUSICINFO *mi, OSCM_SCREEN *
     lv_obj_add_style(btn, &style_button_def, LV_STATE_FOCUSED);
     lv_obj_add_state(btn, LV_STATE_DEFAULT);
     lv_obj_add_event_cb(btn, btn_click_event_cb, LV_EVENT_CLICKED, screen);
+lv_obj_remove_flag(btn, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t * icon = lv_image_create(btn);
     lv_image_set_src(icon, &img_lv_demo_music_btn_list_play);
@@ -975,8 +980,8 @@ lv_obj_t *osc_mlist_create(OSCMUSICINFO *mlist, int num_music, OSCM_SCREEN *scre
 
   list = lv_obj_create(NULL);
   lv_obj_remove_style_all(list);
-  lv_obj_set_size(list, LV_HOR_RES, LV_VER_RES-10);
-  lv_obj_set_y(list, 10);
+  lv_obj_set_size(list, LV_HOR_RES, LV_VER_RES - 20);
+  lv_obj_set_y(list, 20);
   lv_obj_add_style(list, &style_scrollbar, LV_PART_SCROLLBAR);
   lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
   lv_obj_remove_flag(list, LV_OBJ_FLAG_SCROLL_ELASTIC);
@@ -988,6 +993,7 @@ lv_obj_t *osc_mlist_create(OSCMUSICINFO *mlist, int num_music, OSCM_SCREEN *scre
     add_mlist_btn(list, mlist++, screen);
   }
 
+  lv_group_add_obj(screen->list_ing, list);
   screen->mlist_screen = list;
 
   mlist_btn_check(list, 0, true);
@@ -1002,10 +1008,12 @@ void oscm_process_stick(OSCM_SCREEN *screen, int evcode, int direction, int cfla
     if (direction > 0 && cflag)
     {
       lv_screen_load_anim(screen->scope_screen, LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
+      lv_indev_set_group(screen->keydev, screen->scope_ing);
     }
     else if ((direction < 0) && (cflag == 0))
     {
       lv_screen_load_anim(screen->mlist_screen, LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
+      lv_indev_set_group(screen->keydev, screen->list_ing);
     }
   }
 }

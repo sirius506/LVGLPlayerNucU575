@@ -22,6 +22,28 @@ typedef struct {
   
 static TOUCH_REGS touch_regs;
 
+enum {
+  TP_OWNER_LCD = 0,
+  TP_OWNER_GAMEPAD = 1,
+};
+
+static int tp_owner;
+
+void gamepad_grab_owner()
+{
+  tp_owner = TP_OWNER_GAMEPAD;
+}
+
+void gamepad_ungrab_owner()
+{
+  tp_owner = TP_OWNER_LCD;
+}
+
+int gamepad_is_owner()
+{
+  return tp_owner;
+}
+
 int bsp_touch_init(HAL_DEVICE *haldev)
 {
   uint8_t regaddr, regval;
@@ -42,6 +64,7 @@ int bsp_touch_init(HAL_DEVICE *haldev)
   if (regval == PANEL_ID)
   {
     debug_printf("FT6X36 detected.\n");
+    tp_owner = TP_OWNER_LCD;
 #ifdef TPC_RATE_CHECK
     uint8_t regvals[2];
     regvals[0] = 0x88;
@@ -70,6 +93,9 @@ void bsp_process_touch(lv_indev_data_t *tp)
   uint8_t regaddr, flag;
   uint16_t xpos, ypos;
   HAL_DEVICE *haldev = &HalDevice;
+
+  if (tp_owner != TP_OWNER_LCD)
+    return;
 
   regaddr = 0x02;
   HAL_I2C_Master_Transmit_IT(haldev->touch_i2c->hi2c, FTDEV_ADDR, &regaddr, 1);
