@@ -28,7 +28,7 @@
 #define DS4_ACC_RANGE		(4*DS4_ACC_RES_PER_G)
 #define DS4_GYRO_RANGE		(2048*DS4_GYRO_RES_PER_DEG_S)
 #define DS4_TOUCHPAD_WIDTH	1920
-#define DS4_TOUCHPAD_HEIGHT	1080
+#define DS4_TOUCHPAD_HEIGHT	942
 
 struct ds4_touch_point {
   uint8_t contact;

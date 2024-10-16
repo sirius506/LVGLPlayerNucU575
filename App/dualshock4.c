@@ -13,9 +13,6 @@
 #define	SAMPLE_PERIOD	(0.00250f)
 #define	SAMPLE_RATE	(400)
 
-#define	TPAD_HOR_RES	1920
-#define	TPAD_VER_RES	943
-
 extern int fft_getcolor(uint8_t *p);
 extern void GetPlayerHealthColor(uint8_t *cval);
 
@@ -204,8 +201,8 @@ static void decode_tp(struct ds4_input_report *rp, HID_REPORT *rep)
     state = (tp->points[0].contact & 0x80)? LV_INDEV_STATE_RELEASED : LV_INDEV_STATE_PRESSED;
     xpos = (tp->points[0].x_hi << 8) | (tp->points[0].x_lo);
     ypos = (tp->points[0].y_hi << 4) | (tp->points[0].y_lo);
-    xpos = xpos * 480 / TPAD_HOR_RES;
-    ypos = ypos * 320 / TPAD_VER_RES;
+    xpos = xpos * 480 / DS4_TOUCHPAD_WIDTH;
+    ypos = ypos * 320 / DS4_TOUCHPAD_HEIGHT;
   }
   else
   {
