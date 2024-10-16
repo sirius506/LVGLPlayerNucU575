@@ -308,6 +308,40 @@ static uint32_t last_button;
 static int pad_timer;
 static int16_t left_xinc, left_yinc;
 static int16_t right_xinc, right_yinc;
+extern lv_indev_data_t tp_data;
+
+static void decode_tp(struct dualsense_input_report *rp)
+{
+  struct dualsense_touch_point *tp;
+  uint16_t state, xpos, ypos;
+
+  tp = rp->points;
+
+  state = (tp->contact & 0x80)? LV_INDEV_STATE_RELEASED : LV_INDEV_STATE_PRESSED;
+  xpos = (tp->x_hi << 8) | (tp->x_lo);
+  ypos = (tp->y_hi << 4) | (tp->y_lo);
+  xpos = xpos * 480 / DS_TOUCHPAD_WIDTH;
+  ypos = ypos * 320 / DS_TOUCHPAD_HEIGHT;
+
+  if (tp_data.state != state)
+  {
+    if (state == LV_INDEV_STATE_PRESSED)
+    {
+      tp_data.state = state;
+      gamepad_grab_owner();
+    }
+    else if (gamepad_is_owner())
+    {
+      tp_data.state = state;
+      gamepad_ungrab_owner();
+    }
+  }
+  if (state == LV_INDEV_STATE_PRESSED)
+  {
+      tp_data.point.x = xpos;
+      tp_data.point.y = ypos;
+  }
+}
 
 static void decode_stick(struct dualsense_input_report *rp)
 {
@@ -414,6 +448,7 @@ static void DualSense_LVGL_Keycode(struct dualsense_input_report *rp, uint8_t ha
   }
 
   decode_stick(rp);
+  decode_tp(rp);
 }
 
 void DualSenseBtSetup(uint16_t hid_host_cid)
