@@ -5,8 +5,7 @@
 #include "dualshock4_report.h"
 
 #define	HID_MODE_LVGL	0
-#define	HID_MODE_TEST	1
-#define	HID_MODE_DOOM	2
+#define	HID_MODE_DOOM	1
 
 #define	VID_SONY	0x054C
 #define	PID_DUALSHOCK	0x09CC

@@ -21,7 +21,6 @@ static void DualShock_DOOM_Keycode(struct ds4_input_report *rp, uint8_t hat, uin
 
 static const void (*ds4HidProcTable[])(struct ds4_input_report *rp, uint8_t hat, uint32_t vbutton, HID_REPORT *rep) = {
       DS4_LVGL_Keycode,
-      NULL,
       DualShock_DOOM_Keycode,
 };
 

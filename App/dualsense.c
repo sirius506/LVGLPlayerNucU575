@@ -8,6 +8,7 @@
 #include "dualsense_report.h"
 #include "classic/hid_host.h"
 #include "btapi.h"
+#include "board_if.h"
 
 static int initial_report;
 
@@ -19,7 +20,6 @@ static void DualSense_DOOM_Keycode(struct dualsense_input_report *rp, uint8_t ha
 
 static void (*HidProcTable[])(struct dualsense_input_report *rp, uint8_t hat, uint32_t vbutton) = {
       DualSense_LVGL_Keycode,
-      NULL,
       DualSense_DOOM_Keycode,
 };
 
@@ -470,8 +470,16 @@ static const uint8_t sdl_hatmap[16] = {
 
 static void DualSense_DOOM_Keycode(struct dualsense_input_report *rp, uint8_t hat, uint32_t vbutton)
 {
-  SDL_JoyStickSetButtons(sdl_hatmap[hat], vbutton & 0x7FFF);
-  decode_stick(rp);
+  if (DoomScreenStatus == DOOM_SCREEN_SUSPEND)
+  {
+    DualSense_LVGL_Keycode(rp, hat, vbutton);
+  }
+  else
+  {
+    SDL_JoyStickSetButtons(sdl_hatmap[hat], vbutton & 0x7FFF);
+    decode_stick(rp);
+    decode_tp(rp);
+  }
 }
 
 const struct sGamePadDriver DualSenseDriver = {

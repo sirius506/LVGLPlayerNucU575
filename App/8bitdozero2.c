@@ -56,7 +56,6 @@ static void Zero2_DOOM_Keycode(struct zero2_input_report *rp, uint32_t vbutton);
 
 static void (*zero2HidProcTable[])(struct zero2_input_report *rp, uint32_t vbutton) = {
       Zero2_LVGL_Keycode,
-      NULL,
       Zero2_DOOM_Keycode,
 };
 
