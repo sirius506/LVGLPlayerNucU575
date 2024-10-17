@@ -72,21 +72,34 @@ static void bt_button_handler(lv_event_t *e)
  */
 void enter_setup_event(lv_event_t *e)
 {
-  UNUSED(e);
   SETUP_SCREEN *setups;
-  lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_active());
+  void *param = lv_event_get_user_data(e);
+  lv_dir_t dir;
+
+  if (param == NULL)
+  {
+    dir = lv_indev_get_gesture_dir(lv_indev_active());
+  }
+  else
+  {
+    dir = (lv_dir_t) param;
+  }
   HAL_DEVICE *haldev = (HAL_DEVICE *)&HalDevice;
 
+  /* If Doom is running, request to suspend. */
   if (DoomScreenStatus == DOOM_SCREEN_ACTIVE)
   {
      DoomScreenStatus = DOOM_SCREEN_SUSPEND;
   }
+
   setups = &SetupScreen;
   if (dir == LV_DIR_BOTTOM)
   {
+    setups->caller_ing = lv_indev_get_group(setups->keydev);
     lv_slider_set_value(setups->vol_slider,
-          bsp_codec_getvol(haldev->codec_i2c), LV_ANIM_OFF);
+          bsp_codec_getvol(haldev->codec_i2c) / 10, LV_ANIM_OFF);
     lv_screen_load_anim(setups->setup_screen, LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
+    lv_indev_set_group(setups->keydev, setups->ing);
   }
   else if (dir == LV_DIR_TOP)
   {
@@ -109,7 +122,7 @@ void start_setup()
      DoomScreenStatus = DOOM_SCREEN_SUSPEND;
   }
   lv_slider_set_value(SetupScreen.vol_slider,
-          bsp_codec_getvol(haldev->codec_i2c), LV_ANIM_OFF);
+          bsp_codec_getvol(haldev->codec_i2c) / 10, LV_ANIM_OFF);
   lv_screen_load_anim(SetupScreen.setup_screen, LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
 }
 
@@ -120,6 +133,7 @@ static void quit_setup_event(lv_event_t *e)
 
   if (dir == LV_DIR_TOP)
   {
+    lv_indev_set_group(SetupScreen.keydev, SetupScreen.caller_ing);
     lv_screen_load_anim(SetupScreen.active_screen, LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
   }
 }
@@ -139,7 +153,7 @@ static void vol_event_cb(lv_event_t *e)
   AUDIO_CONF *aconf = (AUDIO_CONF *)lv_event_get_user_data(e);
   int32_t v;
 
-  v = lv_slider_get_value(obj);
+  v = lv_slider_get_value(obj) * 10;
   aconf->devconf->pDriver->SetVolume(aconf, v);
 }
 
@@ -148,7 +162,7 @@ static void brightness_event_cb(lv_event_t *e)
   lv_obj_t *obj = lv_event_get_target(e);
   HAL_DEVICE *haldev = (HAL_DEVICE *)lv_event_get_user_data(e);
 
-  int32_t v = lv_slider_get_value(obj);
+  int32_t v = lv_slider_get_value(obj) * 10;
   Board_Set_Brightness(haldev, v);
 }
 
@@ -166,7 +180,7 @@ static void setupscr_event_cb(lv_event_t *ev)
   }
 }
 
-lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev)
+lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev, lv_indev_t *keydev)
 {
   lv_obj_t *bar, *img;
   lv_obj_t *scr = lv_obj_create(NULL);
@@ -199,7 +213,7 @@ lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev)
   lv_obj_add_style(bar, &style_indicator, LV_PART_INDICATOR);
   lv_obj_remove_flag(bar, LV_OBJ_FLAG_GESTURE_BUBBLE);
   setups->vol_slider = bar;
-  lv_slider_set_range(setups->vol_slider, 0, 100);
+  lv_slider_set_range(setups->vol_slider, 0, 10);
   lv_obj_add_event_cb(setups->vol_slider, vol_event_cb, LV_EVENT_VALUE_CHANGED, get_audio_config(haldev));
   img = lv_image_create(scr);
   lv_image_set_src(img, &volume_control);
@@ -213,8 +227,8 @@ lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev)
   lv_obj_add_style(bar, &style_indicator, LV_PART_INDICATOR);
   lv_obj_remove_flag(bar, LV_OBJ_FLAG_GESTURE_BUBBLE);
   setups->bright_slider = bar;
-  lv_slider_set_range(setups->bright_slider, 0, 100);
-  lv_slider_set_value(setups->bright_slider, Board_Get_Brightness(), LV_ANIM_OFF);
+  lv_slider_set_range(setups->bright_slider, 0, 10);
+  lv_slider_set_value(setups->bright_slider, Board_Get_Brightness() / 10, LV_ANIM_OFF);
   lv_obj_add_event_cb(setups->bright_slider, brightness_event_cb, LV_EVENT_VALUE_CHANGED, haldev);
   img = lv_image_create(scr);
   lv_image_set_src(img, &brightness);
@@ -229,5 +243,10 @@ lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev)
 
   setups->bt_button_info.btn = setups->cont_bt;
   lv_obj_add_event_cb(setups->setup_screen, quit_setup_event, LV_EVENT_GESTURE, NULL);
+
+  setups->keydev = keydev;
+  setups->ing = lv_group_create();
+  lv_group_add_obj(setups->ing, setups->vol_slider);
+  lv_group_add_obj(setups->ing, setups->bright_slider);
   return scr;
 }

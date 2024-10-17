@@ -669,7 +669,7 @@ void StartGuiTask(void *args)
 
   /* Create Setup screen */
 
-  setup_screen_create(setups, haldev);
+  setup_screen_create(setups, haldev, keydev);
 
   lv_obj_t *sel_screen;
 
@@ -1100,7 +1100,7 @@ void StartGuiTask(void *args)
         ADD_MENU_BUTTON(btn_game, "Game", GUIEV_GAME_START)
 
         int cvol = bsp_codec_getvol(haldev->codec_i2c);
-        lv_slider_set_value(setups->vol_slider, cvol, LV_ANIM_OFF);
+        lv_slider_set_value(setups->vol_slider, cvol / 10, LV_ANIM_OFF);
 
         activate_screen(menus->screen, NULL, NULL);
 

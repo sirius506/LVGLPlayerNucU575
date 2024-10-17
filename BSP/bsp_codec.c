@@ -239,19 +239,16 @@ int bsp_codec_getvol(DOOM_I2C_Handle *codec_i2c)
 {
   int8_t regvals[2];
   int volval;
-  int oval;
 
   HAL_I2C_Mem_Read_IT(codec_i2c->hi2c, CODEC_ADDR, 65, I2C_MEMADD_SIZE_8BIT, (uint8_t *)regvals, 2);
   osSemaphoreAcquire(codec_i2c->iosem, 100);
 
   volval = (int) regvals[0];
-  oval = volval;
   if (volval < DAC_MINVOL)
     volval = DAC_MINVOL;
   if (volval > DAC_MAXVOL)
     volval = DAC_MAXVOL;
   volval += (100 - DAC_MAXVOL);
-debug_printf("%s: %d -> %d\n", __FUNCTION__, oval, volval);
   return volval;
 }
 
@@ -259,13 +256,11 @@ void bsp_codec_setvol(DOOM_I2C_Handle *codec_i2c, int newvol)
 {
   int8_t regvals[2];
 
-  int oval = newvol;
   if (newvol > 100)
     newvol = 100;
   if (newvol < 0)
     newvol = 0;
   newvol = newvol + DAC_MINVOL;
-debug_printf("%s: %d -> %d\n", __FUNCTION__, oval, newvol);
   regvals[0] = regvals[1] = newvol;
 
   HAL_I2C_Mem_Write_IT(codec_i2c->hi2c, CODEC_ADDR, 65, I2C_MEMADD_SIZE_8BIT, (uint8_t *)regvals, 2);
