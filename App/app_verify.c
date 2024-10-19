@@ -276,7 +276,7 @@ int VerifyFlash(void **p1, void **p2)
 
   fsp = dhp->fs_direntry;
 
-  crcval = HAL_CRC_Calculate(HalDevice.crc_comp, (uint32_t *)(QSPI_FLASH_ADDR + fsp->foffset), fsp->fsize);
+  crcval = bsp_calc_crc((uint8_t *)(QSPI_FLASH_ADDR + fsp->foffset), fsp->fsize);
   crcval = ~crcval;
 
   for (pInfo = ValidWads; pInfo->length; pInfo++)

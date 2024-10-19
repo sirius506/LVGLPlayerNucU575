@@ -21,6 +21,10 @@ SEMAPHORE_DEF(codec)
 
 SEMAPHORE_DEF(hashsem)
 
+MUTEX_DEF(crcmutex)
+
+static osMutexId_t crcLockId;
+
 extern RTC_HandleTypeDef hrtc;
 
 const HeapRegion_t xHeapRegions[3] = {
@@ -241,6 +245,8 @@ void bsp_init(HAL_DEVICE *haldev)
   HAL_I2C_RegisterCallback(haldev->codec_i2c->hi2c, HAL_I2C_MEM_TX_COMPLETE_CB_ID, i2c_callback);
   HAL_I2C_RegisterCallback(haldev->codec_i2c->hi2c, HAL_I2C_ERROR_CB_ID, i2c_error_callback);
 
+  crcLockId = osMutexNew(&attributes_crcmutex);
+
   HAL_TIM_PWM_Start(haldev->pwm_timer, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(haldev->pwm_timer, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(haldev->pwm_timer, TIM_CHANNEL_3);
@@ -323,6 +329,26 @@ int bsp_sdcard_inserted()
   if (HAL_GPIO_ReadPin(SDCARD_DET_GPIO_Port, SDCARD_DET_Pin) == GPIO_PIN_RESET)
     return 1;
   return 0;
+}
+
+uint32_t bsp_calc_crc(uint8_t *bp, int len)
+{
+  uint32_t crcval;
+
+  osMutexAcquire(crcLockId, osWaitForever);
+  crcval = HAL_CRC_Calculate(HalDevice.crc_comp, (uint32_t *)bp, len);
+  osMutexRelease(crcLockId);
+  return crcval;
+}
+
+uint32_t bsp_accumulate_crc(uint8_t *bp, int len)
+{
+  uint32_t crcval;
+
+  osMutexAcquire(crcLockId, osWaitForever);
+  crcval = HAL_CRC_Accumulate(HalDevice.crc_comp, (uint32_t *)bp, len);
+  osMutexRelease(crcLockId);
+  return crcval;
 }
 
 void _write(int f, char *bp, int len)

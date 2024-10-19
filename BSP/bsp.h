@@ -129,4 +129,7 @@ int bsp_sdcard_inserted();
 void gamepad_grab_owner();
 void gamepad_ungrab_owner();
 int gamepad_is_owner();
+
+uint32_t bsp_calc_crc(uint8_t *bp, int len);
+uint32_t bsp_accumulate_crc(uint8_t *bp, int len);
 #endif

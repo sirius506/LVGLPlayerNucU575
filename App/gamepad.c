@@ -84,8 +84,8 @@ uint32_t bt_comp_crc(uint8_t *ptr, int len)
 {
   uint32_t crcval;
 
-  crcval = HAL_CRC_Calculate(&hcrc, (uint32_t *)output_seed, 1);
-  crcval = HAL_CRC_Accumulate(&hcrc, (uint32_t *)ptr, len - 4);
+  crcval = bsp_calc_crc((uint32_t *)output_seed, 1);
+  crcval = bsp_accumulate_crc((uint32_t *)ptr, len - 4);
   crcval = ~crcval;
   return crcval;
 }
