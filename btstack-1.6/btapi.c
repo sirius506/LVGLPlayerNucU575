@@ -103,6 +103,10 @@ debug_printf("disc: %d, %d\n", info->hid_host_cid, info->a2dp_cid);
         avrcp_controller_backward(info->avrcp_cid);
       }
       break;
+    case BTREQ_START_A2DP:
+debug_printf("Got BTREQ_START_A2DP\n");
+      btstack_start_a2dp_sink();
+      break;
     default:
       break;
     }
@@ -214,3 +218,11 @@ void btapi_send_report(uint8_t *ptr, int len)
   osMessageQueuePut(btreqqId, &request, 0, 0);
 }
 
+void btapi_start_a2dp()
+{
+  BTREQ_PARAM req;
+
+  req.code = BTREQ_START_A2DP;
+  osMessageQueuePut(btreqqId, &req, 0, 0);
+btstack_run_loop_poll_data_sources_from_irq();
+}

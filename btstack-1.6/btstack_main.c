@@ -30,12 +30,14 @@ int btstack_main(int argc, HAL_DEVICE *haldev)
 
   btapi_setup();
 
-  if (haldev->boot_mode == BOOTM_A2DP)
-  {
-    btstack_audio_main(0, haldev);
-    return 0;
-  }
+  // Initialize L2CAP
+  l2cap_init();
 
+  sdp_init();
+
+  /* Setup HID host function.
+   * A2DP sink feature will be setup later, if necessary.
+   */
   hid_host_setup();
 
   // Turn on the device 

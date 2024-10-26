@@ -495,7 +495,60 @@ static void app_select_handler(lv_event_t *e)
   postGuiEventMessage(GUIEV_APP_SELECT, index, NULL, NULL);
 }
 
-static int SelectApplication(lv_obj_t *sel_screen)
+static uint16_t icon_value;
+static GAMEPAD_INFO *padInfo;
+
+void process_icon_change(lv_obj_t *icon_label, int ival)
+{
+  char *sp;
+      
+  if (ival & ICON_BATTERY)
+  {
+    icon_value &= ~ICON_BATTERY_MASK;
+    icon_value |= ival & ICON_BATTERY_MASK;
+    icon_value |= ICON_BATTERY;
+  }
+  else
+  {
+    if (ival & ICON_SET)
+      icon_value |= (ival & (ICON_USB|ICON_BLUETOOTH));
+    else
+    {
+      icon_value &= ~(ival & (ICON_USB|ICON_BLUETOOTH));
+
+      if (ival & ICON_BLUETOOTH)
+      {
+          /* If BT connection is lost,
+           * we no longer able to get battery level.
+           */
+          icon_value &= ~ICON_BATTERY;
+      }
+    }
+  }
+  sp = icon_label_string;
+  *sp++ = ' ';
+  if (icon_value & ICON_USB)
+  {
+    strncpy(sp, LV_SYMBOL_USB, 3);
+    sp += 3;
+    *sp++ = ' ';
+  }
+  if (icon_value & ICON_BLUETOOTH)
+  {
+    strncpy(sp, LV_SYMBOL_BLUETOOTH, 3);
+    sp += 3;
+    *sp++ = ' ';
+  }
+  if (icon_value & ICON_BATTERY)
+  {
+    strncpy(sp, icon_map[icon_value & ICON_BATTERY_MASK], 3);
+    sp += 3;
+  }
+  *sp = 0;
+  lv_label_set_text(icon_label, (const char *)icon_label_string);
+}
+
+static int SelectApplication(lv_obj_t *sel_screen, SETUP_SCREEN *setups, lv_obj_t *icon_label)
 {
   unsigned int new_interval, timer_interval;
   osStatus_t st;
@@ -503,7 +556,10 @@ static int SelectApplication(lv_obj_t *sel_screen)
   lv_obj_t *mbox;
   lv_obj_t *btn;
   lv_obj_t *label;
+  lv_group_t *g;
   char sbuff[30];
+
+  g = lv_group_create();
 
   title = lv_label_create(sel_screen);
   lv_obj_add_style(title, &style_title, 0);
@@ -514,7 +570,6 @@ static int SelectApplication(lv_obj_t *sel_screen)
 
   for (unsigned int i = 0; i < NUM_APPLICATION; i++)
   {
-
     btn = lv_btn_create(sel_screen);
     lv_obj_align(btn, LV_ALIGN_TOP_MID,  0, lv_pct(app_labels[i].label_pos));
     lv_obj_add_event_cb(btn, app_select_handler, LV_EVENT_CLICKED, (void *)i);
@@ -522,9 +577,11 @@ static int SelectApplication(lv_obj_t *sel_screen)
     label = lv_label_create(btn);
     lv_label_set_text(label, app_labels[i].label_text);
     lv_obj_center(label);
+    lv_group_add_obj(g, btn);
   }
 
   activate_screen(sel_screen, NULL, NULL);
+  lv_indev_set_group(setups->keydev, g);
 
   timer_interval = 3;
 
@@ -537,7 +594,13 @@ static int SelectApplication(lv_obj_t *sel_screen)
     {
       switch (event.evcode)
       {
+      case GUIEV_BTSTACK_READY:
+        lv_obj_remove_flag(setups->cont_bt, LV_OBJ_FLAG_HIDDEN);
+        setups->bt_button_info.bst = BT_STATE_READY;
+        break;
       case GUIEV_APP_SELECT:
+        lv_indev_set_group(setups->keydev, NULL);
+        lv_group_delete(g);
         return (event.evval0);
         break;
       case GUIEV_SD_REPORT:
@@ -553,6 +616,24 @@ static int SelectApplication(lv_obj_t *sel_screen)
 
         lv_obj_add_event_cb(btn, reboot_event_cb, LV_EVENT_PRESSED, NULL);
         lv_obj_center(mbox);
+        break;
+      case GUIEV_ICON_CHANGE:
+        process_icon_change(icon_label, event.evval0);
+        break;
+      case GUIEV_BTDEV_CONNECTED:
+        if (event.evval0 == 0)
+        {
+          SetBluetoothButtonState(&setups->bt_button_info, BT_STATE_READY);
+          padInfo = &nullPad;
+        }
+        else
+        {
+          SetBluetoothButtonState(&setups->bt_button_info, BT_STATE_CONNECT);
+        }
+        break;
+      case GUIEV_GAMEPAD_READY:
+        padInfo = (GAMEPAD_INFO *)event.evarg1;
+        debug_printf("%s Detected.\n", padInfo->name);
         break;
       case GUIEV_REBOOT:
         osDelay(200);
@@ -604,8 +685,6 @@ void StartGuiTask(void *args)
   lv_style_t style_cheat;
   AUDIO_CONF *audio_config;
   lv_obj_t *icon_label;
-  uint16_t icon_value;
-  GAMEPAD_INFO *padInfo;
   extern bool D_GrabMouseCallback();
   const char *kbtext;
   char sbuff[70];
@@ -675,11 +754,14 @@ void StartGuiTask(void *args)
 
   sel_screen = lv_obj_create(NULL);
 
-  haldev->boot_mode = SelectApplication(sel_screen);
+  osThreadNew(StartBtstackTask, haldev, &attributes_btstacktask);
+
+  haldev->boot_mode = SelectApplication(sel_screen, setups, icon_label);
 
   audio_config = get_audio_config(&HalDevice);
 
-  osThreadNew(StartBtstackTask, haldev, &attributes_btstacktask);
+  if (haldev->boot_mode == BOOTM_A2DP)
+    btapi_start_a2dp();
 
   starts->screen = lv_obj_create(NULL);
   menus->screen = lv_obj_create(NULL);
@@ -855,56 +937,7 @@ void StartGuiTask(void *args)
         _lv_demo_inter_pause_start();
         break;
       case GUIEV_ICON_CHANGE:
-        {
-          int ival;
-          char *sp;
-      
-          ival = event.evval0;
-          if (ival & ICON_BATTERY)
-          {
-            icon_value &= ~ICON_BATTERY_MASK;
-            icon_value |= ival & ICON_BATTERY_MASK;
-            icon_value |= ICON_BATTERY;
-          }
-          else
-          {
-            if (ival & ICON_SET)
-              icon_value |= (ival & (ICON_USB|ICON_BLUETOOTH));
-            else
-            {
-              icon_value &= ~(ival & (ICON_USB|ICON_BLUETOOTH));
-        
-              if (ival & ICON_BLUETOOTH)
-              {
-                /* If BT connection is lost,
-                 * we no longer able to get battery level.
-                 */
-                icon_value &= ~ICON_BATTERY;
-              }
-            }
-          }
-          sp = icon_label_string;
-          *sp++ = ' ';
-          if (icon_value & ICON_USB)
-          {
-            strncpy(sp, LV_SYMBOL_USB, 3);
-            sp += 3;
-            *sp++ = ' ';
-          }
-          if (icon_value & ICON_BLUETOOTH)
-          {
-            strncpy(sp, LV_SYMBOL_BLUETOOTH, 3);
-            sp += 3;
-            *sp++ = ' ';
-          }
-          if (icon_value & ICON_BATTERY)
-          {
-            strncpy(sp, icon_map[icon_value & ICON_BATTERY_MASK], 3);
-            sp += 3;
-          }
-          *sp = 0;
-          lv_label_set_text(icon_label, (const char *)icon_label_string);
-        }
+        process_icon_change(icon_label, event.evval0);
         break;
       case GUIEV_SD_REPORT:             // SD card verification has finished
         if (event.evval0 == 0)

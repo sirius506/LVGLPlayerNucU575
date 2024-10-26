@@ -169,7 +169,6 @@ SECTIONS
     {
       _savrcpvar = .;
       __avrcpvar_start__ = _savrcpvar;
-      *a2dp_sink_demo.c.obj (.bss .bss*)
       *a2dp_sink.c.obj (.bss .bss*)
       *a2dp.c.obj (.bss .bss*)
       *hal_audio.c.obj (.bss .bss*)

@@ -16,6 +16,7 @@ typedef enum {
  BTREQ_AVRCP_PAUSE,
  BTREQ_AVRCP_NEXT,
  BTREQ_AVRCP_LAST,
+ BTREQ_START_A2DP,
 } BTREQUEST;
 
 typedef struct {
@@ -38,6 +39,7 @@ typedef struct {
   uint16_t      avrcp_cid;
   uint16_t      a2dp_cid;
   uint16_t      hid_host_cid;
+  uint32_t      cod_val;
 } BTSTACK_INFO;
 
 void btapi_avrcp_play();

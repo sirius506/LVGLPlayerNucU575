@@ -159,6 +159,7 @@ void StartBtstackTask(void *arg)
   hci_event_callback_registration.callback = &packet_handler;
   hci_add_event_handler(&hci_event_callback_registration);
 
+#ifdef OLD_CODE
   // hand over to btstack embedded code
   if (haldev->boot_mode == BOOTM_A2DP)
   {
@@ -167,6 +168,9 @@ void StartBtstackTask(void *arg)
     hal_audio_setup();
   }
   btstack_main(0, haldev);
+#else
+  btstack_main(0, haldev);
+#endif
 
   // go
   btstack_run_loop_execute();

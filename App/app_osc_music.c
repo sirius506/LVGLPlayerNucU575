@@ -257,6 +257,7 @@ void StartWavReaderTask(void *args)
   int frames;
 
   crate = 0;
+  memset(pinfo, 0, sizeof(PLAYERINFO));
   haldev->audio_sai->saitx_half_comp = osc_half_complete;
   haldev->audio_sai->saitx_full_comp = osc_full_complete;
   audio_config = get_audio_config(NULL);
