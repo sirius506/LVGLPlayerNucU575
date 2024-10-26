@@ -19,7 +19,7 @@ extern void GetPlayerHealthColor(uint8_t *cval);
 static void DS4_LVGL_Keycode(struct ds4_input_report *rp, uint8_t hat, uint32_t vbutton, HID_REPORT *rep);
 static void DualShock_DOOM_Keycode(struct ds4_input_report *rp, uint8_t hat, uint32_t vbutton, HID_REPORT *rep);
 
-static const void (*ds4HidProcTable[])(struct ds4_input_report *rp, uint8_t hat, uint32_t vbutton, HID_REPORT *rep) = {
+static void (*ds4HidProcTable[])(struct ds4_input_report *rp, uint8_t hat, uint32_t vbutton, HID_REPORT *rep) = {
       DS4_LVGL_Keycode,
       DualShock_DOOM_Keycode,
 };

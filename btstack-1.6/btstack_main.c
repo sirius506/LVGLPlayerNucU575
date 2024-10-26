@@ -10,6 +10,8 @@ static btstack_data_source_t appapi_data_source;
 extern void hid_host_setup(void);
 
 static void appapi_process(btstack_data_source_t *ds, btstack_data_source_callback_type_t callback_type) {
+    (void)ds;
+
     switch (callback_type){
         case DATA_SOURCE_CALLBACK_POLL:
             process_btapi_request(&BtStackInfo);
@@ -22,6 +24,7 @@ static void appapi_process(btstack_data_source_t *ds, btstack_data_source_callba
 int btstack_main(int argc, HAL_DEVICE *haldev)
 {
   (void)argc;
+  (void)haldev;
 
   btstack_run_loop_set_data_source_handler(&appapi_data_source, &appapi_process);
   btstack_run_loop_enable_data_source_callbacks(&appapi_data_source, DATA_SOURCE_CALLBACK_POLL);

@@ -13,6 +13,7 @@
 #include "a2dp_player.h"
 #include "src/display/lv_display_private.h"
 #include "app_setup.h"
+#include "btapi.h"
 
 volatile DOOM_SCREEN_STATUS DoomScreenStatus;
 
@@ -596,7 +597,7 @@ static int SelectApplication(lv_obj_t *sel_screen, SETUP_SCREEN *setups, lv_obj_
       {
       case GUIEV_BTSTACK_READY:
         lv_obj_remove_flag(setups->cont_bt, LV_OBJ_FLAG_HIDDEN);
-        setups->bt_button_info.bst = BT_STATE_READY;
+        setups->bt_button_info.bst = BTBTN_STATE_READY;
         break;
       case GUIEV_APP_SELECT:
         lv_indev_set_group(setups->keydev, NULL);
@@ -621,15 +622,36 @@ static int SelectApplication(lv_obj_t *sel_screen, SETUP_SCREEN *setups, lv_obj_
         process_icon_change(icon_label, event.evval0);
         break;
       case GUIEV_BTDEV_CONNECTED:
+#ifdef OLD_CODE
         if (event.evval0 == 0)
         {
-          SetBluetoothButtonState(&setups->bt_button_info, BT_STATE_READY);
+          SetBluetoothButtonState(&setups->bt_button_info, BTBTN_STATE_READY);
           padInfo = &nullPad;
         }
         else
         {
-          SetBluetoothButtonState(&setups->bt_button_info, BT_STATE_CONNECT);
+          SetBluetoothButtonState(&setups->bt_button_info, BTBTN_STATE_CONNECT);
         }
+#else
+        {
+          BTSTACK_INFO *pinfo = (BTSTACK_INFO *)event.evarg1;
+
+          if (event.evval0 == BT_CONN_HID)
+          {
+             if (pinfo->state & BT_STATE_HID_CONNECT)
+               lv_obj_clear_flag(setups->hid_btn, LV_OBJ_FLAG_HIDDEN);
+             else
+               lv_obj_add_flag(setups->hid_btn, LV_OBJ_FLAG_HIDDEN);
+          }
+          else if (event.evval0 == BT_CONN_A2DP)
+          {
+             if (pinfo->state & BT_STATE_A2DP_CONNECT)
+               lv_obj_clear_flag(setups->a2dp_btn, LV_OBJ_FLAG_HIDDEN);
+             else
+               lv_obj_add_flag(setups->a2dp_btn, LV_OBJ_FLAG_HIDDEN);
+          }
+        }
+#endif
         break;
       case GUIEV_GAMEPAD_READY:
         padInfo = (GAMEPAD_INFO *)event.evarg1;
@@ -878,7 +900,7 @@ void StartGuiTask(void *args)
         break;
       case GUIEV_BTSTACK_READY:
         lv_obj_remove_flag(setups->cont_bt, LV_OBJ_FLAG_HIDDEN);
-        setups->bt_button_info.bst = BT_STATE_READY;
+        setups->bt_button_info.bst = BTBTN_STATE_READY;
         break;
       case GUIEV_PSEC_UPDATE:
         if (haldev->boot_mode)
@@ -1072,13 +1094,12 @@ void StartGuiTask(void *args)
         break;
       case GUIEV_FONT_REPORT:
         {
-          lv_obj_t *scr;
-
-          scr = lv_obj_create(NULL);
-          activate_screen(scr, NULL, NULL);
-          menus->play_scr = scr;
-          a2dp_player_create(a2dps, scr, NULL);
-          //Start_SDLMixer();
+          a2dps->screen = lv_obj_create(NULL);
+          activate_screen(a2dps->screen, NULL, NULL);
+          menus->play_scr = a2dps->screen;
+          a2dps->ing = lv_group_create();
+          lv_indev_set_group(keydev, a2dps->ing);
+          a2dp_player_create(a2dps);
         }
         break;
       case GUIEV_OSCM_START:
@@ -1412,18 +1433,39 @@ debug_printf("KBD_CANCEL\n");
 debug_printf("CHEAT_SEL\n");
         break;
       case GUIEV_BTDEV_CONNECTED:
+#ifdef OLD_CODE
         if (menus->screen)
         {
           if (event.evval0 == 0)
           {
-            SetBluetoothButtonState(&setups->bt_button_info, BT_STATE_READY);
+            SetBluetoothButtonState(&setups->bt_button_info, BTBTN_STATE_READY);
             padInfo = &nullPad;
           }
           else
           {
-            SetBluetoothButtonState(&setups->bt_button_info, BT_STATE_CONNECT);
+            SetBluetoothButtonState(&setups->bt_button_info, BTBTN_STATE_CONNECT);
           }
         }
+#else
+        {
+          BTSTACK_INFO *pinfo = (BTSTACK_INFO *)event.evarg1;
+
+          if (event.evval0 == BT_CONN_HID)
+          {
+             if (pinfo->state & BT_STATE_HID_CONNECT)
+               lv_obj_clear_flag(setups->hid_btn, LV_OBJ_FLAG_HIDDEN);
+             else
+               lv_obj_add_flag(setups->hid_btn, LV_OBJ_FLAG_HIDDEN);
+          }
+          else if (event.evval0 == BT_CONN_A2DP)
+          {
+             if (pinfo->state & BT_STATE_A2DP_CONNECT)
+               lv_obj_clear_flag(setups->a2dp_btn, LV_OBJ_FLAG_HIDDEN);
+             else
+               lv_obj_add_flag(setups->a2dp_btn, LV_OBJ_FLAG_HIDDEN);
+          }
+        }
+#endif
         break;
       case GUIEV_GAMEPAD_READY:
         padInfo = (GAMEPAD_INFO *)event.evarg1;

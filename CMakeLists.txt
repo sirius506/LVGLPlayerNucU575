@@ -102,7 +102,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/assets/output/Button_Stop.c
     App/assets/output/bluetooth_black.c
     App/assets/output/bluetooth_blue.c
-    App/assets/output/bluetooth_scan.c
+    App/assets/output/bluetooth_scan_black.c
+    App/assets/output/bluetooth_scan_blue.c
     App/assets/output/volume-control.c
     App/assets/output/brightness.c
     App/assets/img_lv_demo_music_icon_1.c

@@ -34,15 +34,15 @@ void process_btapi_request(BTSTACK_INFO *info)
     {
     case BTREQ_START_SCAN:
       gap_inquiry_start(INQUIRY_INTERVAL);
-      info->state = BTSTACK_STATE_ACTIVE;
+      info->state |= BT_STATE_SCAN;
       break;
     case BTREQ_STOP_SCAN:
       gap_inquiry_stop();
-      info->state = BTSTACK_STATE_INIT;
+      info->state &= ~BT_STATE_SCAN;
       break;
     case BTREQ_DISCONNECT:
     case BTREQ_SHUTDOWN:
-      if (info->state == BTSTACK_STATE_CONNECT) 
+      if (info->state & (BT_STATE_HID_CONNECT|BT_STATE_A2DP_CONNECT)) 
       {
 debug_printf("disc: %d, %d\n", info->hid_host_cid, info->a2dp_cid);
         if (info->hid_host_cid != 0)
@@ -54,7 +54,8 @@ debug_printf("disc: %d, %d\n", info->hid_host_cid, info->a2dp_cid);
         {
         }
         if (req.code == BTREQ_SHUTDOWN)
-          info->state = BTSTACK_STATE_CLOSING;
+          info->state &= ~BT_STATE_HID_CONNECT;
+          info->state |= ~BT_STATE_HID_CLOSING;
       }
       break;
     case BTREQ_SEND_REPORT:

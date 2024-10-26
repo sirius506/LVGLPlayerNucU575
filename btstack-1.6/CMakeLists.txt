@@ -1,12 +1,12 @@
 set(BTSRCS
-  a2dp_sink_demo.c
+  player_a2dp_sink.c
+  player_hid_gamepad.c
   btapi.c
   btstack_chipset_bcm.c
   btstack_main.c
   btstack_port.c
   btstack_audio_embedded.c
   btstack_tlv_flash_bank.c
-  hid_gamepad.c
   hal_audio.c
   hal_flash_bank_memory.c
   hci_dump_segger_rtt_stdout.c

@@ -245,15 +245,14 @@ void set_playbtn_state(lv_imagebutton_state_t new_state)
 
 extern lv_obj_t * create_spectrum_obj(lv_obj_t * parent);
 
-lv_obj_t * a2dp_player_create(A2DP_SCREEN *a2dps, lv_obj_t * parent, lv_group_t *g)
+lv_obj_t * a2dp_player_create(A2DP_SCREEN *a2dps)
 {
   a2dps->cover_count = register_cover_file();
   a2dps->cur_cover = 0;
 
-  //create_wave_images(parent);
-  lv_obj_t * title_box = create_title_box(a2dps, parent);
-  lv_obj_t * ctrl_box = create_ctrl_box(a2dps, parent, g);
-  spectrum_obj = create_spectrum_obj(parent);
+  lv_obj_t * title_box = create_title_box(a2dps, a2dps->screen);
+  lv_obj_t * ctrl_box = create_ctrl_box(a2dps, a2dps->screen, a2dps->ing);
+  spectrum_obj = create_spectrum_obj(a2dps->screen);
 
     /*Arrange the content into a grid*/
     static const lv_coord_t grid_cols[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
@@ -271,13 +270,13 @@ lv_obj_t * a2dp_player_create(A2DP_SCREEN *a2dps, lv_obj_t * parent, lv_group_t 
                                            LV_GRID_TEMPLATE_LAST
                                           };
 
-    lv_obj_set_grid_dsc_array(parent, grid_cols, grid_rows);
-    lv_obj_set_style_grid_row_align(parent, LV_GRID_ALIGN_SPACE_BETWEEN, 0);
+    lv_obj_set_grid_dsc_array(a2dps->screen, grid_cols, grid_rows);
+    lv_obj_set_style_grid_row_align(a2dps->screen, LV_GRID_ALIGN_SPACE_BETWEEN, 0);
     lv_obj_set_grid_cell(title_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_CENTER, 2, 1);
     lv_obj_set_grid_cell(ctrl_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_CENTER, 6, 1);
     lv_obj_set_grid_cell(spectrum_obj, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_CENTER, 1, 9);
 
-    return parent;
+    return a2dps->screen;
 }
 
 static lv_image_dsc_t imgdesc;

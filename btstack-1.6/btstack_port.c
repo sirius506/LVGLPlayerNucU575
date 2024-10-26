@@ -106,6 +106,7 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
             if (btstack_event_state_get_state(packet) != HCI_STATE_WORKING) return;
             gap_local_bd_addr(local_addr);
             debug_printf("BTstack up and running on %s.\n", bd_addr_to_str(local_addr));
+            setup_dbs();
             app_btstack_ready();
             break;
         case HCI_EVENT_COMMAND_COMPLETE:
@@ -159,18 +160,7 @@ void StartBtstackTask(void *arg)
   hci_event_callback_registration.callback = &packet_handler;
   hci_add_event_handler(&hci_event_callback_registration);
 
-#ifdef OLD_CODE
-  // hand over to btstack embedded code
-  if (haldev->boot_mode == BOOTM_A2DP)
-  {
-    // setup audio
-    btstack_audio_sink_set_instance(btstack_audio_embedded_sink_get_instance());
-    hal_audio_setup();
-  }
   btstack_main(0, haldev);
-#else
-  btstack_main(0, haldev);
-#endif
 
   // go
   btstack_run_loop_execute();

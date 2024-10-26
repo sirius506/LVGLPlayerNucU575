@@ -1,5 +1,9 @@
 #ifndef BTAPI_H_
 #define BTAPI_H_
+#include "btstack_util.h"
+
+#define	BT_CONN_HID	1
+#define	BT_CONN_A2DP	2
 
 #define USE_NEW_BTAPI
 
@@ -27,19 +31,31 @@ typedef struct {
   uint16_t   report_length;
 } BTREQ_PARAM;
 
-typedef enum {
-  BTSTACK_STATE_INIT = 0,
-  BTSTACK_STATE_ACTIVE,
-  BTSTACK_STATE_CONNECT,
-  BTSTACK_STATE_CLOSING,
-} BTSTACK_STATE;
+#define	BT_STATE_INIT	0
+#define	BT_STATE_SCAN	1
+#define	BT_STATE_HID_CONNECT	2
+#define	BT_STATE_HID_CLOSING	4
+#define	BT_STATE_HID_MASK	0x06
+#define	BT_STATE_A2DP_CONNECT	0x08
+#define	BT_STATE_A2DP_CLOSING	0x10
+#define	BT_STATE_A2DP_MASK	0x18
+
+#define	COD_GAMEPAD	0x002508
+#define	COD_AUDIO	0x200400
 
 typedef struct {
-  BTSTACK_STATE state;
+  bd_addr_t  bdaddr;
+  uint32_t   CoD;
+} PEER_DEVICE;
+
+typedef struct {
+  uint16_t      state;
   uint16_t      avrcp_cid;
   uint16_t      a2dp_cid;
   uint16_t      hid_host_cid;
-  uint32_t      cod_val;
+  int         deviceCount;
+  PEER_DEVICE hidDevice;
+  PEER_DEVICE a2dpHost;
 } BTSTACK_INFO;
 
 void btapi_avrcp_play();
@@ -56,5 +72,6 @@ void btapi_post_request(uint16_t code, uint16_t cid);
 void btapi_shutdown();
 void process_btapi_request(BTSTACK_INFO *info);
 void btapi_setup();
+void btapi_start_a2dp();
 
 #endif

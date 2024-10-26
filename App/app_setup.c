@@ -8,7 +8,8 @@
 
 LV_IMG_DECLARE(bluetooth_black)			// Bluetooth is inactive
 LV_IMG_DECLARE(bluetooth_blue)			// Bluetooth connected
-LV_IMG_DECLARE(bluetooth_scan)			// Scanning gamepad devices..
+LV_IMG_DECLARE(bluetooth_scan_black)		// Scanning gamepad devices..
+LV_IMG_DECLARE(bluetooth_scan_blue)		// Scanning gamepad devices..
 
 LV_IMG_DECLARE(volume_control)
 LV_IMG_DECLARE(brightness)
@@ -16,20 +17,20 @@ LV_IMG_DECLARE(brightness)
 extern osThreadId_t    doomtaskId;
 extern volatile DOOM_SCREEN_STATUS DoomScreenStatus;
 
-void SetBluetoothButtonState(BT_BUTTON_INFO *binfo, BT_STATE new_state)
+void SetBluetoothButtonState(BT_BUTTON_INFO *binfo, BTBTN_STATE new_state)
 {
   binfo->bst = new_state;
 
   switch (new_state)
   {
-  case BT_STATE_READY:
+  case BTBTN_STATE_READY:
     lv_imagebutton_set_src(binfo->btn, LV_IMAGEBUTTON_STATE_RELEASED, NULL, &bluetooth_black, NULL);
     break;
-  case BT_STATE_CONNECT:
+  case BTBTN_STATE_CONNECT:
     lv_imagebutton_set_src(binfo->btn, LV_IMAGEBUTTON_STATE_RELEASED, NULL, &bluetooth_blue, NULL);
     break;
-  case BT_STATE_SCAN:
-    lv_imagebutton_set_src(binfo->btn, LV_IMAGEBUTTON_STATE_RELEASED, NULL, &bluetooth_scan, NULL);
+  case BTBTN_STATE_SCAN:
+    lv_imagebutton_set_src(binfo->btn, LV_IMAGEBUTTON_STATE_RELEASED, NULL, &bluetooth_scan_black, NULL);
     break;
   default:
     break;
@@ -43,19 +44,19 @@ static void bt_button_handler(lv_event_t *e)
 
   switch (binfo->bst)
   {
-  case BT_STATE_READY:
+  case BTBTN_STATE_READY:
     btapi_start_scan();
-    binfo->bst = BT_STATE_SCAN;
-    img = &bluetooth_scan;
+    binfo->bst = BTBTN_STATE_SCAN;
+    img = &bluetooth_scan_black;
     break;
-  case BT_STATE_SCAN:
+  case BTBTN_STATE_SCAN:
     btapi_stop_scan();
-    binfo->bst = BT_STATE_READY;
+    binfo->bst = BTBTN_STATE_READY;
     img = &bluetooth_black;
     break;
-  case BT_STATE_CONNECT:
+  case BTBTN_STATE_CONNECT:
     btapi_disconnect();
-    binfo->bst = BT_STATE_READY;
+    binfo->bst = BTBTN_STATE_READY;
     img = &bluetooth_blue;
     break;
   default:
@@ -182,6 +183,7 @@ static void setupscr_event_cb(lv_event_t *ev)
 
 lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev, lv_indev_t *keydev)
 {
+  lv_obj_t *label;
   lv_obj_t *bar, *img;
   lv_obj_t *scr = lv_obj_create(NULL);
   static lv_style_t style_knob;
@@ -236,13 +238,27 @@ lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev, lv_indev
 
   setups->cont_bt = lv_imagebutton_create(scr);
   lv_imagebutton_set_src(setups->cont_bt, LV_IMAGEBUTTON_STATE_RELEASED, NULL, &bluetooth_black, NULL);
-  lv_obj_align(setups->cont_bt, LV_ALIGN_LEFT_MID, lv_pct(20), 0);
+  lv_obj_align(setups->cont_bt, LV_ALIGN_LEFT_MID, lv_pct(20), -50);
   lv_obj_set_width(setups->cont_bt, LV_SIZE_CONTENT);
   lv_obj_add_event_cb(setups->cont_bt, bt_button_handler, LV_EVENT_CLICKED, &setups->bt_button_info);
   lv_obj_add_flag(setups->cont_bt, LV_OBJ_FLAG_HIDDEN);
 
   setups->bt_button_info.btn = setups->cont_bt;
   lv_obj_add_event_cb(setups->setup_screen, quit_setup_event, LV_EVENT_GESTURE, NULL);
+
+  setups->hid_btn = lv_button_create(scr);
+  lv_obj_add_flag(setups->hid_btn, LV_OBJ_FLAG_HIDDEN);
+  label = lv_label_create(setups->hid_btn);
+  lv_label_set_text_static(label, "HID");
+  lv_obj_update_layout(setups->hid_btn);
+  lv_obj_align_to(setups->hid_btn, setups->cont_bt, LV_ALIGN_OUT_BOTTOM_MID, 0, 15);
+
+  setups->a2dp_btn = lv_button_create(scr);
+  lv_obj_add_flag(setups->a2dp_btn, LV_OBJ_FLAG_HIDDEN);
+  label = lv_label_create(setups->a2dp_btn);
+  lv_label_set_text_static(label, "A2DP");
+  lv_obj_update_layout(setups->a2dp_btn);
+  lv_obj_align_to(setups->a2dp_btn, setups->cont_bt, LV_ALIGN_OUT_BOTTOM_MID, 0, 70);
 
   setups->keydev = keydev;
   setups->ing = lv_group_create();

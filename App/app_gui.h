@@ -180,6 +180,7 @@ typedef struct {
 } SOUND_SCREEN;
 
 typedef struct {
+  lv_obj_t  *screen;
   lv_font_t *title_font;
   lv_font_t *artist_font;
   lv_obj_t  *title_label;
