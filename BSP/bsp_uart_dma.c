@@ -32,6 +32,9 @@ void TxCompCallback(UART_HandleTypeDef *huart)
 
 void hal_uart_dma_init(HAL_DEVICE *haldev)
 {
+  HAL_StatusTypeDef st;
+  uint8_t wbuffer[2];
+
   btuart = haldev->bt_uart->huart;
 
   HAL_UART_RegisterCallback(btuart, HAL_UART_TX_COMPLETE_CB_ID, TxCompCallback);
@@ -39,15 +42,22 @@ void hal_uart_dma_init(HAL_DEVICE *haldev)
 
   HAL_UART_RegisterCallback(btuart, HAL_UART_ERROR_CB_ID, ErrorCallback);
 
-#if 0
   HAL_GPIO_WritePin(BT_RESET_GPIO_Port, BT_RESET_Pin, GPIO_PIN_SET);
+  osDelay(80);
+
+  do {
+    st = HAL_UART_Receive(btuart, wbuffer, 1, 4);
+  } while (st == HAL_OK);
+
   osDelay(50);
   HAL_GPIO_WritePin(BT_RESET_GPIO_Port, BT_RESET_Pin, GPIO_PIN_RESET);
-  osDelay(10);
-#endif
-
+  osDelay(5);
   HAL_GPIO_WritePin(BT_RESET_GPIO_Port, BT_RESET_Pin, GPIO_PIN_SET);
-  osDelay(100);
+
+  /* Tyry to flush any garbage output */
+  do {
+    st = HAL_UART_Receive(btuart, wbuffer, 1, 4);
+  } while (st == HAL_OK);
 }
 
 int hal_uart_dma_set_baud(uint32_t baud)
