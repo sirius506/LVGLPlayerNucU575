@@ -33,6 +33,7 @@ const AUDIO_INIT_PARAMS doom_audio_params = {
   .buffer_size = sizeof(FinalAudioBuffer),
   .volume = AUDIO_DEF_VOL,
   .sample_rate = 44100,
+  .fft_magdiv = 3,
   .txhalf_comp = mix_half_comp,
   .txfull_comp = mix_full_comp,
 };
@@ -100,6 +101,7 @@ typedef struct {
   float32_t *putptr;
   float32_t *getptr;
   int16_t samples;      /* Accumurated data samples */
+  int16_t magdiv;
 } FFTINFO;
 
 SECTION_DTCMRAM FFTINFO FftInfo;
@@ -443,7 +445,7 @@ static int process_fft(FFTINFO *fftInfo, AUDIO_STEREO *pmusic, int frames)
         {
           v += float_mag_buffer[i];
         }
-        if (v) v = v / MAGDIV;
+        if (v) v = v / fftInfo->magdiv;
         if (v < 0) v = 0;
         f_prev = f;
         *op++ = (int16_t)v;
@@ -620,6 +622,7 @@ static void StartMixPlayerTask(void *args)
   }
 
   fftInfo = &FftInfo;
+  fftInfo->magdiv = param->fft_magdiv;
   fft_count = 0;
   arm_fir_decimate_init_f32(&decimate_instance, NUMTAPS, FFT_DECIMATION_FACTOR, (float32_t *)Coeffs, DeciStateBuffer, BUF_FRAMES/2);
   arm_hamming_f32(hamming_window, FFT_SAMPLES);

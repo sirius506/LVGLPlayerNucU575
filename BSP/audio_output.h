@@ -55,6 +55,7 @@ typedef struct {
   int      buffer_size;
   int      volume;
   uint32_t sample_rate;
+  uint32_t fft_magdiv;
   void   (*txhalf_comp)();
   void   (*txfull_comp)();
 } AUDIO_INIT_PARAMS;

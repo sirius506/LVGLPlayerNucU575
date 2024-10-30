@@ -74,6 +74,7 @@ const AUDIO_INIT_PARAMS a2dp_audio_params = {
   .buffer_size = sizeof(FinalAudioBuffer),
   .volume = 80,
   .sample_rate = 44100,
+  .fft_magdiv = 2,
   .txhalf_comp = btaudio_HalfTransfer_CallBack,
   .txfull_comp = btaudio_TransferComplete_CallBack,
 };
