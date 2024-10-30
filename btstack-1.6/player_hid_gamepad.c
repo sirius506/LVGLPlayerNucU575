@@ -67,8 +67,6 @@ static bd_addr_t remote_addr;
 
 static btstack_packet_callback_registration_t hci_event_callback_registration;
 
-static hci_con_handle_t con_handle;
-
 #define	MAX_DEVICES 20
 enum DEVICE_STATE {
     REMOTE_NAME_INIT, REMOTE_NAME_REQUEST, REMOTE_NAME_INQUIRED, REMOTE_NAME_FETCHED
@@ -230,7 +228,7 @@ static void handle_sdp_client_query_result(uint8_t packet_type, uint16_t channel
     }
     break;
   case SDP_EVENT_QUERY_COMPLETE:
-    debug_printf("Query complete %d, %d\n", hid_vid, hid_pid);
+    //debug_printf("Query complete %d, %d\n", hid_vid, hid_pid);
     break;
   default:
     break;
@@ -284,7 +282,7 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
       codval = (unsigned int) gap_event_inquiry_result_get_class_of_device(packet);
 
       pdev->CoD = codval;
-      debug_printf("Device found: %s, CoD = %x06x", bd_addr_to_str(addr), codval);
+      debug_printf("Device found: %s, CoD = %x\n", bd_addr_to_str(addr), codval);
 
       if (gap_event_inquiry_result_get_name_available(packet)) {
         char name_buffer[240];
@@ -341,10 +339,6 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
                 BLUETOOTH_SERVICE_CLASS_PNP_INFORMATION);
             debug_printf("Connect to HID dev (%s).\n", bd_addr_to_str(remote_addr));
             status = hid_host_connect(remote_addr, hid_host_report_mode, &pinfo->hid_host_cid);
-#if 0
-            postGuiEventMessage(GUIEV_ICON_CHANGE, ICON_SET | ICON_BLUETOOTH, "HID", NULL);
-            postGuiEventMessage(GUIEV_BTDEV_CONNECTED, BT_CONN_HID, pinfo, NULL);
-#endif
             break;
           }
         }
@@ -358,14 +352,12 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
       codval = hci_event_connection_request_get_class_of_device(packet);
       hci_event_connection_request_get_bd_addr(packet, addr);
       add_device(pinfo, addr, hci_event_connection_request_get_class_of_device(packet));
-      debug_printf("Conn Req: cod = %x\n", codval);
       break;
     case HCI_EVENT_CONNECTION_COMPLETE:
       if (hci_event_connection_complete_get_status(packet) == 0)
       {
         hci_event_connection_complete_get_bd_addr(packet, remote_addr);
         pdev = getDeviceForAddress(pinfo, remote_addr);
-debug_printf("HCI_EVENT_CONNECTION_COMPLETE: pdev = %x\n", pdev);
         if (pdev)
         {
           if (pdev->CoD == COD_GAMEPAD)
@@ -374,10 +366,9 @@ debug_printf("HCI_EVENT_CONNECTION_COMPLETE: pdev = %x\n", pdev);
             gap_inquiry_stop();
 
             memcpy(pinfo->hidDevice.bdaddr, &remote_addr, 6);
-            pinfo->hid_host_cid = hci_event_connection_complete_get_connection_handle(packet);
-            debug_printf("Connect (%s), handle = %x.\n", bd_addr_to_str(remote_addr), pinfo->hid_host_cid);
+            pinfo->hidDevice.cHandle = hci_event_connection_complete_get_connection_handle(packet);
+            debug_printf("HCI Connect (%s), handle = %x.\n", bd_addr_to_str(remote_addr), pinfo->hidDevice.cHandle);
             hid_vid = hid_pid = 0;
-debug_printf("SDP query @ HCI_EVENT_CONNECTION_COMPLETE\n");
             sdp_client_query_uuid16(
                       &handle_sdp_client_query_result, remote_addr,
                       BLUETOOTH_SERVICE_CLASS_PNP_INFORMATION);
@@ -427,8 +418,8 @@ debug_printf("SDP query @ HCI_EVENT_CONNECTION_COMPLETE\n");
 
         hid_host_descriptor_available = false;
         pinfo->hid_host_cid = hid_subevent_connection_opened_get_hid_cid(packet);
-        pinfo->state |- BT_STATE_HID_CONNECT;
-        debug_printf("HID Host connected (%04x, %04x).\n", hid_vid, hid_pid);
+        pinfo->state |= BT_STATE_HID_CONNECT;
+        debug_printf("HID Host connected %x (%04x, %04x).\n", pinfo->hid_host_cid, hid_vid, hid_pid);
         postGuiEventMessage(GUIEV_ICON_CHANGE, ICON_SET | ICON_BLUETOOTH, NULL, NULL);
         postGuiEventMessage(GUIEV_BTDEV_CONNECTED, BT_CONN_HID, pinfo, NULL);
 
@@ -482,16 +473,21 @@ debug_printf("SDP query @ HCI_EVENT_CONNECTION_COMPLETE\n");
         break;
       case HID_SUBEVENT_CONNECTION_CLOSED:
         // The connection was closed.
-        pinfo->hid_host_cid = 0;
-        pinfo->state &= ~(BT_STATE_HID_CONNECT|BT_STATE_HID_CLOSING);
+        pinfo->state &= ~BT_STATE_HID_MASK;
         hid_host_descriptor_available = false;
-        debug_printf("HID Host disconnected (%d, %d).\n", pinfo->a2dp_cid, pinfo->avrcp_cid);
+        debug_printf("HID Host disconnected (%d, %d) --> %x.\n", pinfo->a2dp_cid, pinfo->avrcp_cid, pinfo->state);
         if ((pinfo->a2dp_cid == 0) && (pinfo->avrcp_cid == 0))
         {
           postGuiEventMessage(GUIEV_ICON_CHANGE, ICON_CLEAR | ICON_BLUETOOTH, NULL, NULL);
         }
         postGuiEventMessage(GUIEV_BTDEV_CONNECTED, BT_CONN_HID, pinfo, NULL);
-        gap_disconnect(con_handle);
+        gap_disconnect(pinfo->hidDevice.cHandle);
+        pinfo->hid_host_cid = 0;
+        if (padDriver)
+        {
+          (padDriver->btDisconnect)();
+          padDriver = NULL;
+        }
         break;
       case HID_SUBEVENT_GET_REPORT_RESPONSE:
         status = hid_subevent_get_report_response_get_handshake_status(packet);
@@ -510,9 +506,7 @@ debug_printf("SDP query @ HCI_EVENT_CONNECTION_COMPLETE\n");
       break;	/* end of HCI_EVENT_HID_META */
     case HCI_EVENT_DISCONNECTION_COMPLETE:
       chandle = hci_event_disconnection_complete_get_connection_handle(packet);
-      pinfo->state &= ~BT_STATE_HID_CONNECT;
-      if (padDriver)
-        (padDriver->btDisconnect)();
+      debug_printf("Disconnect complete. %d (%d, %d)\n", chandle, pinfo->hid_host_cid, pinfo->a2dp_cid);
       break;
     }
   }

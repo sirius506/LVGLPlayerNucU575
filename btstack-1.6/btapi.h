@@ -10,7 +10,8 @@
 typedef enum {
  BTREQ_START_SCAN = 1,
  BTREQ_STOP_SCAN,
- BTREQ_DISCONNECT,
+ BTREQ_DISC_HID,
+ BTREQ_DISC_A2DP,
  BTREQ_POWER_OFF,
  BTREQ_SHUTDOWN,
  BTREQ_SEND_REPORT,
@@ -46,6 +47,7 @@ typedef struct {
 typedef struct {
   bd_addr_t  bdaddr;
   uint32_t   CoD;
+  uint16_t   cHandle;	/* Connection Handle */
 } PEER_DEVICE;
 
 typedef struct {
@@ -64,7 +66,8 @@ void btapi_avrcp_prev();
 void btapi_avrcp_next();
 void btapi_start_scan();
 void btapi_stop_scan();
-void btapi_disconnect();
+void btapi_hid_disconnect();
+void btapi_a2dp_disconnect();
 void btapi_power_off();
 void btapi_send_report(uint8_t *ptr, int len);
 void btapi_push_report();

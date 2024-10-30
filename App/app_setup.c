@@ -17,54 +17,61 @@ LV_IMG_DECLARE(brightness)
 extern osThreadId_t    doomtaskId;
 extern volatile DOOM_SCREEN_STATUS DoomScreenStatus;
 
-void SetBluetoothButtonState(BT_BUTTON_INFO *binfo, BTBTN_STATE new_state)
+void UpdateBluetoothButton(SETUP_SCREEN *screen)
 {
-  binfo->bst = new_state;
+  BTSTACK_INFO *pinfo = screen->btinfo;
 
-  switch (new_state)
+debug_printf("%s: %x\n", __FUNCTION__, pinfo->state);
+  if (pinfo->state & BT_STATE_SCAN)
   {
-  case BTBTN_STATE_READY:
-    lv_imagebutton_set_src(binfo->btn, LV_IMAGEBUTTON_STATE_RELEASED, NULL, &bluetooth_black, NULL);
-    break;
-  case BTBTN_STATE_CONNECT:
-    lv_imagebutton_set_src(binfo->btn, LV_IMAGEBUTTON_STATE_RELEASED, NULL, &bluetooth_blue, NULL);
-    break;
-  case BTBTN_STATE_SCAN:
-    lv_imagebutton_set_src(binfo->btn, LV_IMAGEBUTTON_STATE_RELEASED, NULL, &bluetooth_scan_black, NULL);
-    break;
-  default:
-    break;
+    if (pinfo->state & (BT_STATE_HID_MASK|BT_STATE_A2DP_MASK))
+      lv_imagebutton_set_src(screen->cont_bt, LV_IMAGEBUTTON_STATE_RELEASED,
+          NULL, &bluetooth_scan_blue, NULL);
+    else
+      lv_imagebutton_set_src(screen->cont_bt, LV_IMAGEBUTTON_STATE_RELEASED,
+          NULL, &bluetooth_scan_black, NULL);
+  }
+  else
+  {
+    if (pinfo->state & (BT_STATE_HID_MASK|BT_STATE_A2DP_MASK))
+      lv_imagebutton_set_src(screen->cont_bt, LV_IMAGEBUTTON_STATE_RELEASED,
+          NULL, &bluetooth_blue, NULL);
+    else
+      lv_imagebutton_set_src(screen->cont_bt, LV_IMAGEBUTTON_STATE_RELEASED,
+          NULL, &bluetooth_black, NULL);
   }
 }
 
 static void bt_button_handler(lv_event_t *e)
 {
-  BT_BUTTON_INFO *binfo = (BT_BUTTON_INFO *)lv_event_get_user_data(e);
+  SETUP_SCREEN *screen = (SETUP_SCREEN *)lv_event_get_user_data(e);
+  BTSTACK_INFO *pinfo;
   const lv_image_dsc_t *img = NULL;
 
-  switch (binfo->bst)
+  pinfo = screen->btinfo;
+
+debug_printf("%s: %x\n", __FUNCTION__, pinfo->state);
+  if ((pinfo->state & (BT_STATE_HID_MASK|BT_STATE_SCAN)) == 0)
   {
-  case BTBTN_STATE_READY:
     btapi_start_scan();
-    binfo->bst = BTBTN_STATE_SCAN;
-    img = &bluetooth_scan_black;
-    break;
-  case BTBTN_STATE_SCAN:
+    pinfo->state |= BT_STATE_SCAN;
+    if (pinfo->state & BT_STATE_A2DP_MASK)
+      img = &bluetooth_scan_blue;
+    else
+      img = &bluetooth_scan_black;
+  }
+  else if (pinfo->state & BT_STATE_SCAN)
+  {
     btapi_stop_scan();
-    binfo->bst = BTBTN_STATE_READY;
-    img = &bluetooth_black;
-    break;
-  case BTBTN_STATE_CONNECT:
-    btapi_disconnect();
-    binfo->bst = BTBTN_STATE_READY;
-    img = &bluetooth_blue;
-    break;
-  default:
-    break;
+    pinfo->state &= ~BT_STATE_SCAN;
+    if (pinfo->state & (BT_STATE_HID_MASK|BT_STATE_A2DP_MASK))
+      img = &bluetooth_blue;
+    else
+      img = &bluetooth_black;
   }
   if (img)
   {
-    lv_imagebutton_set_src(binfo->btn, LV_IMAGEBUTTON_STATE_RELEASED, NULL, img, NULL);
+    lv_imagebutton_set_src(screen->cont_bt, LV_IMAGEBUTTON_STATE_RELEASED, NULL, img, NULL);
   }
 }
 
@@ -181,6 +188,20 @@ static void setupscr_event_cb(lv_event_t *ev)
   }
 }
 
+static void process_hid_disc(lv_event_t *ev)
+{
+  UNUSED(ev);
+
+  btapi_hid_disconnect();
+}
+
+static void process_a2dp_disc(lv_event_t *ev)
+{
+  UNUSED(ev);
+
+  btapi_a2dp_disconnect();
+}
+
 lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev, lv_indev_t *keydev)
 {
   lv_obj_t *label;
@@ -240,10 +261,9 @@ lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev, lv_indev
   lv_imagebutton_set_src(setups->cont_bt, LV_IMAGEBUTTON_STATE_RELEASED, NULL, &bluetooth_black, NULL);
   lv_obj_align(setups->cont_bt, LV_ALIGN_LEFT_MID, lv_pct(20), -50);
   lv_obj_set_width(setups->cont_bt, LV_SIZE_CONTENT);
-  lv_obj_add_event_cb(setups->cont_bt, bt_button_handler, LV_EVENT_CLICKED, &setups->bt_button_info);
+  lv_obj_add_event_cb(setups->cont_bt, bt_button_handler, LV_EVENT_CLICKED, setups);
   lv_obj_add_flag(setups->cont_bt, LV_OBJ_FLAG_HIDDEN);
 
-  setups->bt_button_info.btn = setups->cont_bt;
   lv_obj_add_event_cb(setups->setup_screen, quit_setup_event, LV_EVENT_GESTURE, NULL);
 
   setups->hid_btn = lv_button_create(scr);
@@ -252,6 +272,7 @@ lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev, lv_indev
   lv_label_set_text_static(label, "HID");
   lv_obj_update_layout(setups->hid_btn);
   lv_obj_align_to(setups->hid_btn, setups->cont_bt, LV_ALIGN_OUT_BOTTOM_MID, 0, 15);
+  lv_obj_add_event_cb(setups->hid_btn, process_hid_disc, LV_EVENT_CLICKED, NULL);
 
   setups->a2dp_btn = lv_button_create(scr);
   lv_obj_add_flag(setups->a2dp_btn, LV_OBJ_FLAG_HIDDEN);
@@ -259,6 +280,7 @@ lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev, lv_indev
   lv_label_set_text_static(label, "A2DP");
   lv_obj_update_layout(setups->a2dp_btn);
   lv_obj_align_to(setups->a2dp_btn, setups->cont_bt, LV_ALIGN_OUT_BOTTOM_MID, 0, 70);
+  lv_obj_add_event_cb(setups->a2dp_btn, process_a2dp_disc, LV_EVENT_CLICKED, NULL);
 
   setups->keydev = keydev;
   setups->ing = lv_group_create();

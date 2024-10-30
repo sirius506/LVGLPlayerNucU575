@@ -275,10 +275,12 @@ int setup_a2dp_sink()
 
     // Configure GAP - discovery / connection
 
+#if 1
     // - Set local name with a template Bluetooth address, that will be automatically
     //   replaced with an actual address once it is available, i.e. when BTstack boots
     //   up and starts talking to a Bluetooth module.
-    gap_set_local_name("DoomPlayer");
+    gap_set_local_name("LVGLPlayer");
+#endif
 
     // - Allow to show up in Bluetooth inquiry
     gap_discoverable_control(1);
@@ -586,7 +588,6 @@ static void avrcp_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t 
 
     a2dp_sink_demo_avrcp_connection_t * connection = &a2dp_sink_demo_avrcp_connection;
 
-debug_printf("%s:\n", __FUNCTION__);
     if (packet_type != HCI_EVENT_PACKET) return;
     if (hci_event_packet_get_type(packet) != HCI_EVENT_AVRCP_META) return;
     switch (packet[2]){
@@ -678,7 +679,6 @@ static void avrcp_controller_packet_handler(uint8_t packet_type, uint16_t channe
         case AVRCP_SUBEVENT_NOTIFICATION_PLAYBACK_STATUS_CHANGED:
             debug_printf("AVRCP Controller: Playback status changed %s\n", avrcp_play_status2str(avrcp_subevent_notification_playback_status_changed_get_play_status(packet)));
             play_status = avrcp_subevent_notification_playback_status_changed_get_play_status(packet);
-debug_printf("play_status = %x\n", play_status);
             switch (play_status){
                 case AVRCP_PLAYBACK_STATUS_PLAYING:
                     avrcp_connection->playing = true;
@@ -948,10 +948,11 @@ debug_printf("%s:\n", __FUNCTION__);
             a2dp_conn->a2dp_cid = 0;
             media_processing_close();
             pinfo->a2dp_cid = 0;
-            pinfo->state &= ~BT_STATE_A2DP_CONNECT;
+            pinfo->state &= ~BT_STATE_A2DP_MASK;
             if ((pinfo->avrcp_cid == 0) && (pinfo->hid_host_cid == 0))
             {
               postGuiEventMessage(GUIEV_ICON_CHANGE, ICON_CLEAR | ICON_BLUETOOTH, NULL, NULL);
+              gap_disconnect(pinfo->a2dpHost.cHandle);
             }
             postGuiEventMessage(GUIEV_BTDEV_CONNECTED, BT_CONN_A2DP, pinfo, NULL);
             break;
@@ -966,10 +967,8 @@ void btstack_start_a2dp_sink()
     printf("Starting BTstack Audio Player ...\n");
 
     // setup audio
-#if 1
     btstack_audio_sink_set_instance(btstack_audio_embedded_sink_get_instance());
     setup_a2dp_sink();
-#endif
     hal_audio_setup();
 
 }

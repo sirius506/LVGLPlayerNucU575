@@ -75,11 +75,11 @@ static          unsigned int output_buffer_to_fill;
 static          unsigned int output_buffer_count;
 static          unsigned int output_buffer_samples;
 
-static volatile int       input_buffer_ready;
 #if 0
+static volatile int       input_buffer_ready;
 static volatile const int16_t * input_buffer_samples;
-#endif
 static volatile uint16_t  input_buffer_num_samples;
+#endif
 
 #if 0
 static int source_active;

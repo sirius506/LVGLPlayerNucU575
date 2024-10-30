@@ -38,6 +38,8 @@ int btstack_main(int argc, HAL_DEVICE *haldev)
 
   sdp_init();
 
+  gap_set_local_name("LVGLPlayer");
+
   /* Setup HID host function.
    * A2DP sink feature will be setup later, if necessary.
    */
@@ -45,5 +47,8 @@ int btstack_main(int argc, HAL_DEVICE *haldev)
 
   // Turn on the device 
   hci_power_control(HCI_POWER_ON);
+
+  postGuiEventMessage(GUIEV_BTSTACK_READY, 0, &BtStackInfo, NULL);
+
   return 0;
 }

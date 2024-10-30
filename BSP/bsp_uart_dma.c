@@ -42,6 +42,7 @@ void hal_uart_dma_init(HAL_DEVICE *haldev)
 
   HAL_UART_RegisterCallback(btuart, HAL_UART_ERROR_CB_ID, ErrorCallback);
 
+#if 0
   HAL_GPIO_WritePin(BT_RESET_GPIO_Port, BT_RESET_Pin, GPIO_PIN_SET);
   osDelay(80);
 
@@ -50,8 +51,9 @@ void hal_uart_dma_init(HAL_DEVICE *haldev)
   } while (st == HAL_OK);
 
   osDelay(50);
+#endif
   HAL_GPIO_WritePin(BT_RESET_GPIO_Port, BT_RESET_Pin, GPIO_PIN_RESET);
-  osDelay(5);
+  osDelay(10);
   HAL_GPIO_WritePin(BT_RESET_GPIO_Port, BT_RESET_Pin, GPIO_PIN_SET);
 
   /* Tyry to flush any garbage output */

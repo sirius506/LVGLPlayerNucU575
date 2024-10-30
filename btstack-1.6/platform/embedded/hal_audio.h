@@ -55,6 +55,8 @@ extern "C" {
  *  - after a buffer is played, the callback is called with tbe index of the played buffer
  */
 
+void hal_audio_setup(void);
+
 /**
  * @brief Setup audio codec for playback using specified samplerate and number of channels
  * @param Channels

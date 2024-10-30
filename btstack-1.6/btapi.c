@@ -9,6 +9,9 @@
 static uint8_t btreqBuffer[BTREQ_DEPTH * sizeof(BTREQ_PARAM)];
 MESSAGEQ_DEF(btreqq, btreqBuffer, sizeof(btreqBuffer))
 
+extern void btstack_start_a2dp_sink();
+extern void btstack_run_loop_freertos_trigger();
+
 static osMessageQueueId_t btreqqId;
 
 void btapi_setup()
@@ -40,11 +43,27 @@ void process_btapi_request(BTSTACK_INFO *info)
       gap_inquiry_stop();
       info->state &= ~BT_STATE_SCAN;
       break;
-    case BTREQ_DISCONNECT:
+    case BTREQ_DISC_HID:
+debug_printf("BTREQ_DISC_HID: state = %x, cid = %x\n", info->state, info->hid_host_cid);
+      if ((info->state & BT_STATE_HID_CONNECT) && (info->hid_host_cid != 0))
+      {
+          hid_host_disconnect(info->hid_host_cid);
+          info->state &= ~BT_STATE_HID_CONNECT;
+          info->state |= BT_STATE_HID_CLOSING;
+      }
+      break;
+    case BTREQ_DISC_A2DP:
+      if ((info->state & BT_STATE_A2DP_CONNECT) && (info->a2dp_cid != 0)) 
+      {
+          a2dp_sink_disconnect(info->a2dp_cid);
+          info->state &= ~BT_STATE_A2DP_CONNECT;
+          info->state |= BT_STATE_A2DP_CLOSING;
+      }
+      break;
     case BTREQ_SHUTDOWN:
       if (info->state & (BT_STATE_HID_CONNECT|BT_STATE_A2DP_CONNECT)) 
       {
-debug_printf("disc: %d, %d\n", info->hid_host_cid, info->a2dp_cid);
+debug_printf("shutdown: %d, %d\n", info->hid_host_cid, info->a2dp_cid);
         if (info->hid_host_cid != 0)
         {
           hid_host_disconnect(info->hid_host_cid);
@@ -53,9 +72,8 @@ debug_printf("disc: %d, %d\n", info->hid_host_cid, info->a2dp_cid);
           a2dp_sink_disconnect(info->a2dp_cid);
         {
         }
-        if (req.code == BTREQ_SHUTDOWN)
-          info->state &= ~BT_STATE_HID_CONNECT;
-          info->state |= ~BT_STATE_HID_CLOSING;
+        info->state &= ~BT_STATE_HID_CONNECT;
+        info->state |= BT_STATE_HID_CLOSING;
       }
       break;
     case BTREQ_SEND_REPORT:
@@ -66,7 +84,11 @@ debug_printf("disc: %d, %d\n", info->hid_host_cid, info->a2dp_cid);
       if (info->avrcp_cid)
       {
         st = avrcp_controller_get_element_attributes(info->avrcp_cid, 3, media_attributes);
+#ifdef BTAPI_DEBUG
         if (st) debug_printf("get_info: %d\n", st);
+#else
+        (void)st;
+#endif
       }
       break;
     case BTREQ_GET_STATUS:
@@ -74,7 +96,11 @@ debug_printf("disc: %d, %d\n", info->hid_host_cid, info->a2dp_cid);
       if (info->avrcp_cid)
       {
         st = avrcp_controller_get_play_status(info->avrcp_cid);
+#ifdef BTAPI_DEBUG
         if (st) debug_printf("get_status: %d\n", st);
+#else
+        (void)st;
+#endif
       }
       break;
     case BTREQ_POWER_OFF:
@@ -105,7 +131,9 @@ debug_printf("disc: %d, %d\n", info->hid_host_cid, info->a2dp_cid);
       }
       break;
     case BTREQ_START_A2DP:
-debug_printf("Got BTREQ_START_A2DP\n");
+#ifdef BTAPI_DEBUG
+      debug_printf("Got BTREQ_START_A2DP\n");
+#endif
       btstack_start_a2dp_sink();
       break;
     default:
@@ -183,11 +211,20 @@ void btapi_stop_scan()
   btstack_run_loop_freertos_trigger();
 }
 
-void btapi_disconnect()
+void btapi_hid_disconnect()
 {
   BTREQ_PARAM req;
 
-  req.code = BTREQ_DISCONNECT;
+  req.code = BTREQ_DISC_HID;
+  osMessageQueuePut(btreqqId, &req, 0, 0);
+  btstack_run_loop_freertos_trigger();
+}
+
+void btapi_a2dp_disconnect()
+{
+  BTREQ_PARAM req;
+
+  req.code = BTREQ_DISC_A2DP;
   osMessageQueuePut(btreqqId, &req, 0, 0);
   btstack_run_loop_freertos_trigger();
 }
@@ -225,5 +262,5 @@ void btapi_start_a2dp()
 
   req.code = BTREQ_START_A2DP;
   osMessageQueuePut(btreqqId, &req, 0, 0);
-btstack_run_loop_poll_data_sources_from_irq();
+  btstack_run_loop_poll_data_sources_from_irq();
 }

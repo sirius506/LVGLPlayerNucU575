@@ -596,8 +596,8 @@ static int SelectApplication(lv_obj_t *sel_screen, SETUP_SCREEN *setups, lv_obj_
       switch (event.evcode)
       {
       case GUIEV_BTSTACK_READY:
+        setups->btinfo = (BTSTACK_INFO *)event.evarg1;
         lv_obj_remove_flag(setups->cont_bt, LV_OBJ_FLAG_HIDDEN);
-        setups->bt_button_info.bst = BTBTN_STATE_READY;
         break;
       case GUIEV_APP_SELECT:
         lv_indev_set_group(setups->keydev, NULL);
@@ -622,19 +622,8 @@ static int SelectApplication(lv_obj_t *sel_screen, SETUP_SCREEN *setups, lv_obj_
         process_icon_change(icon_label, event.evval0);
         break;
       case GUIEV_BTDEV_CONNECTED:
-#ifdef OLD_CODE
-        if (event.evval0 == 0)
         {
-          SetBluetoothButtonState(&setups->bt_button_info, BTBTN_STATE_READY);
-          padInfo = &nullPad;
-        }
-        else
-        {
-          SetBluetoothButtonState(&setups->bt_button_info, BTBTN_STATE_CONNECT);
-        }
-#else
-        {
-          BTSTACK_INFO *pinfo = (BTSTACK_INFO *)event.evarg1;
+          BTSTACK_INFO *pinfo = setups->btinfo;
 
           if (event.evval0 == BT_CONN_HID)
           {
@@ -650,8 +639,8 @@ static int SelectApplication(lv_obj_t *sel_screen, SETUP_SCREEN *setups, lv_obj_
              else
                lv_obj_add_flag(setups->a2dp_btn, LV_OBJ_FLAG_HIDDEN);
           }
+          UpdateBluetoothButton(setups);
         }
-#endif
         break;
       case GUIEV_GAMEPAD_READY:
         padInfo = (GAMEPAD_INFO *)event.evarg1;
@@ -899,8 +888,8 @@ void StartGuiTask(void *args)
         lv_refr_now(NULL);
         break;
       case GUIEV_BTSTACK_READY:
+        setups->btinfo = (BTSTACK_INFO *)event.evarg1;
         lv_obj_remove_flag(setups->cont_bt, LV_OBJ_FLAG_HIDDEN);
-        setups->bt_button_info.bst = BTBTN_STATE_READY;
         break;
       case GUIEV_PSEC_UPDATE:
         if (haldev->boot_mode)
@@ -1204,7 +1193,7 @@ void StartGuiTask(void *args)
         lv_indev_set_group(keydev, starts->ing);
         break;
       case GUIEV_REBOOT:
-        btapi_disconnect();
+        btapi_hid_disconnect();
         osDelay(200);
         NVIC_SystemReset();
         break;
@@ -1433,22 +1422,8 @@ debug_printf("KBD_CANCEL\n");
 debug_printf("CHEAT_SEL\n");
         break;
       case GUIEV_BTDEV_CONNECTED:
-#ifdef OLD_CODE
-        if (menus->screen)
         {
-          if (event.evval0 == 0)
-          {
-            SetBluetoothButtonState(&setups->bt_button_info, BTBTN_STATE_READY);
-            padInfo = &nullPad;
-          }
-          else
-          {
-            SetBluetoothButtonState(&setups->bt_button_info, BTBTN_STATE_CONNECT);
-          }
-        }
-#else
-        {
-          BTSTACK_INFO *pinfo = (BTSTACK_INFO *)event.evarg1;
+          BTSTACK_INFO *pinfo = setups->btinfo;
 
           if (event.evval0 == BT_CONN_HID)
           {
@@ -1465,7 +1440,6 @@ debug_printf("CHEAT_SEL\n");
                lv_obj_add_flag(setups->a2dp_btn, LV_OBJ_FLAG_HIDDEN);
           }
         }
-#endif
         break;
       case GUIEV_GAMEPAD_READY:
         padInfo = (GAMEPAD_INFO *)event.evarg1;
@@ -1571,18 +1545,6 @@ void gui_timer_inc()
 {
   if (lvgl_active)
     lv_tick_inc(1);
-}
-
-const GUI_EVENT btstack_ready_event = {
-  GUIEV_BTSTACK_READY,
-  0,
-  NULL,
-  NULL
-};
-
-void app_btstack_ready()
-{
-  postGuiEvent(&btstack_ready_event);
 }
 
 void StartDoomTask(void *argument)

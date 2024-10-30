@@ -107,7 +107,6 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
             gap_local_bd_addr(local_addr);
             debug_printf("BTstack up and running on %s.\n", bd_addr_to_str(local_addr));
             setup_dbs();
-            app_btstack_ready();
             break;
         case HCI_EVENT_COMMAND_COMPLETE:
              if (hci_event_command_complete_get_command_opcode(packet) == HCI_OPCODE_HCI_READ_LOCAL_NAME){
