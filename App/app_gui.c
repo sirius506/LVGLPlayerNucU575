@@ -1439,6 +1439,7 @@ debug_printf("CHEAT_SEL\n");
              else
                lv_obj_add_flag(setups->a2dp_btn, LV_OBJ_FLAG_HIDDEN);
           }
+          UpdateBluetoothButton(setups);
         }
         break;
       case GUIEV_GAMEPAD_READY:
