@@ -146,15 +146,6 @@ static void quit_setup_event(lv_event_t *e)
   }
 }
 
-void activate_screen(lv_obj_t *screen, void (*list_action)(), void *arg_ptr)
-{
-  lv_screen_load(screen);
-  lv_obj_add_event_cb(screen, enter_setup_event, LV_EVENT_GESTURE, NULL);
-  SetupScreen.active_screen = screen;
-  SetupScreen.list_action = list_action;
-  SetupScreen.arg_ptr = arg_ptr;
-}
-
 static void vol_event_cb(lv_event_t *e)
 {
   lv_obj_t *obj = lv_event_get_target(e);

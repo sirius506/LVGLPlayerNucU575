@@ -7,8 +7,6 @@
 #include "audio_output.h"
 #include "app_setup.h"
 
-#define DOUBLE_IMAGE		/* Use double image buffering */
-
 #define AUDIO_FRAME_SIZE        (192*6) /* 16bit, 192K sampling, 6ms */
 #define OSC_BUF_FACTOR      4
 
@@ -234,7 +232,7 @@ static void osc_full_complete()
 const AUDIO_INIT_PARAMS oscm_audio_params = {
   .buffer = FinalOscBuffer,
   .buffer_size = sizeof(FinalOscBuffer),
-  .volume = AUDIO_DEF_VOL,
+  .volume = AUDIO_DEF_VOL - 20,
   .sample_rate = 192000,
   .txhalf_comp = osc_half_complete,
   .txfull_comp = osc_full_complete,
@@ -453,7 +451,7 @@ void StartOscMusic(OSCM_SCREEN *screen)
         else  
         {   
           scount++;
-          if ((scount % 100) == 0)
+          if ((scount % 10) == 0)
             debug_printf("sc: %d\n", scount);
           pinfo->nobuff++;
         }     
@@ -551,7 +549,6 @@ static const uint8_t index_data[I1_INDEX_SIZE] = {
   0x00,0x00,0x00,0xff,0x80,0xE0,0x00,0xFF,
 };
 
-#ifdef DOUBLE_IMAGE
 uint8_t oscImage_map1[40*320+8];
 uint8_t oscImage_map2[40*320+8];
 
@@ -576,21 +573,8 @@ const lv_image_dsc_t oscImage2 = {
   .data_size = sizeof(oscImage_map2),
   .data = oscImage_map2,
 }; 
-#else
-uint8_t oscImage_map[40*320+8];
 
-const lv_image_dsc_t oscImage = {
-  .header.magic = LV_IMAGE_HEADER_MAGIC,
-  .header.cf = LV_COLOR_FORMAT_I1,
-  .header.flags = 0,
-  .header.w = 256,
-  .header.h = 256,
-  .header.stride = 32,
-  .data_size = sizeof(oscImage_map),
-  .data = oscImage_map,
-}; 
-#endif
-
+#ifdef USE_PREV_NEXT
 /**
  * Called when play button status has changed
  */
@@ -610,6 +594,7 @@ static void style_handler(lv_event_t *e)
     lv_obj_add_flag(screen->next_button, LV_OBJ_FLAG_HIDDEN);
   }
 }
+#endif
 
 #ifdef USE_LABEL_BUTTON
 static void list_handler(lv_event_t *e)
@@ -642,6 +627,7 @@ static void pb_handler(lv_event_t *e)
   }
 }
 
+#ifdef USE_PREV_NEXT
 static void prev_handler(lv_event_t *e)
 {
   UNUSED(e);
@@ -653,6 +639,7 @@ static void next_handler(lv_event_t *e)
   UNUSED(e);
   postWaveRequest(WAV_NEXT, &PlayerInfo);
 }
+#endif
 
 static const lv_style_prop_t trans_props[] = { LV_STYLE_IMAGE_OPA, 0 };
 
@@ -670,12 +657,12 @@ void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
   lv_obj_t *cs;
   LV_IMG_DECLARE(img_lv_demo_music_btn_playlarge);
   LV_IMG_DECLARE(img_lv_demo_music_btn_pauselarge);
+#ifdef USE_PREV_NEXT
   LV_IMG_DECLARE(img_lv_demo_music_btn_prevlarge);
   LV_IMG_DECLARE(img_lv_demo_music_btn_nextlarge);
+#endif
 
-  screen->scope_screen = cs = lv_obj_create(NULL);
-  lv_screen_load(cs);
-  activate_screen(cs, list_proc, screen);
+  cs = screen->scope_screen;
   lv_obj_set_size(cs, 480, 320);
   lv_obj_set_style_bg_color(cs, lv_color_black(), LV_PART_MAIN);
 
@@ -689,22 +676,14 @@ void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
   lv_style_set_image_opa(&style_pr, LV_OPA_100);
   lv_style_set_transition(&style_def, &tr);
 
-#ifdef DOUBLE_IMAGE
   memcpy(oscImage_map1, index_data, I1_INDEX_SIZE);	/* Copy Index data */
   memcpy(oscImage_map2, index_data, I1_INDEX_SIZE);	/* Copy Index data */
   screen->disp_toggle = 0;
-#else
-  memcpy(oscImage_map, index_data, I1_INDEX_SIZE);	/* Copy Index data */
-#endif
   lv_style_init(&osc_style);
   lv_style_set_text_color(&osc_style, lv_palette_main(LV_PALETTE_LIME));
 
   screen->scope_image = lv_image_create(cs);
-#ifdef DOUBLE_IMAGE
   lv_image_set_src(screen->scope_image, &oscImage1);
-#else
-  lv_image_set_src(screen->scope_image, &oscImage);
-#endif
   lv_obj_align(screen->scope_image, LV_ALIGN_TOP_MID, 0, 20);
   screen->scope_label = lv_label_create(cs);
   lv_obj_add_style(screen->scope_label, &osc_style, 0);
@@ -728,35 +707,94 @@ void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
   lv_obj_center(screen->play_button);
   lv_group_add_obj(screen->scope_ing, screen->play_button);
 
+#ifdef USE_PREV_NEXT
   screen->prev_button = lv_image_create(cs);
   lv_image_set_src(screen->prev_button, &img_lv_demo_music_btn_prevlarge);
   lv_obj_align(screen->prev_button, LV_ALIGN_BOTTOM_LEFT, 0, 0);
   lv_obj_add_flag(screen->prev_button, LV_OBJ_FLAG_HIDDEN);
   lv_obj_add_flag(screen->prev_button, LV_OBJ_FLAG_CLICKABLE);
+  lv_group_add_obj(screen->scope_ing, screen->prev_button);
 
   screen->next_button = lv_image_create(cs);
   lv_image_set_src(screen->next_button, &img_lv_demo_music_btn_nextlarge);
   lv_obj_align(screen->next_button, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
   lv_obj_add_flag(screen->next_button, LV_OBJ_FLAG_HIDDEN);
   lv_obj_add_flag(screen->next_button, LV_OBJ_FLAG_CLICKABLE);
+  lv_group_add_obj(screen->scope_ing, screen->next_button);
 
   lv_obj_add_event_cb(screen->prev_button, prev_handler, LV_EVENT_CLICKED, screen);
   lv_obj_add_event_cb(screen->next_button, next_handler, LV_EVENT_CLICKED, screen);
+#endif
 
   lv_obj_add_style(screen->play_button, &style_def, 0);
   lv_obj_add_style(screen->play_button, &style_pr, LV_STATE_CHECKED);
 
+#ifdef USE_PREV_NEXT
   lv_obj_add_event_cb(screen->play_button, style_handler, LV_EVENT_STYLE_CHANGED, screen);
+#endif
 
+  activate_new_screen((BASE_SCREEN *)screen, list_proc, screen);
   screen->haldev = haldev;
 
   osThreadNew((osThreadFunc_t)StartOscMusic, screen, &attributes_mixplayer);
 }
 
+static inline void plotDot(int left, int right)
+{
+  oscImage_map1[right * 32 + left / 8 + I1_INDEX_SIZE] |= (0x80 >> (left & 7));
+  oscImage_map2[right * 32 + left / 8 + I1_INDEX_SIZE] |= (0x80 >> (left & 7));
+}
+
+#ifdef DRAW_LINE
+static void hline(int ypos, int px, int cx)
+{
+  if (px < cx)
+  {
+    do
+    {
+      plotDot(px, ypos);
+      px++;
+    } while (px < cx);
+  }
+  else
+  {
+    do
+    {
+      plotDot(cx, ypos);
+      cx++;
+    } while (px > cx);
+  }
+}
+
+static void vline(int xpos, int py, int cy)
+{
+  if (py < cy)
+  {
+    do
+    {
+      plotDot(xpos, py);
+      py++;
+    } while (py < cy);
+  }
+  else
+  {
+    do
+    {
+      plotDot(xpos, cy);
+      cy++;
+    } while (py > cy);
+  }
+}
+#endif
+
 void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress)
 {
   int i;
   int left, right;
+#ifdef DRAW_LINE
+  int d;
+  static int px, py;
+#endif
   static int dcount;
 
   dcount++;
@@ -765,6 +803,9 @@ void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress)
   {
     memset(oscImage_map2 + I1_INDEX_SIZE, 0, sizeof(oscImage_map2) - I1_INDEX_SIZE);
     memset(oscImage_map1 + I1_INDEX_SIZE, 0, sizeof(oscImage_map1) - I1_INDEX_SIZE);
+#ifdef DRAW_LINE
+    px = py = 128;
+#endif
     lv_image_set_src(screen->scope_image, &oscImage1);
     lv_timer_handler();
     return;
@@ -782,39 +823,45 @@ void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress)
     left += 128;
     right += 128;
 
-#ifdef DOUBLE_IMAGE
-    oscImage_map1[right * 32 + left / 8 + I1_INDEX_SIZE] |= (0x80 >> (left & 7));
-    oscImage_map2[right * 32 + left / 8 + I1_INDEX_SIZE] |= (0x80 >> (left & 7));
+#ifdef DRAW_LINE
+    d = ((left - px) ^ 2) + ((right - py) ^ 2);
+
+    if ((d > 10) && (d < 30))
+    {
+       if (left == px)
+         vline(left, py, right);
+       else if (right == py)
+         hline(right, px, left);
+       else
+         plotDot(left, right);
+    }
+    else
+    {
+      plotDot(left, right);
+    }
+    px = left; py = right;
 #else
-    oscImage_map[right * 32 + left / 8 + I1_INDEX_SIZE] |= (0x80 >> (left & 7));
+    plotDot(left, right);
 #endif
     mp++;
   }
   if (crate == 96000)
   {
     /* Refresh screen every four frames */
-    switch (dcount % 4)
+    switch (dcount % 3)
     {
     case 0:
-#ifdef DOUBLE_IMAGE
       lv_image_set_src(screen->scope_image,
                        (screen->disp_toggle & 1)? &oscImage2 : &oscImage1);
-#else
-      lv_obj_invalidate(screen->scope_image);
-#endif
       lv_bar_set_value(screen->progress_bar, progress, LV_ANIM_OFF);
       lv_timer_handler();
       break;
-    case 1:
-#ifdef DOUBLE_IMAGE
+    case 2:
       if (screen->disp_toggle & 1)
         memset(oscImage_map2 + I1_INDEX_SIZE, 0, sizeof(oscImage_map2) - I1_INDEX_SIZE);
       else
         memset(oscImage_map1 + I1_INDEX_SIZE, 0, sizeof(oscImage_map1) - I1_INDEX_SIZE);
       screen->disp_toggle ^= 1;
-#else
-      memset(oscImage_map + I1_INDEX_SIZE, 0, sizeof(oscImage_map) - I1_INDEX_SIZE);
-#endif
       break;
     default:
       break;
@@ -823,28 +870,20 @@ void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress)
   else
   {
     /* Refresh screen every six frames */
-    switch (dcount % 6)
+    switch (dcount % 5)
     {
     case 0:
-#ifdef DOUBLE_IMAGE
       lv_image_set_src(screen->scope_image,
                        (screen->disp_toggle & 1)? &oscImage2 : &oscImage1);
-#else
-      lv_obj_invalidate(screen->scope_image);
-#endif
       lv_bar_set_value(screen->progress_bar, progress, LV_ANIM_OFF);
       lv_timer_handler();
       break;
-    case 2:
-#ifdef DOUBLE_IMAGE
+    case 1:
       if (screen->disp_toggle & 1)
         memset(oscImage_map2 + I1_INDEX_SIZE, 0, sizeof(oscImage_map2) - I1_INDEX_SIZE);
       else
         memset(oscImage_map1 + I1_INDEX_SIZE, 0, sizeof(oscImage_map1) - I1_INDEX_SIZE);
       screen->disp_toggle ^= 1;
-#else
-      memset(oscImage_map + I1_INDEX_SIZE, 0, sizeof(oscImage_map) - I1_INDEX_SIZE);
-#endif
       break;
     default:
       break;
@@ -889,8 +928,7 @@ static void btn_click_event_cb(lv_event_t *e)
   uint32_t idx = lv_obj_get_index(btn);
 
   postWaveRequest(WAV_SELECT + idx, &PlayerInfo);
-  lv_screen_load(screen->scope_screen);
-  lv_indev_set_group(screen->keydev, screen->scope_ing);
+  activate_new_screen((BASE_SCREEN *)screen, list_proc, screen);
 }
 
 static lv_obj_t *add_mlist_btn(lv_obj_t *parent, OSCMUSICINFO *mi, OSCM_SCREEN *screen)

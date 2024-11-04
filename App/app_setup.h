@@ -18,7 +18,6 @@ typedef struct {
 } SETUP_SCREEN;
 
 void start_setup();
-void activate_screen(lv_obj_t *screen, void (*list_action)(), void *arg_ptr);
 lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev, lv_indev_t *keydev);
 void UpdateBluetoothButton(SETUP_SCREEN *screen);
 

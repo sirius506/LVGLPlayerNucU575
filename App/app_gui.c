@@ -22,6 +22,7 @@ TASK_DEF(btstacktask,  500, osPriorityNormal2)
 
 extern void StartBtstackTask(void *arg);
 extern void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen);
+extern void oscm_process_stick(OSCM_SCREEN *screen, int evcode, int direction, int cflag);
 
 LV_IMG_DECLARE(imgtest)
 LV_IMG_DECLARE(Action_Left)
@@ -53,25 +54,11 @@ const GUI_LAYOUT GuiLayout = {
 
   .spinner_width = 12,
 
-  .bt_yoffset = 40,
-
   /* Menu screen */
 
   .mb_yoffset = 80,
   .mb_height = 50,
   .mb_olw = 4,
-
-  /* DualSense demo screen */
-
-  .led_rad = 5,
-  .joy_divisor = 5,
-
-  .line_width = 5,
-
-  .bar_width = 10,
-  .bar_height = 100,
-  .bar_xpos = -50,
-  .bar_ypos =  -85,
 };
 
 const char * doom_argv[] = {
@@ -112,8 +99,8 @@ static int lvgl_active;
 static lv_display_t *display;
 
 lv_indev_data_t tp_data;
-static lv_indev_t *indev;
-static lv_indev_t *keydev;
+static lv_indev_t *indev;		/* LCD touch panel device */
+static lv_indev_t *keydev;		/* Gamepad device */
 
 #define USE_BUF2
 #ifdef USE_BUF2
@@ -549,7 +536,98 @@ void process_icon_change(lv_obj_t *icon_label, int ival)
   lv_label_set_text(icon_label, (const char *)icon_label_string);
 }
 
-static int SelectApplication(lv_obj_t *sel_screen, SETUP_SCREEN *setups, lv_obj_t *icon_label)
+static lv_group_t *active_group;
+
+static lv_group_t *get_active_group()
+{
+  return active_group;
+}
+
+static void set_active_group(lv_group_t *gr)
+{
+  active_group = gr;
+}
+
+void set_pad_focus()
+{
+  lv_obj_t *fobj;
+  lv_group_t *gr = get_active_group();
+
+  if (gr)
+  {
+    fobj = lv_group_get_focused(gr);
+debug_printf("gr = %x, fobj = %x\n", gr, fobj);
+    if (fobj == NULL)
+    {
+debug_printf("count = %d\n", lv_group_get_obj_count(gr));
+      fobj = lv_group_get_obj_by_index(gr, 0);
+debug_printf("fobj = %x\n", fobj);
+    }
+    if (fobj)
+    {
+      lv_group_focus_obj(fobj);
+      lv_obj_add_state(fobj, LV_STATE_FOCUS_KEY);
+    }
+  }
+}
+
+void set_pad_defocus()
+{
+  lv_obj_t *fobj;
+  lv_group_t *gr = get_active_group();
+
+  if (gr)
+  {
+    fobj = lv_group_get_focused(gr);
+debug_printf("defocus: %x, %x\n", gr, fobj);
+    if (fobj)
+    {
+      lv_obj_clear_state(fobj, LV_STATE_FOCUS_KEY);
+    }
+  }
+}
+
+extern void enter_setup_event(lv_event_t *e);
+
+void activate_new_screen(BASE_SCREEN *base, void (*list_action)(), void *arg_ptr)
+{
+  lv_obj_t *fobj;
+
+  lv_screen_load(base->screen);
+  lv_obj_add_event_cb(base->screen, enter_setup_event, LV_EVENT_GESTURE, NULL);
+  SetupScreen.active_screen = base->screen;
+  SetupScreen.list_action = list_action;
+  SetupScreen.arg_ptr = arg_ptr;
+
+  lv_indev_set_group(keydev, base->ing);
+  set_active_group(base->ing);
+
+  fobj = lv_group_get_focused(base->ing);
+debug_printf("gr = %x, fobj = %x\n", base->ing, fobj);
+  if (fobj == NULL)
+  {
+debug_printf("count = %d\n", lv_group_get_obj_count(base->ing));
+      fobj = lv_group_get_obj_by_index(base->ing, 0);
+debug_printf("fobj = %x\n", fobj);
+  }
+
+  if (fobj)
+  {
+    lv_group_focus_obj(fobj);
+
+    if (padInfo != &nullPad)
+    {
+debug_printf("set focus key\n");
+      lv_obj_add_state(fobj, LV_STATE_FOCUS_KEY);
+    }
+  }
+  else
+  {
+    debug_printf("fobj == NULL!\n");
+  }
+}
+
+static int SelectApplication(BASE_SCREEN *sel_screen, SETUP_SCREEN *setups, lv_obj_t *icon_label)
 {
   unsigned int new_interval, timer_interval;
   osStatus_t st;
@@ -557,12 +635,9 @@ static int SelectApplication(lv_obj_t *sel_screen, SETUP_SCREEN *setups, lv_obj_
   lv_obj_t *mbox;
   lv_obj_t *btn;
   lv_obj_t *label;
-  lv_group_t *g;
   char sbuff[30];
 
-  g = lv_group_create();
-
-  title = lv_label_create(sel_screen);
+  title = lv_label_create(sel_screen->screen);
   lv_obj_add_style(title, &style_title, 0);
   lv_label_set_text(title, "LVGL Player (Nucleo-U575ZI)");
   lv_obj_align(title, LV_ALIGN_TOP_MID, 0, lv_pct(7));
@@ -571,18 +646,17 @@ static int SelectApplication(lv_obj_t *sel_screen, SETUP_SCREEN *setups, lv_obj_
 
   for (unsigned int i = 0; i < NUM_APPLICATION; i++)
   {
-    btn = lv_btn_create(sel_screen);
+    btn = lv_btn_create(sel_screen->screen);
     lv_obj_align(btn, LV_ALIGN_TOP_MID,  0, lv_pct(app_labels[i].label_pos));
     lv_obj_add_event_cb(btn, app_select_handler, LV_EVENT_CLICKED, (void *)i);
 
     label = lv_label_create(btn);
     lv_label_set_text(label, app_labels[i].label_text);
     lv_obj_center(label);
-    lv_group_add_obj(g, btn);
+    lv_group_add_obj(sel_screen->ing, btn);
   }
 
-  activate_screen(sel_screen, NULL, NULL);
-  lv_indev_set_group(setups->keydev, g);
+  activate_new_screen(sel_screen, NULL, NULL);
 
   timer_interval = 3;
 
@@ -601,7 +675,6 @@ static int SelectApplication(lv_obj_t *sel_screen, SETUP_SCREEN *setups, lv_obj_
         break;
       case GUIEV_APP_SELECT:
         lv_indev_set_group(setups->keydev, NULL);
-        lv_group_delete(g);
         return (event.evval0);
         break;
       case GUIEV_SD_REPORT:
@@ -643,8 +716,18 @@ static int SelectApplication(lv_obj_t *sel_screen, SETUP_SCREEN *setups, lv_obj_
         }
         break;
       case GUIEV_GAMEPAD_READY:
-        padInfo = (GAMEPAD_INFO *)event.evarg1;
-        debug_printf("%s Detected.\n", padInfo->name);
+        if (event.evval0)
+        {
+          padInfo = (GAMEPAD_INFO *)event.evarg1;
+          debug_printf("%s Detected.\n", padInfo->name);
+          set_pad_focus();
+        }
+        else
+        {
+          debug_printf("%s Disconnected\n", padInfo->name);
+          set_pad_defocus();
+          padInfo = &nullPad;
+        }
         break;
       case GUIEV_REBOOT:
         osDelay(200);
@@ -761,13 +844,14 @@ void StartGuiTask(void *args)
 
   setup_screen_create(setups, haldev, keydev);
 
-  lv_obj_t *sel_screen;
+  BASE_SCREEN SelectScreen;
 
-  sel_screen = lv_obj_create(NULL);
+  SelectScreen.screen = lv_obj_create(NULL);
+  SelectScreen.ing = lv_group_create();
 
   osThreadNew(StartBtstackTask, haldev, &attributes_btstacktask);
 
-  haldev->boot_mode = SelectApplication(sel_screen, setups, icon_label);
+  haldev->boot_mode = SelectApplication(&SelectScreen, setups, icon_label);
 
   audio_config = get_audio_config(&HalDevice);
 
@@ -782,9 +866,11 @@ void StartGuiTask(void *args)
 
   /* Switch to initial startup screen */
 
-  activate_screen(starts->screen, NULL, NULL);
+  starts->ing = lv_group_create();
+  activate_new_screen((BASE_SCREEN *)starts, NULL, NULL);
   
-  lv_obj_delete(sel_screen);
+  lv_obj_delete(SelectScreen.screen);
+  lv_group_delete(SelectScreen.ing);
   
   starts->title = lv_label_create(starts->screen);
   lv_obj_add_style(starts->title, &style_title, 0);
@@ -797,6 +883,7 @@ void StartGuiTask(void *args)
   lv_obj_align(menus->title, LV_ALIGN_TOP_MID, 0, lv_pct(7));
 
   copys->title = lv_label_create(copys->screen);
+  copys->ing = lv_group_create();
   lv_obj_add_style(copys->title, &style_title, 0);
   lv_label_set_text(copys->title, "");
   lv_obj_align(copys->title, LV_ALIGN_TOP_MID, 0, lv_pct(7));
@@ -989,9 +1076,7 @@ void StartGuiTask(void *args)
           lv_obj_update_layout(starts->btn);
           debug_printf("btn size = %d x %d\n", lv_obj_get_width(starts->btn), lv_obj_get_height(starts->btn));
 
-          g = lv_group_create();
-          lv_group_add_obj(g, starts->btn);
-          lv_indev_set_group(keydev, g);
+          lv_group_add_obj(starts->ing, starts->btn);
           lv_obj_add_event_cb(starts->btn, reboot_event_cb, LV_EVENT_PRESSED, NULL);
           lv_obj_center(starts->mbox);
         }
@@ -1050,9 +1135,6 @@ void StartGuiTask(void *args)
 
           WADLIST *wp;
 
-          starts->ing = lv_group_create();
-          lv_indev_set_group(keydev, starts->ing);
-
           lv_group_add_obj(starts->ing, fbutton);
 
           lv_gridnav_add(btn_row, LV_GRIDNAV_CTRL_ROLLOVER);
@@ -1079,23 +1161,23 @@ void StartGuiTask(void *args)
               lv_obj_center(label);
             }
           }
+          activate_new_screen((BASE_SCREEN *)starts, NULL, NULL);
         }
         break;
       case GUIEV_FONT_REPORT:
         {
           a2dps->screen = lv_obj_create(NULL);
-          activate_screen(a2dps->screen, NULL, NULL);
-          menus->play_scr = a2dps->screen;
           a2dps->ing = lv_group_create();
-          lv_indev_set_group(keydev, a2dps->ing);
+          activate_new_screen((BASE_SCREEN *)a2dps, NULL, NULL);
+          menus->play_scr = a2dps->screen;
           a2dp_player_create(a2dps);
         }
         break;
       case GUIEV_OSCM_START:
+        oscms->scope_screen = lv_obj_create(NULL);
         oscms->scope_ing = lv_group_create();
         oscms->list_ing = lv_group_create();
         oscms->keydev = keydev;
-        lv_indev_set_group(keydev, oscms->scope_ing);
         KickOscMusic(haldev, oscms);
         break;
       case GUIEV_OSCM_FILE:
@@ -1118,6 +1200,7 @@ void StartGuiTask(void *args)
         free(wadlist);
         menus->ing = lv_group_create();
         lv_indev_set_group(keydev, menus->ing);
+        set_active_group(menus->ing);
 
         /* Create Menu buttons */
 
@@ -1145,10 +1228,11 @@ void StartGuiTask(void *args)
         int cvol = bsp_codec_getvol(haldev->codec_i2c);
         lv_slider_set_value(setups->vol_slider, cvol / 10, LV_ANIM_OFF);
 
-        activate_screen(menus->screen, NULL, NULL);
+        activate_new_screen((BASE_SCREEN *)menus, NULL, NULL);
 
         /* We no longer need start screen. */
 
+        lv_group_delete(starts->ing);
         lv_obj_delete(starts->screen);
         break;
       case GUIEV_SD_GAME_SELECT:
@@ -1159,20 +1243,20 @@ void StartGuiTask(void *args)
          * Copy it into the SPI flash.
          */
         lv_label_set_text(copys->title, sel_sd_game->wadInfo->title);
-        activate_screen(copys->screen, NULL, NULL);
-
-        g = lv_group_create();
-        copys->mbox = lv_msgbox_create(copys->screen);
-        lv_msgbox_add_title(copys->mbox, "Copy Game Image");
-        lv_msgbox_add_text(copys->mbox, "Are you sure to erase & re-write flash contents?");
-        btn = lv_msgbox_add_footer_button(copys->mbox, "Yes");
-        lv_obj_add_event_cb(btn, copy_event_cb, LV_EVENT_CLICKED, NULL);
-        lv_group_add_obj(g, btn);
-        btn = lv_msgbox_add_footer_button(copys->mbox, "Cancel");
-        lv_obj_add_event_cb(btn, copy_event_cb, LV_EVENT_CLICKED, NULL);
-        lv_group_add_obj(g, btn);
-        lv_obj_center(copys->mbox);
-        lv_indev_set_group(keydev, g);
+        if (copys->mbox == NULL)
+        {
+          copys->mbox = lv_msgbox_create(copys->screen);
+          lv_msgbox_add_title(copys->mbox, "Copy Game Image");
+          lv_msgbox_add_text(copys->mbox, "Are you sure to erase & re-write flash contents?");
+          btn = lv_msgbox_add_footer_button(copys->mbox, "Yes");
+          lv_obj_add_event_cb(btn, copy_event_cb, LV_EVENT_CLICKED, NULL);
+          lv_group_add_obj(copys->ing, btn);
+          btn = lv_msgbox_add_footer_button(copys->mbox, "Cancel");
+          lv_obj_add_event_cb(btn, copy_event_cb, LV_EVENT_CLICKED, NULL);
+          lv_group_add_obj(copys->ing, btn);
+          lv_obj_center(copys->mbox);
+        }
+        activate_new_screen((BASE_SCREEN *)copys, NULL, NULL);
         break;
       case GUIEV_ERASE_START:
         lv_obj_delete(copys->mbox);
@@ -1189,8 +1273,7 @@ void StartGuiTask(void *args)
          * Copy operation has aborted.
          * Redraw start screen.
          */ 
-        activate_screen(starts->screen, NULL, NULL);
-        lv_indev_set_group(keydev, starts->ing);
+        activate_new_screen((BASE_SCREEN *)starts, NULL, NULL);
         break;
       case GUIEV_REBOOT:
         btapi_hid_disconnect();
@@ -1216,6 +1299,7 @@ void StartGuiTask(void *args)
           g = lv_group_create();
           lv_group_add_obj(g, btn);
           lv_indev_set_group(keydev, g);
+          set_active_group(g);
           lv_obj_add_event_cb(copys->mbox, reboot_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
           lv_obj_center(copys->mbox);
           break;
@@ -1249,6 +1333,7 @@ void StartGuiTask(void *args)
           g = lv_group_create();
           lv_group_add_obj(g, btn);
           lv_indev_set_group(keydev, g);
+          set_active_group(g);
           lv_obj_center(copys->mbox);
           break;
         case OP_PROGRESS:
@@ -1270,6 +1355,7 @@ void StartGuiTask(void *args)
           g = lv_group_create();
           lv_group_add_obj(g, btn);
           lv_indev_set_group(keydev, g);
+          set_active_group(g);
           break;
         }
         break;
@@ -1278,29 +1364,25 @@ void StartGuiTask(void *args)
         {
           sound_list = sound_screen_create(sounds->screen, sounds->ing, &style_menubtn);
         } 
-        activate_screen(sounds->screen, NULL, NULL);
-        lv_indev_set_group(keydev, sounds->ing);
+        activate_new_screen((BASE_SCREEN *)sounds, NULL, NULL);
         break;
       case GUIEV_MPLAYER_START:
         if (menus->play_scr == NULL)
         {
           menus->player_ing = lv_group_create();
-          lv_indev_set_group(keydev, menus->player_ing);
           menus->play_scr = music_player_create(audio_config, menus->player_ing, &style_menubtn, keydev);
-          activate_screen(menus->play_scr, NULL, NULL);
+          activate_new_screen((BASE_SCREEN *)(&menus->play_scr), NULL, NULL);
         }
         else
         {
-          activate_screen(menus->play_scr, NULL, NULL);
-          lv_indev_set_group(keydev, menus->player_ing);
+          activate_new_screen((BASE_SCREEN *)(&menus->play_scr), NULL, NULL);
         }
         break;
       case GUIEV_MPLAYER_DONE:
         /*
          * Restore menu screen and its input group
          */
-        activate_screen(menus->screen, NULL, NULL);
-        lv_indev_set_group(keydev, menus->ing);
+        activate_new_screen((BASE_SCREEN *)menus, NULL, NULL);
         if (menus->sub_scr)
         {
           lv_obj_delete(menus->sub_scr);
@@ -1308,14 +1390,13 @@ void StartGuiTask(void *args)
         }
         break;
       case GUIEV_GAME_START:
-        if (g)
-          lv_group_del(g);
         lv_obj_add_flag(icon_label, LV_OBJ_FLAG_HIDDEN);
 
 
         Mix_HaltMusic();                // Make sure to stop music playing
 
-        activate_screen(games->screen, NULL, NULL);
+        games->ing = lv_group_create();
+        activate_new_screen((BASE_SCREEN *)games, NULL, NULL);
 
         if (menus->sub_scr)
         {
@@ -1430,7 +1511,9 @@ debug_printf("CHEAT_SEL\n");
              if (pinfo->state & BT_STATE_HID_CONNECT)
                lv_obj_clear_flag(setups->hid_btn, LV_OBJ_FLAG_HIDDEN);
              else
+             {
                lv_obj_add_flag(setups->hid_btn, LV_OBJ_FLAG_HIDDEN);
+             }
           }
           else if (event.evval0 == BT_CONN_A2DP)
           {
@@ -1443,8 +1526,18 @@ debug_printf("CHEAT_SEL\n");
         }
         break;
       case GUIEV_GAMEPAD_READY:
-        padInfo = (GAMEPAD_INFO *)event.evarg1;
-        debug_printf("%s Detected.\n", padInfo->name);
+        if (event.evval0)
+        {
+          padInfo = (GAMEPAD_INFO *)event.evarg1;
+          debug_printf("%s Detected.\n", padInfo->name);
+          set_pad_focus();
+        }
+        else
+        {
+          debug_printf("%s Disconnected\n", padInfo->name);
+          padInfo = &nullPad;
+          set_pad_defocus();
+        }
         break;
       case GUIEV_ENDOOM:
         debug_printf("ENDOOM called.\n");

@@ -24,19 +24,6 @@ typedef struct {
   uint16_t mb_yoffset;
   uint16_t mb_height;
   uint16_t mb_olw;              // Menu butoon outline width
-
-  uint16_t bt_yoffset;
-
-  /* DualSense demo screen */
-  uint16_t led_rad;             // button led size
-  uint16_t joy_divisor;
-
-  uint16_t line_width;
-
-  uint16_t bar_width;           // Roll bar width
-  uint16_t bar_height;          // Roll bar height
-  int16_t  bar_xpos;
-  int16_t  bar_ypos;
 } GUI_LAYOUT;
 
 /* Main task request commands definitions */
@@ -132,23 +119,28 @@ typedef struct {
 #define OP_DONE         4
 
 typedef struct {
+  lv_obj_t   *screen;
+  lv_group_t *ing;              // Input group
+} BASE_SCREEN;
+
+typedef struct {
   lv_obj_t *screen;
+  lv_group_t *ing;              // Input group
   lv_obj_t *title;
   lv_obj_t *mbox;       /* Message box object */
   lv_obj_t *btn;
   lv_obj_t *spinner;
-  lv_group_t *ing;              // Input group
 } START_SCREEN;
 
 typedef struct {
   lv_obj_t *screen;
+  lv_group_t *ing;              // Input group
   lv_obj_t *title;
   lv_obj_t *btn_music;
   lv_obj_t *btn_sound;
   lv_obj_t *btn_dual;
   lv_obj_t *btn_game;
   lv_obj_t *cont_bt;
-  lv_group_t *ing;              // Input group
   lv_obj_t *sub_scr;
   lv_obj_t *play_scr;
   lv_group_t *player_ing;       // Input group for player
@@ -156,6 +148,7 @@ typedef struct {
 
 typedef struct {
   lv_obj_t *screen;
+  lv_group_t *ing;              // Input group
   lv_obj_t *title;
   lv_obj_t *operation;
   lv_obj_t *fname;
@@ -166,6 +159,7 @@ typedef struct {
 
 typedef struct {
   lv_obj_t *screen;
+  lv_group_t *ing;              // Input group
   lv_obj_t *cheat_btn;
   lv_obj_t *kbd;
   lv_obj_t *ta;
@@ -181,27 +175,27 @@ typedef struct {
 
 typedef struct {
   lv_obj_t  *screen;
+  lv_group_t *ing;              // Input group
   lv_font_t *title_font;
   lv_font_t *artist_font;
   lv_obj_t  *title_label;
   lv_obj_t  *artist_label;
   int       cover_count;
   int       cur_cover;
-  lv_group_t *ing;              // Input group
 } A2DP_SCREEN;
 
 typedef struct {
-  HAL_DEVICE *haldev;
   lv_obj_t *scope_screen;
+  lv_group_t *scope_ing;        /* Input group for scope screen */
   lv_obj_t *mlist_screen;
+  lv_group_t *list_ing;		/* Input group for list screen */
+  HAL_DEVICE *haldev;
   lv_obj_t *scope_image;
   lv_obj_t *scope_label;
   lv_obj_t *progress_bar;
   lv_obj_t *play_button;
   lv_obj_t *prev_button;
   lv_obj_t *next_button;
-  lv_group_t *scope_ing;        /* Input group for scope screen */
-  lv_group_t *list_ing;		/* Input group for list screen */
   lv_indev_t *keydev;
   uint8_t  disp_toggle;
 } OSCM_SCREEN;
@@ -235,5 +229,6 @@ void send_padkey(lv_indev_data_t *pdata);
 void doom_send_cheat_key(char ch);
 void app_screenshot();
 void app_btstack_ready();
+void activate_new_screen(BASE_SCREEN *base, void (*list_action)(), void *arg_ptr);
 
 #endif

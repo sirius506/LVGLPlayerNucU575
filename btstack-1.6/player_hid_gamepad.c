@@ -427,7 +427,7 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
         if (padInfo)
         {
           padDriver = padInfo->padDriver;
-          postGuiEventMessage(GUIEV_GAMEPAD_READY, 0, padInfo, NULL);
+          postGuiEventMessage(GUIEV_GAMEPAD_READY, 1, padInfo, NULL);
         }
         break;
       case HID_SUBEVENT_DESCRIPTOR_AVAILABLE:
@@ -482,6 +482,7 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
         }
         postGuiEventMessage(GUIEV_BTDEV_CONNECTED, BT_CONN_HID, pinfo, NULL);
         gap_disconnect(pinfo->hidDevice.cHandle);
+        postGuiEventMessage(GUIEV_GAMEPAD_READY, 0, NULL, NULL);
         pinfo->hid_host_cid = 0;
         if (padDriver)
         {
