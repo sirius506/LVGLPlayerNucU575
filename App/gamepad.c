@@ -66,11 +66,6 @@ GAMEPAD_INFO *IsSupportedGamePad(uint16_t vid, uint16_t pid)
   return NULL;
 }
 
-void GamepadHidMode(GAMEPAD_INFO *padInfo, int mode)
-{
-  padInfo->hid_mode = mode;
-}
-
 #define	PS_OUTPUT_CRC32_SEED	0xA2
 
 static const uint8_t output_seed[] = { PS_OUTPUT_CRC32_SEED };
@@ -84,8 +79,8 @@ uint32_t bt_comp_crc(uint8_t *ptr, int len)
 {
   uint32_t crcval;
 
-  crcval = bsp_calc_crc((uint32_t *)output_seed, 1);
-  crcval = bsp_accumulate_crc((uint32_t *)ptr, len - 4);
+  crcval = bsp_calc_crc((uint8_t *)output_seed, 1);
+  crcval = bsp_accumulate_crc(ptr, len - 4);
   crcval = ~crcval;
   return crcval;
 }

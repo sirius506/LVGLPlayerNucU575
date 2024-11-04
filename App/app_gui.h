@@ -121,11 +121,13 @@ typedef struct {
 typedef struct {
   lv_obj_t   *screen;
   lv_group_t *ing;              // Input group
+  lv_event_dsc_t *setup_handler;
 } BASE_SCREEN;
 
 typedef struct {
   lv_obj_t *screen;
   lv_group_t *ing;              // Input group
+  lv_event_dsc_t *setup_handler;
   lv_obj_t *title;
   lv_obj_t *mbox;       /* Message box object */
   lv_obj_t *btn;
@@ -135,6 +137,7 @@ typedef struct {
 typedef struct {
   lv_obj_t *screen;
   lv_group_t *ing;              // Input group
+  lv_event_dsc_t *setup_handler;
   lv_obj_t *title;
   lv_obj_t *btn_music;
   lv_obj_t *btn_sound;
@@ -149,6 +152,7 @@ typedef struct {
 typedef struct {
   lv_obj_t *screen;
   lv_group_t *ing;              // Input group
+  lv_event_dsc_t *setup_handler;
   lv_obj_t *title;
   lv_obj_t *operation;
   lv_obj_t *fname;
@@ -160,6 +164,7 @@ typedef struct {
 typedef struct {
   lv_obj_t *screen;
   lv_group_t *ing;              // Input group
+  lv_event_dsc_t *setup_handler;
   lv_obj_t *cheat_btn;
   lv_obj_t *kbd;
   lv_obj_t *ta;
@@ -171,11 +176,13 @@ typedef struct {
 typedef struct {
   lv_obj_t *screen;
   lv_group_t *ing;              // Input group
+  lv_event_dsc_t *setup_handler;
 } SOUND_SCREEN;
 
 typedef struct {
   lv_obj_t  *screen;
   lv_group_t *ing;              // Input group
+  lv_event_dsc_t *setup_handler;
   lv_font_t *title_font;
   lv_font_t *artist_font;
   lv_obj_t  *title_label;
@@ -187,8 +194,10 @@ typedef struct {
 typedef struct {
   lv_obj_t *scope_screen;
   lv_group_t *scope_ing;        /* Input group for scope screen */
+  lv_event_dsc_t *scope_handler;
   lv_obj_t *mlist_screen;
   lv_group_t *list_ing;		/* Input group for list screen */
+  lv_event_dsc_t *list_handler;
   HAL_DEVICE *haldev;
   lv_obj_t *scope_image;
   lv_obj_t *scope_label;

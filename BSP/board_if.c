@@ -322,6 +322,7 @@ void Board_ScreenExpand(uint8_t *bp, uint32_t *palette)
     if (DoomScreenStatus == DOOM_SCREEN_SUSPEND)
     {
       postGuiEventMessage(GUIEV_CHEAT_ACK, 0, NULL, NULL);
+      DoomScreenStatus = DOOM_SCREEN_SUSPENDED;
       osThreadSuspend(osThreadGetId());
   debug_printf("Resumed.\n");
     }
@@ -419,6 +420,7 @@ void Board_ScreenExpand(uint8_t *bp, uint32_t *palette)
   if (DoomScreenStatus == DOOM_SCREEN_SUSPEND)
   {
     postGuiEventMessage(GUIEV_CHEAT_ACK, 0, NULL, NULL);
+    DoomScreenStatus = DOOM_SCREEN_SUSPENDED;
     osThreadSuspend(osThreadGetId());
 debug_printf("Resumed.\n");
   }

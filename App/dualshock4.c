@@ -9,12 +9,14 @@
 #include "SDL.h"
 #include "SDL_joystick.h"
 #include "btapi.h"
+#include "board_if.h"
 
 #define	SAMPLE_PERIOD	(0.00250f)
 #define	SAMPLE_RATE	(400)
 
 extern int fft_getcolor(uint8_t *p);
 extern void GetPlayerHealthColor(uint8_t *cval);
+extern volatile DOOM_SCREEN_STATUS DoomScreenStatus;
 
 static void DS4_LVGL_Keycode(struct ds4_input_report *rp, uint8_t hat, uint32_t vbutton, HID_REPORT *rep);
 static void DualShock_DOOM_Keycode(struct ds4_input_report *rp, uint8_t hat, uint32_t vbutton, HID_REPORT *rep);
@@ -150,7 +152,16 @@ static void DualShockDecodeInputReport(HID_REPORT *report)
     vbutton |= (rp->buttons[0] & 0xf0)>> 4;	/* Square, Cross, Circle, Triangle */
     vbutton |= hatmap[hat];
 
-    ds4HidProcTable[report->hid_mode](rp, hat, vbutton, report);
+    if ((DoomScreenStatus == DOOM_SCREEN_SUSPEND) || (DoomScreenStatus == DOOM_SCREEN_SUSPENDED))
+    {
+      report->hid_mode = HID_MODE_LVGL;
+      ds4HidProcTable[report->hid_mode](rp, hat, vbutton, report);
+      report->hid_mode = HID_MODE_DOOM;
+    }
+    else
+    {
+      ds4HidProcTable[report->hid_mode](rp, hat, vbutton, report);
+    }
   }
 
   if ((rp->status[0] & 0x0F) != prev_blevel)

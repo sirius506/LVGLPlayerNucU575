@@ -486,6 +486,11 @@ static void app_select_handler(lv_event_t *e)
 static uint16_t icon_value;
 static GAMEPAD_INFO *padInfo;
 
+int IsPadAvailable()
+{
+  return (padInfo != &nullPad);
+}
+
 void process_icon_change(lv_obj_t *icon_label, int ival)
 {
   char *sp;
@@ -594,7 +599,11 @@ void activate_new_screen(BASE_SCREEN *base, void (*list_action)(), void *arg_ptr
   lv_obj_t *fobj;
 
   lv_screen_load(base->screen);
-  lv_obj_add_event_cb(base->screen, enter_setup_event, LV_EVENT_GESTURE, NULL);
+debug_printf("activate: scr = %x, %x, ing = %x\n", base, base->screen, base->ing);
+  if (base->setup_handler == NULL)
+  {
+    base->setup_handler = lv_obj_add_event_cb(base->screen, enter_setup_event, LV_EVENT_GESTURE, NULL);
+  }
   SetupScreen.active_screen = base->screen;
   SetupScreen.list_action = list_action;
   SetupScreen.arg_ptr = arg_ptr;
@@ -603,12 +612,9 @@ void activate_new_screen(BASE_SCREEN *base, void (*list_action)(), void *arg_ptr
   set_active_group(base->ing);
 
   fobj = lv_group_get_focused(base->ing);
-debug_printf("gr = %x, fobj = %x\n", base->ing, fobj);
   if (fobj == NULL)
   {
-debug_printf("count = %d\n", lv_group_get_obj_count(base->ing));
       fobj = lv_group_get_obj_by_index(base->ing, 0);
-debug_printf("fobj = %x\n", fobj);
   }
 
   if (fobj)
@@ -617,7 +623,6 @@ debug_printf("fobj = %x\n", fobj);
 
     if (padInfo != &nullPad)
     {
-debug_printf("set focus key\n");
       lv_obj_add_state(fobj, LV_STATE_FOCUS_KEY);
     }
   }
@@ -812,6 +817,8 @@ void StartGuiTask(void *args)
 
   bsp_codec_init(haldev->codec_i2c, AUDIO_DEF_VOL, 44100);
 
+  padInfo = &nullPad;
+
   keydev = lv_indev_create();
   lv_indev_set_type(keydev, LV_INDEV_TYPE_KEYPAD);
   lv_indev_set_read_cb(keydev, keypad_read);
@@ -867,7 +874,7 @@ void StartGuiTask(void *args)
   /* Switch to initial startup screen */
 
   starts->ing = lv_group_create();
-  activate_new_screen((BASE_SCREEN *)starts, NULL, NULL);
+  lv_screen_load(starts->screen);
   
   lv_obj_delete(SelectScreen.screen);
   lv_group_delete(SelectScreen.ing);
@@ -1195,12 +1202,11 @@ void StartGuiTask(void *args)
         
         lv_label_set_text(menus->title, sel_flash_game->title);
 
-        sounds->ing = lv_group_create();
 
         free(wadlist);
+
+        sounds->ing = lv_group_create();
         menus->ing = lv_group_create();
-        lv_indev_set_group(keydev, menus->ing);
-        set_active_group(menus->ing);
 
         /* Create Menu buttons */
 

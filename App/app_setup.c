@@ -21,7 +21,6 @@ void UpdateBluetoothButton(SETUP_SCREEN *screen)
 {
   BTSTACK_INFO *pinfo = screen->btinfo;
 
-debug_printf("%s: %x\n", __FUNCTION__, pinfo->state);
   if (pinfo->state & BT_STATE_SCAN)
   {
     if (pinfo->state & (BT_STATE_HID_MASK|BT_STATE_A2DP_MASK))
@@ -50,7 +49,6 @@ static void bt_button_handler(lv_event_t *e)
 
   pinfo = screen->btinfo;
 
-debug_printf("%s: %x\n", __FUNCTION__, pinfo->state);
   if ((pinfo->state & (BT_STATE_HID_MASK|BT_STATE_SCAN)) == 0)
   {
     btapi_start_scan();
@@ -76,13 +74,14 @@ debug_printf("%s: %x\n", __FUNCTION__, pinfo->state);
 }
 
 /**
- * @brief Called when setup screen is invoked by gesture operation.
+ * @brief Called when setup screen or list screen is invoked by gesture operation.
  */
 void enter_setup_event(lv_event_t *e)
 {
   SETUP_SCREEN *setups;
   void *param = lv_event_get_user_data(e);
   lv_dir_t dir;
+  lv_obj_t *fobj;
 
   if (param == NULL)
   {
@@ -92,25 +91,36 @@ void enter_setup_event(lv_event_t *e)
   {
     dir = (lv_dir_t) param;
   }
-  HAL_DEVICE *haldev = (HAL_DEVICE *)&HalDevice;
-
-  /* If Doom is running, request to suspend. */
-  if (DoomScreenStatus == DOOM_SCREEN_ACTIVE)
-  {
-     DoomScreenStatus = DOOM_SCREEN_SUSPEND;
-  }
 
   setups = &SetupScreen;
   if (dir == LV_DIR_BOTTOM)
   {
+    /* Shows setup screen */
+
+    HAL_DEVICE *haldev = (HAL_DEVICE *)&HalDevice;
+
+    /* If Doom is running, request to suspend. */
+    if (DoomScreenStatus == DOOM_SCREEN_ACTIVE)
+    {
+       DoomScreenStatus = DOOM_SCREEN_SUSPEND;
+    }
+
     setups->caller_ing = lv_indev_get_group(setups->keydev);
+debug_printf("caller_ing = %x, keydev = %x\n", setups->caller_ing, setups->keydev);
     lv_slider_set_value(setups->vol_slider,
           bsp_codec_getvol(haldev->codec_i2c) / 10, LV_ANIM_OFF);
     lv_screen_load_anim(setups->setup_screen, LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
     lv_indev_set_group(setups->keydev, setups->ing);
+    fobj = lv_group_get_focused(setups->ing);
+    if (fobj == NULL)
+      fobj = lv_group_get_obj_by_index(setups->ing, 0);
+    if (fobj && IsPadAvailable())
+      lv_obj_add_state(fobj, LV_STATE_FOCUS_KEY);
   }
   else if (dir == LV_DIR_TOP)
   {
+    /* Show list screen */
+
     if (setups->list_action)
     {
       (setups->list_action)(setups->arg_ptr);
@@ -141,6 +151,7 @@ static void quit_setup_event(lv_event_t *e)
 
   if (dir == LV_DIR_TOP)
   {
+debug_printf("back to %x\n", SetupScreen.caller_ing);
     lv_indev_set_group(SetupScreen.keydev, SetupScreen.caller_ing);
     lv_screen_load_anim(SetupScreen.active_screen, LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
   }
@@ -172,7 +183,7 @@ static void setupscr_event_cb(lv_event_t *ev)
 {
   UNUSED(ev);
 
-  if (DoomScreenStatus == DOOM_SCREEN_SUSPEND)
+  if ((DoomScreenStatus == DOOM_SCREEN_SUSPEND) || (DoomScreenStatus == DOOM_SCREEN_SUSPENDED))
   {
     DoomScreenStatus = DOOM_SCREEN_ACTIVE;
     if (doomtaskId) osThreadResume(doomtaskId);
@@ -202,6 +213,7 @@ lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev, lv_indev
   static lv_style_t style_setup;
   static lv_style_t style_bar;
   static lv_style_t style_indicator;
+  static lv_style_t style_kfocus;
 
   lv_obj_set_size(scr, LV_HOR_RES, LV_VER_RES);
   lv_style_init(&style_setup);
@@ -215,6 +227,12 @@ lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev, lv_indev
   lv_style_set_bg_color(&style_bar, lv_color_hex3(0xEEEEEE));
   lv_style_set_bg_color(&style_indicator, lv_color_hex3(0xFFFFFF));
 
+  lv_style_init(&style_kfocus);
+  lv_style_set_bg_color(&style_kfocus, lv_color_hex3(0xEEEEEE));
+  lv_style_set_outline_color(&style_kfocus, lv_palette_lighten(LV_PALETTE_YELLOW, 1));
+  lv_style_set_outline_width(&style_kfocus, 3);
+  lv_style_set_outline_opa(&style_kfocus, LV_OPA_50);
+
   lv_style_init(&style_knob);
   lv_style_set_radius(&style_knob, 5);
   lv_style_set_bg_color(&style_knob, lv_color_hex3(0xFFFFFF));
@@ -225,6 +243,7 @@ lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev, lv_indev
   lv_obj_add_style(bar, &style_knob, LV_PART_KNOB);
   lv_obj_add_style(bar, &style_bar, LV_PART_MAIN);
   lv_obj_add_style(bar, &style_indicator, LV_PART_INDICATOR);
+  lv_obj_add_style(bar, &style_kfocus, LV_STATE_FOCUS_KEY);
   lv_obj_remove_flag(bar, LV_OBJ_FLAG_GESTURE_BUBBLE);
   setups->vol_slider = bar;
   lv_slider_set_range(setups->vol_slider, 0, 10);
@@ -239,6 +258,7 @@ lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev, lv_indev
   lv_obj_add_style(bar, &style_knob, LV_PART_KNOB);
   lv_obj_add_style(bar, &style_bar, LV_PART_MAIN);
   lv_obj_add_style(bar, &style_indicator, LV_PART_INDICATOR);
+  lv_obj_add_style(bar, &style_kfocus, LV_STATE_FOCUS_KEY);
   lv_obj_remove_flag(bar, LV_OBJ_FLAG_GESTURE_BUBBLE);
   setups->bright_slider = bar;
   lv_slider_set_range(setups->bright_slider, 0, 10);

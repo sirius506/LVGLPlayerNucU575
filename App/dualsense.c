@@ -14,6 +14,7 @@ static int initial_report;
 
 extern int fft_getcolor(uint8_t *p);
 extern void GetPlayerHealthColor(uint8_t *cval);
+extern volatile DOOM_SCREEN_STATUS DoomScreenStatus;
 
 static void DualSense_LVGL_Keycode(struct dualsense_input_report *rp, uint8_t hat, uint32_t vbutton);
 static void DualSense_DOOM_Keycode(struct dualsense_input_report *rp, uint8_t hat, uint32_t vbutton);
@@ -156,8 +157,16 @@ static void DualSenseDecodeInputReport(HID_REPORT *report)
 
   dcount++;
 
-  decode_report(rp, report->hid_mode);
-  process_bt_reports(report->hid_mode);
+  if ((DoomScreenStatus == DOOM_SCREEN_SUSPEND) || (DoomScreenStatus == DOOM_SCREEN_SUSPENDED))
+  {
+    report->hid_mode = HID_MODE_LVGL;
+    decode_report(rp, report->hid_mode);
+  }
+  else
+  {
+    decode_report(rp, report->hid_mode);
+    process_bt_reports(report->hid_mode);
+  }
 }
 
 static uint8_t bt_seq;
