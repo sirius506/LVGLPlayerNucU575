@@ -855,6 +855,7 @@ void StartGuiTask(void *args)
 
   SelectScreen.screen = lv_obj_create(NULL);
   SelectScreen.ing = lv_group_create();
+  SelectScreen.setup_handler = NULL;
 
   osThreadNew(StartBtstackTask, haldev, &attributes_btstacktask);
 
