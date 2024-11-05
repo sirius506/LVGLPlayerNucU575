@@ -330,6 +330,7 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
           if ((strcmp((char *)&packet[9], "Wireless Controller") == 0) && (pdev->CoD == COD_GAMEPAD)) {
             debug_printf(" -- Gamepad has found!!\n");
             gap_inquiry_stop();
+            pinfo->state &= ~BT_STATE_SCAN;
             memcpy(remote_addr, pdev->address, 6);
             memcpy(pinfo->hidDevice.bdaddr, remote_addr, 6);
             pinfo->hidDevice.CoD = pdev->CoD;
@@ -364,6 +365,7 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
           {
             pinfo->state |= BT_STATE_HID_CONNECT;
             gap_inquiry_stop();
+            pinfo->state &= ~BT_STATE_SCAN;
 
             memcpy(pinfo->hidDevice.bdaddr, &remote_addr, 6);
             pinfo->hidDevice.cHandle = hci_event_connection_complete_get_connection_handle(packet);
