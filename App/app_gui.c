@@ -598,7 +598,10 @@ void activate_new_screen(BASE_SCREEN *base, void (*list_action)(), void *arg_ptr
 {
   lv_obj_t *fobj;
 
-  lv_screen_load(base->screen);
+  if (lv_screen_active() != base->screen)
+  {
+    lv_screen_load(base->screen);
+  }
 debug_printf("activate: scr = %x, %x, ing = %x\n", base, base->screen, base->ing);
   if (base->setup_handler == NULL)
   {
@@ -1071,6 +1074,7 @@ void StartGuiTask(void *args)
           lv_obj_align(starts->spinner, LV_ALIGN_TOP_MID, 0, H_PERCENT(45));
           lv_obj_set_style_arc_width(starts->spinner, layout->spinner_width, LV_PART_MAIN);
           lv_obj_set_style_arc_width(starts->spinner, layout->spinner_width, LV_PART_INDICATOR);
+lv_refr_now(NULL);
         }
         else
         {
@@ -1088,11 +1092,11 @@ void StartGuiTask(void *args)
           lv_obj_add_event_cb(starts->btn, reboot_event_cb, LV_EVENT_PRESSED, NULL);
           lv_obj_center(starts->mbox);
         }
+        lv_refr_now(NULL);
         Start_SDLMixer();
         break;
       case GUIEV_FLASH_REPORT:                  // SPI flash verification finished
         lv_obj_delete(starts->spinner);    // Stop spinner
-
         {
           static lv_style_t style_flashbutton;
           static lv_style_t style_sdbutton;
@@ -1171,6 +1175,7 @@ void StartGuiTask(void *args)
           }
           activate_new_screen((BASE_SCREEN *)starts, NULL, NULL);
         }
+        lv_refr_now(NULL);
         break;
       case GUIEV_FONT_REPORT:
         {
@@ -1194,6 +1199,7 @@ void StartGuiTask(void *args)
         lv_obj_update_layout(oscms->scope_label);
         lv_obj_set_width(oscms->progress_bar, lv_obj_get_width(oscms->scope_label));
         lv_obj_align_to(oscms->progress_bar, oscms->scope_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 1);
+        lv_obj_set_width(oscms->slider, lv_obj_get_width(oscms->scope_label));
         break;
       case GUIEV_FLASH_GAME_SELECT:
         /* Selected game reside on the SPI flash. */
@@ -1603,6 +1609,8 @@ debug_printf("CHEAT_SEL\n");
       if (new_interval != timer_interval)
       {
         timer_interval = new_interval/2;
+        if (timer_interval > 10)
+          timer_interval = 5;
       }
     }
   }

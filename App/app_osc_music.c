@@ -53,6 +53,7 @@ typedef struct {
 enum {
   READER_START = 1,
   READER_READ,
+  READER_SEEK,
   READER_STOP,
 };
 
@@ -81,6 +82,9 @@ typedef struct {
   uint8_t  action;
   FSIZE_t fsize;
   uint32_t ppos;
+  uint32_t poffset;
+  uint32_t pre_val;
+  uint32_t post_val;
 } PLAYERINFO;
 
 const char *MusicList[] = {
@@ -291,6 +295,7 @@ void StartWavReaderTask(void *args)
           frames = 0;
 debug_printf("%s opened.\n", pinfo->fname);
           pinfo->ppos = 0;
+          pinfo->poffset = f_tell(pfile);
           postGuiEventMessage(GUIEV_OSCM_FILE, 0, (void *)pinfo->fname, NULL);
           pDriver->Stop(audio_config);
 
@@ -335,6 +340,21 @@ debug_printf("Output started.\n");
             }
           }
         }
+        break;
+      case READER_SEEK:
+        pinfo->ppos = pinfo->post_val;
+        pinfo->ppos &= ~3;
+        f_lseek(pfile, pinfo->poffset + pinfo->ppos);
+
+        while (osMessageQueueGet(free_bufqId, &paudio, 0, 0) == osOK)
+        {
+          f_read(pfile, paudio, sizeof(AUDIO_STEREO) * AUDIO_FRAME_SIZE, &nrb);
+          if (nrb != sizeof(AUDIO_STEREO) * AUDIO_FRAME_SIZE)
+            break;
+          else
+            osMessageQueuePut(play_bufqId, &paudio, 0, 0);
+        }
+        pinfo->state = WAVP_ST_PLAY;
         break;
       case READER_STOP:
         pinfo->state = WAVP_ST_FLASH;
@@ -510,7 +530,15 @@ debug_printf("mid = %d, action = %d\n", mid, pinfo->action);
       pinfo->state = WAVP_ST_IDLE;
       break;
     case WAV_RESUME:
-      pinfo->state = WAVP_ST_PLAY;
+      if (pinfo->post_val != pinfo->pre_val)
+      {
+        cmd = READER_SEEK;
+        osMessageQueuePut(wav_readqId, &cmd, 0, 0);
+      }
+      else
+      {
+        pinfo->state = WAVP_ST_PLAY;
+      }
       break;
     case WAV_PREV:
       cmd = READER_STOP;
@@ -616,14 +644,31 @@ static void pb_handler(lv_event_t *e)
 {
   lv_obj_t * obj = lv_event_get_target(e);
   OSCM_SCREEN *screen = (OSCM_SCREEN *)lv_event_get_user_data(e);
+  PLAYERINFO *pinfo = &PlayerInfo;
+  int progress;
+
 
   if(lv_obj_has_state(obj, LV_STATE_CHECKED)) {
     lv_obj_clear_state(screen->play_button, LV_STATE_CHECKED);
-    postWaveRequest(WAV_RESUME, &PlayerInfo);
+    lv_obj_clear_flag(screen->scope_label, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(screen->progress_bar, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(screen->slider, LV_OBJ_FLAG_HIDDEN);
+
+    pinfo->post_val = pinfo->fsize / 100 * lv_slider_get_value(screen->slider);
+    postWaveRequest(WAV_RESUME, pinfo);
   }
   else {
+    progress = (int) ((float)pinfo->ppos / (float)pinfo->fsize * 100);
+    if (progress > 100)
+      progress = 100;
+    pinfo->pre_val = pinfo->ppos;
+
     lv_obj_add_state(screen->play_button, LV_STATE_CHECKED);
-    postWaveRequest(WAV_PAUSE, &PlayerInfo);
+    lv_obj_add_flag(screen->scope_label, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(screen->progress_bar, LV_OBJ_FLAG_HIDDEN);
+    lv_slider_set_value(screen->slider, progress, LV_ANIM_OFF);
+    lv_obj_clear_flag(screen->slider, LV_OBJ_FLAG_HIDDEN);
+    postWaveRequest(WAV_PAUSE, pinfo);
   }
 }
 
@@ -699,6 +744,11 @@ void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
   lv_obj_set_size(screen->progress_bar, lv_obj_get_width(screen->scope_label), 6);
   lv_obj_align_to(screen->progress_bar, screen->scope_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 1);
   lv_bar_set_value(screen->progress_bar, 80, LV_ANIM_OFF);
+
+  screen->slider = lv_slider_create(cs);
+  lv_obj_set_size(screen->slider, lv_obj_get_width(screen->scope_label), 20);
+  lv_obj_align(screen->slider, LV_ALIGN_BOTTOM_MID, 0, -10);
+  lv_obj_add_flag(screen->slider, LV_OBJ_FLAG_HIDDEN);
 
   screen->play_button = lv_imagebutton_create(screen->scope_image);
   lv_imagebutton_set_src(screen->play_button, LV_IMAGEBUTTON_STATE_CHECKED_RELEASED, NULL, &img_lv_demo_music_btn_playlarge, NULL);
@@ -847,7 +897,7 @@ void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress)
   }
   if (crate == 96000)
   {
-    /* Refresh screen every four frames */
+    /* Refresh screen every three frames */
     switch (dcount % 3)
     {
     case 0:
@@ -856,7 +906,7 @@ void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress)
       lv_bar_set_value(screen->progress_bar, progress, LV_ANIM_OFF);
       lv_timer_handler();
       break;
-    case 2:
+    case 1:
       if (screen->disp_toggle & 1)
         memset(oscImage_map2 + I1_INDEX_SIZE, 0, sizeof(oscImage_map2) - I1_INDEX_SIZE);
       else
@@ -926,6 +976,11 @@ static void btn_click_event_cb(lv_event_t *e)
   OSCM_SCREEN *screen = (OSCM_SCREEN *)lv_event_get_user_data(e);
 
   uint32_t idx = lv_obj_get_index(btn);
+
+  lv_obj_clear_state(screen->play_button, LV_STATE_CHECKED);
+  lv_obj_clear_flag(screen->scope_label, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_clear_flag(screen->progress_bar, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(screen->slider, LV_OBJ_FLAG_HIDDEN);
 
   postWaveRequest(WAV_SELECT + idx, &PlayerInfo);
   activate_new_screen((BASE_SCREEN *)screen, list_proc, screen);

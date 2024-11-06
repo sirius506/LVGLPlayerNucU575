@@ -106,7 +106,9 @@ void enter_setup_event(lv_event_t *e)
     }
 
     setups->caller_ing = lv_indev_get_group(setups->keydev);
-debug_printf("caller_ing = %x, keydev = %x\n", setups->caller_ing, setups->keydev);
+#ifdef DEBUG_SETUP
+    debug_printf("caller_ing = %x, keydev = %x\n", setups->caller_ing, setups->keydev);
+#endif
     lv_slider_set_value(setups->vol_slider,
           bsp_codec_getvol(haldev->codec_i2c) / 10, LV_ANIM_OFF);
     lv_screen_load_anim(setups->setup_screen, LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
@@ -151,7 +153,9 @@ static void quit_setup_event(lv_event_t *e)
 
   if (dir == LV_DIR_TOP)
   {
-debug_printf("back to %x\n", SetupScreen.caller_ing);
+#ifdef DEBUG_SETUP
+    debug_printf("back to %x\n", SetupScreen.caller_ing);
+#endif
     lv_indev_set_group(SetupScreen.keydev, SetupScreen.caller_ing);
     lv_screen_load_anim(SetupScreen.active_screen, LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
   }
