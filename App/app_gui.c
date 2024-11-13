@@ -541,53 +541,79 @@ void process_icon_change(lv_obj_t *icon_label, int ival)
   lv_label_set_text(icon_label, (const char *)icon_label_string);
 }
 
-static lv_group_t *active_group;
+typedef struct {
+    lv_gridnav_ctrl_t ctrl;
+    lv_obj_t * focused_obj;
+} lv_gridnav_dsc_t;
 
-static lv_group_t *get_active_group()
-{
-  return active_group;
-}
-
-static void set_active_group(lv_group_t *gr)
-{
-  active_group = gr;
-}
-
-void set_pad_focus()
+void set_pad_focus(lv_group_t *gr)
 {
   lv_obj_t *fobj;
-  lv_group_t *gr = get_active_group();
+  const lv_obj_class_t *class;
 
   if (gr)
   {
     fobj = lv_group_get_focused(gr);
-debug_printf("gr = %x, fobj = %x\n", gr, fobj);
+    debug_printf("gr = %x, fobj = %x\n", gr, fobj);
     if (fobj == NULL)
     {
-debug_printf("count = %d\n", lv_group_get_obj_count(gr));
       fobj = lv_group_get_obj_by_index(gr, 0);
-debug_printf("fobj = %x\n", fobj);
+#ifdef FOCUS_DEBUG
+      debug_printf("count = %d\n", lv_group_get_obj_count(gr));
+      debug_printf("fobj = %x\n", fobj);
+#endif
     }
     if (fobj)
     {
-      lv_group_focus_obj(fobj);
-      lv_obj_add_state(fobj, LV_STATE_FOCUS_KEY);
+      class = fobj->class_p;
+#ifdef CLASS_DEBUG
+      if (class->name) debug_printf("class = %s\n", class->name);
+#endif
+      if (strncmp(class->name, "obj", 3) == 0)
+      {
+        lv_event_dsc_t * event_dsc;
+        lv_gridnav_dsc_t *gnav;
+        event_dsc = lv_obj_get_event_dsc(fobj, 0);
+        gnav = (lv_gridnav_dsc_t *)lv_event_dsc_get_user_data(event_dsc);
+        lv_group_focus_obj(gnav->focused_obj);
+        lv_obj_add_state(gnav->focused_obj, LV_STATE_FOCUS_KEY);
+      }
+      else
+      {
+        lv_group_focus_obj(fobj);
+        lv_obj_add_state(fobj, LV_STATE_FOCUS_KEY);
+      }
     }
   }
 }
 
-void set_pad_defocus()
+void set_pad_defocus(lv_group_t *gr)
 {
   lv_obj_t *fobj;
-  lv_group_t *gr = get_active_group();
+  const lv_obj_class_t *class;
 
   if (gr)
   {
     fobj = lv_group_get_focused(gr);
-debug_printf("defocus: %x, %x\n", gr, fobj);
+#ifdef FOCUS_DEBUG
+    debug_printf("defocus: %x, %x\n", gr, fobj);
+#endif
     if (fobj)
     {
-      lv_obj_clear_state(fobj, LV_STATE_FOCUS_KEY);
+      class = fobj->class_p;
+      if (class->name) debug_printf("class = %s\n", class->name);
+      if (strncmp(class->name, "obj", 3) == 0)
+      {
+        lv_event_dsc_t * event_dsc;
+        lv_gridnav_dsc_t *gnav;
+        event_dsc = lv_obj_get_event_dsc(fobj, 0);
+        gnav = (lv_gridnav_dsc_t *)lv_event_dsc_get_user_data(event_dsc);
+        lv_obj_clear_state(gnav->focused_obj, LV_STATE_FOCUS_KEY);
+      }
+      else
+      {
+        lv_obj_clear_state(fobj, LV_STATE_FOCUS_KEY);
+      }
     }
   }
 }
@@ -602,7 +628,9 @@ void activate_new_screen(BASE_SCREEN *base, void (*list_action)(), void *arg_ptr
   {
     lv_screen_load(base->screen);
   }
-debug_printf("activate: scr = %x, %x, ing = %x\n", base, base->screen, base->ing);
+#ifdef SCREEN_DEBUG
+  debug_printf("activate: scr = %x, %x, ing = %x\n", base, base->screen, base->ing);
+#endif
   if (base->setup_handler == NULL)
   {
     base->setup_handler = lv_obj_add_event_cb(base->screen, enter_setup_event, LV_EVENT_GESTURE, NULL);
@@ -612,7 +640,6 @@ debug_printf("activate: scr = %x, %x, ing = %x\n", base, base->screen, base->ing
   SetupScreen.arg_ptr = arg_ptr;
 
   lv_indev_set_group(keydev, base->ing);
-  set_active_group(base->ing);
 
   fobj = lv_group_get_focused(base->ing);
   if (fobj == NULL)
@@ -694,7 +721,6 @@ static int SelectApplication(BASE_SCREEN *sel_screen, SETUP_SCREEN *setups, lv_o
         lv_msgbox_add_text(mbox, sbuff);
         btn = lv_msgbox_add_footer_button(mbox, "Reboot");
         lv_obj_update_layout(btn);
-        debug_printf("btn size = %d x %d\n", lv_obj_get_width(btn), lv_obj_get_height(btn));
 
         lv_obj_add_event_cb(btn, reboot_event_cb, LV_EVENT_PRESSED, NULL);
         lv_obj_center(mbox);
@@ -728,12 +754,12 @@ static int SelectApplication(BASE_SCREEN *sel_screen, SETUP_SCREEN *setups, lv_o
         {
           padInfo = (GAMEPAD_INFO *)event.evarg1;
           debug_printf("%s Detected.\n", padInfo->name);
-          set_pad_focus();
+          set_pad_focus(keydev->group);
         }
         else
         {
           debug_printf("%s Disconnected\n", padInfo->name);
-          set_pad_defocus();
+          set_pad_defocus(keydev->group);
           padInfo = &nullPad;
         }
         break;
@@ -1312,7 +1338,6 @@ lv_refr_now(NULL);
           g = lv_group_create();
           lv_group_add_obj(g, btn);
           lv_indev_set_group(keydev, g);
-          set_active_group(g);
           lv_obj_add_event_cb(copys->mbox, reboot_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
           lv_obj_center(copys->mbox);
           break;
@@ -1346,7 +1371,6 @@ lv_refr_now(NULL);
           g = lv_group_create();
           lv_group_add_obj(g, btn);
           lv_indev_set_group(keydev, g);
-          set_active_group(g);
           lv_obj_center(copys->mbox);
           break;
         case OP_PROGRESS:
@@ -1368,7 +1392,6 @@ lv_refr_now(NULL);
           g = lv_group_create();
           lv_group_add_obj(g, btn);
           lv_indev_set_group(keydev, g);
-          set_active_group(g);
           break;
         }
         break;
@@ -1543,13 +1566,13 @@ debug_printf("CHEAT_SEL\n");
         {
           padInfo = (GAMEPAD_INFO *)event.evarg1;
           debug_printf("%s Detected.\n", padInfo->name);
-          set_pad_focus();
+          set_pad_focus(keydev->group);
         }
         else
         {
           debug_printf("%s Disconnected\n", padInfo->name);
           padInfo = &nullPad;
-          set_pad_defocus();
+          set_pad_defocus(keydev->group);
         }
         break;
       case GUIEV_ENDOOM:
