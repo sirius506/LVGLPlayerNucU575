@@ -20,5 +20,8 @@ typedef struct {
 void start_setup();
 lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev, lv_indev_t *keydev);
 void UpdateBluetoothButton(SETUP_SCREEN *screen);
+void set_pad_focus(lv_group_t *gr);
+void set_pad_defocus(lv_group_t *gr);
+int IsPadAvailable();
 
 extern SETUP_SCREEN SetupScreen;

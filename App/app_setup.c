@@ -158,6 +158,10 @@ static void quit_setup_event(lv_event_t *e)
 #endif
     lv_indev_set_group(SetupScreen.keydev, SetupScreen.caller_ing);
     lv_screen_load_anim(SetupScreen.active_screen, LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
+    if (IsPadAvailable())
+      set_pad_focus(SetupScreen.caller_ing);
+    else
+      set_pad_defocus(SetupScreen.caller_ing);
   }
 }
 
@@ -232,7 +236,7 @@ lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev, lv_indev
   lv_style_set_bg_color(&style_indicator, lv_color_hex3(0xFFFFFF));
 
   lv_style_init(&style_kfocus);
-  lv_style_set_bg_color(&style_kfocus, lv_color_hex3(0xEEEEEE));
+  //lv_style_set_bg_color(&style_kfocus, lv_color_hex3(0xEEEEEE));
   lv_style_set_outline_color(&style_kfocus, lv_palette_lighten(LV_PALETTE_YELLOW, 1));
   lv_style_set_outline_width(&style_kfocus, 3);
   lv_style_set_outline_opa(&style_kfocus, LV_OPA_50);
@@ -288,6 +292,7 @@ lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev, lv_indev
   lv_obj_update_layout(setups->hid_btn);
   lv_obj_align_to(setups->hid_btn, setups->cont_bt, LV_ALIGN_OUT_BOTTOM_MID, 0, 15);
   lv_obj_add_event_cb(setups->hid_btn, process_hid_disc, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_style(setups->hid_btn, &style_kfocus, LV_STATE_FOCUS_KEY);
 
   setups->a2dp_btn = lv_button_create(scr);
   lv_obj_add_flag(setups->a2dp_btn, LV_OBJ_FLAG_HIDDEN);
@@ -296,10 +301,13 @@ lv_obj_t *setup_screen_create(SETUP_SCREEN *setups, HAL_DEVICE *haldev, lv_indev
   lv_obj_update_layout(setups->a2dp_btn);
   lv_obj_align_to(setups->a2dp_btn, setups->cont_bt, LV_ALIGN_OUT_BOTTOM_MID, 0, 70);
   lv_obj_add_event_cb(setups->a2dp_btn, process_a2dp_disc, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_style(setups->a2dp_btn, &style_kfocus, LV_STATE_FOCUS_KEY);
 
   setups->keydev = keydev;
   setups->ing = lv_group_create();
   lv_group_add_obj(setups->ing, setups->vol_slider);
   lv_group_add_obj(setups->ing, setups->bright_slider);
+  lv_group_add_obj(setups->ing, setups->hid_btn);
+  lv_group_add_obj(setups->ing, setups->a2dp_btn);
   return scr;
 }
