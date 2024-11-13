@@ -516,7 +516,6 @@ debug_printf("in pause.\n");
           mid = pinfo->action & ACTION_NUM_MASK;
           break;
         }
-debug_printf("mid = %d, action = %d\n", mid, pinfo->action);
         mlist_btn_check(screen->mlist_screen, mid, true);
         pinfo->state = WAVP_ST_IDLE;
         pinfo->fname = oscmInfo[mid].fname;
@@ -602,41 +601,6 @@ const lv_image_dsc_t oscImage2 = {
   .data = oscImage_map2,
 }; 
 
-#ifdef USE_PREV_NEXT
-/**
- * Called when play button status has changed
- */
-static void style_handler(lv_event_t *e)
-{
-  lv_obj_t * obj = lv_event_get_target(e);
-  OSCM_SCREEN *screen = (OSCM_SCREEN *)lv_event_get_user_data(e);
-
-  if(lv_obj_has_state(obj, LV_STATE_CHECKED))
-  {
-    lv_obj_remove_flag(screen->prev_button, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_remove_flag(screen->next_button, LV_OBJ_FLAG_HIDDEN);
-  }
-  else
-  {
-    lv_obj_add_flag(screen->prev_button, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(screen->next_button, LV_OBJ_FLAG_HIDDEN);
-  }
-}
-#endif
-
-#ifdef USE_LABEL_BUTTON
-static void list_handler(lv_event_t *e)
-{
-  OSCM_SCREEN *screen = (OSCM_SCREEN *)lv_event_get_user_data(e);
-
-  if (screen->mlist_screen)
-  {
-    lv_screen_load(screen->mlist_screen);
-    lv_indev_set_group(screen->keydev, screen->list_ing);
-  }
-}
-#endif
-
 /**
  * Called when play button has pressed.
  */
@@ -654,13 +618,13 @@ static void pb_handler(lv_event_t *e)
     lv_obj_clear_flag(screen->progress_bar, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(screen->slider, LV_OBJ_FLAG_HIDDEN);
 
-    pinfo->post_val = pinfo->fsize / 100 * lv_slider_get_value(screen->slider);
+    pinfo->post_val = pinfo->fsize / 10 * lv_slider_get_value(screen->slider);
     postWaveRequest(WAV_RESUME, pinfo);
   }
   else {
-    progress = (int) ((float)pinfo->ppos / (float)pinfo->fsize * 100);
-    if (progress > 100)
-      progress = 100;
+    progress = (int) ((float)pinfo->ppos / (float)pinfo->fsize * 10);
+    if (progress > 10)
+      progress = 10;
     pinfo->pre_val = pinfo->ppos;
 
     lv_obj_add_state(screen->play_button, LV_STATE_CHECKED);
@@ -671,20 +635,6 @@ static void pb_handler(lv_event_t *e)
     postWaveRequest(WAV_PAUSE, pinfo);
   }
 }
-
-#ifdef USE_PREV_NEXT
-static void prev_handler(lv_event_t *e)
-{
-  UNUSED(e);
-  postWaveRequest(WAV_PREV, &PlayerInfo);
-}
-
-static void next_handler(lv_event_t *e)
-{
-  UNUSED(e);
-  postWaveRequest(WAV_NEXT, &PlayerInfo);
-}
-#endif
 
 static const lv_style_prop_t trans_props[] = { LV_STYLE_IMAGE_OPA, 0 };
 
@@ -702,10 +652,7 @@ void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
   lv_obj_t *cs;
   LV_IMG_DECLARE(img_lv_demo_music_btn_playlarge);
   LV_IMG_DECLARE(img_lv_demo_music_btn_pauselarge);
-#ifdef USE_PREV_NEXT
-  LV_IMG_DECLARE(img_lv_demo_music_btn_prevlarge);
-  LV_IMG_DECLARE(img_lv_demo_music_btn_nextlarge);
-#endif
+  static lv_style_t style_kfocus;
 
   cs = screen->scope_screen;
   lv_obj_set_size(cs, 480, 320);
@@ -714,12 +661,15 @@ void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
   static lv_style_transition_dsc_t tr;
   lv_style_transition_dsc_init(&tr, trans_props, lv_anim_path_linear, 500, 20, NULL);
 
-  static lv_style_t style_def, style_pr;
+  static lv_style_t style_def, style_pr, style_focus;
   lv_style_init(&style_def);
   lv_style_init(&style_pr);
   lv_style_set_image_opa(&style_def, LV_OPA_0);
   lv_style_set_image_opa(&style_pr, LV_OPA_100);
   lv_style_set_transition(&style_def, &tr);
+  lv_style_init(&style_focus);
+  lv_style_set_img_recolor_opa(&style_focus, LV_OPA_10);
+  lv_style_set_img_recolor(&style_focus, lv_color_black());
 
   memcpy(oscImage_map1, index_data, I1_INDEX_SIZE);	/* Copy Index data */
   memcpy(oscImage_map2, index_data, I1_INDEX_SIZE);	/* Copy Index data */
@@ -735,10 +685,6 @@ void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
   lv_label_set_text(screen->scope_label, "");
   lv_obj_align(screen->scope_label, LV_ALIGN_BOTTOM_MID, 0, -18);
   lv_obj_set_height(screen->scope_label, 20);
-#ifdef USE_LABEL_BUTTON
-  lv_obj_add_flag(screen->scope_label, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_add_event_cb(screen->scope_label, list_handler, LV_EVENT_PRESSED, screen);
-#endif
 
   screen->progress_bar = lv_bar_create(cs);
   lv_obj_set_size(screen->progress_bar, lv_obj_get_width(screen->scope_label), 6);
@@ -746,42 +692,27 @@ void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
   lv_bar_set_value(screen->progress_bar, 80, LV_ANIM_OFF);
 
   screen->slider = lv_slider_create(cs);
+  lv_slider_set_range(screen->slider, 0, 10);
   lv_obj_set_size(screen->slider, lv_obj_get_width(screen->scope_label), 20);
   lv_obj_align(screen->slider, LV_ALIGN_BOTTOM_MID, 0, -10);
   lv_obj_add_flag(screen->slider, LV_OBJ_FLAG_HIDDEN);
+  lv_style_init(&style_kfocus);
+  lv_style_set_outline_color(&style_kfocus, lv_palette_lighten(LV_PALETTE_YELLOW, 1));
+  lv_style_set_outline_width(&style_kfocus, 3);
+  lv_style_set_outline_opa(&style_kfocus, LV_OPA_50);
+  lv_obj_add_style(screen->slider, &style_kfocus, LV_STATE_FOCUS_KEY);
 
   screen->play_button = lv_imagebutton_create(screen->scope_image);
   lv_imagebutton_set_src(screen->play_button, LV_IMAGEBUTTON_STATE_CHECKED_RELEASED, NULL, &img_lv_demo_music_btn_playlarge, NULL);
   lv_imagebutton_set_src(screen->play_button, LV_IMAGEBUTTON_STATE_RELEASED, NULL, &img_lv_demo_music_btn_pauselarge, NULL);
   lv_obj_add_event_cb(screen->play_button, pb_handler, LV_EVENT_PRESSED, screen);
   lv_obj_center(screen->play_button);
+  lv_obj_add_style(screen->play_button, &style_focus, LV_STATE_FOCUS_KEY);
   lv_group_add_obj(screen->scope_ing, screen->play_button);
-
-#ifdef USE_PREV_NEXT
-  screen->prev_button = lv_image_create(cs);
-  lv_image_set_src(screen->prev_button, &img_lv_demo_music_btn_prevlarge);
-  lv_obj_align(screen->prev_button, LV_ALIGN_BOTTOM_LEFT, 0, 0);
-  lv_obj_add_flag(screen->prev_button, LV_OBJ_FLAG_HIDDEN);
-  lv_obj_add_flag(screen->prev_button, LV_OBJ_FLAG_CLICKABLE);
-  lv_group_add_obj(screen->scope_ing, screen->prev_button);
-
-  screen->next_button = lv_image_create(cs);
-  lv_image_set_src(screen->next_button, &img_lv_demo_music_btn_nextlarge);
-  lv_obj_align(screen->next_button, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
-  lv_obj_add_flag(screen->next_button, LV_OBJ_FLAG_HIDDEN);
-  lv_obj_add_flag(screen->next_button, LV_OBJ_FLAG_CLICKABLE);
-  lv_group_add_obj(screen->scope_ing, screen->next_button);
-
-  lv_obj_add_event_cb(screen->prev_button, prev_handler, LV_EVENT_CLICKED, screen);
-  lv_obj_add_event_cb(screen->next_button, next_handler, LV_EVENT_CLICKED, screen);
-#endif
+  lv_group_add_obj(screen->scope_ing, screen->slider);
 
   lv_obj_add_style(screen->play_button, &style_def, 0);
   lv_obj_add_style(screen->play_button, &style_pr, LV_STATE_CHECKED);
-
-#ifdef USE_PREV_NEXT
-  lv_obj_add_event_cb(screen->play_button, style_handler, LV_EVENT_STYLE_CHANGED, screen);
-#endif
 
   activate_new_screen((BASE_SCREEN *)screen, list_proc, screen);
   screen->haldev = haldev;
