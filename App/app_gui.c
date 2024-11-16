@@ -541,11 +541,6 @@ void process_icon_change(lv_obj_t *icon_label, int ival)
   lv_label_set_text(icon_label, (const char *)icon_label_string);
 }
 
-typedef struct {
-    lv_gridnav_ctrl_t ctrl;
-    lv_obj_t * focused_obj;
-} lv_gridnav_dsc_t;
-
 void set_pad_focus(lv_group_t *gr)
 {
   lv_obj_t *fobj;
@@ -571,12 +566,7 @@ void set_pad_focus(lv_group_t *gr)
 #endif
       if (strncmp(class->name, "obj", 3) == 0)
       {
-        lv_event_dsc_t * event_dsc;
-        lv_gridnav_dsc_t *gnav;
-        event_dsc = lv_obj_get_event_dsc(fobj, 0);
-        gnav = (lv_gridnav_dsc_t *)lv_event_dsc_get_user_data(event_dsc);
-        lv_group_focus_obj(gnav->focused_obj);
-        lv_obj_add_state(gnav->focused_obj, LV_STATE_FOCUS_KEY);
+        lv_obj_send_event(fobj, LV_EVENT_FOCUSED, NULL);
       }
       else
       {
@@ -604,11 +594,7 @@ void set_pad_defocus(lv_group_t *gr)
       if (class->name) debug_printf("class = %s\n", class->name);
       if (strncmp(class->name, "obj", 3) == 0)
       {
-        lv_event_dsc_t * event_dsc;
-        lv_gridnav_dsc_t *gnav;
-        event_dsc = lv_obj_get_event_dsc(fobj, 0);
-        gnav = (lv_gridnav_dsc_t *)lv_event_dsc_get_user_data(event_dsc);
-        lv_obj_clear_state(gnav->focused_obj, LV_STATE_FOCUS_KEY);
+        lv_obj_send_event(fobj, LV_EVENT_DEFOCUSED, NULL);
       }
       else
       {
