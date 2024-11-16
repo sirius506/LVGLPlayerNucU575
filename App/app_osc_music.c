@@ -88,11 +88,11 @@ typedef struct {
 } PLAYERINFO;
 
 const char *MusicList[] = {
-   "N-SPHERES/Function.wav",
-   "N-SPHERES/Intersect.wav",
-   "N-SPHERES/Attractor.wav",
-   "N-SPHERES/Flux.wav",
-   "N-SPHERES/Core.wav",
+   "N-SPHERES/1 Function.wav",
+   "N-SPHERES/2 Intersect.wav",
+   "N-SPHERES/3 Attractor.wav",
+   "N-SPHERES/4 Flux.wav",
+   "N-SPHERES/5 Core.wav",
    "OscMusic/01 Dots.wav",
    "OscMusic/02 Lines.wav",
    "OscMusic/03 Blocks.wav",
