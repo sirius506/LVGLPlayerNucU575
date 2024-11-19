@@ -83,8 +83,9 @@ typedef struct {
   FSIZE_t fsize;
   uint32_t ppos;
   uint32_t poffset;
-  uint32_t pre_val;
-  uint32_t post_val;
+  uint16_t pre_val;
+  uint16_t post_val;
+  lv_timer_t *resume_timer;
 } PLAYERINFO;
 
 const char *MusicList[] = {
@@ -342,7 +343,6 @@ debug_printf("Output started.\n");
         }
         break;
       case READER_SEEK:
-        pinfo->ppos = pinfo->post_val;
         pinfo->ppos &= ~3;
         f_lseek(pfile, pinfo->poffset + pinfo->ppos);
 
@@ -531,6 +531,7 @@ debug_printf("in pause.\n");
     case WAV_RESUME:
       if (pinfo->post_val != pinfo->pre_val)
       {
+        pinfo->ppos = pinfo->fsize / 10 * pinfo->post_val;
         cmd = READER_SEEK;
         osMessageQueuePut(wav_readqId, &cmd, 0, 0);
       }
@@ -601,6 +602,13 @@ const lv_image_dsc_t oscImage2 = {
   .data = oscImage_map2,
 }; 
 
+static void resume_timer_cb(lv_timer_t *timer)
+{
+  PLAYERINFO *pinfo = (PLAYERINFO *)timer->user_data;
+
+  postWaveRequest(WAV_RESUME, pinfo);
+}
+
 /**
  * Called when play button has pressed.
  */
@@ -618,14 +626,20 @@ static void pb_handler(lv_event_t *e)
     lv_obj_clear_flag(screen->progress_bar, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(screen->slider, LV_OBJ_FLAG_HIDDEN);
 
-    pinfo->post_val = pinfo->fsize / 10 * lv_slider_get_value(screen->slider);
-    postWaveRequest(WAV_RESUME, pinfo);
+    pinfo->post_val = lv_slider_get_value(screen->slider);
+    if (pinfo->post_val != pinfo->pre_val)
+    {
+      lv_bar_set_value(screen->progress_bar, pinfo->post_val * 10, LV_ANIM_OFF);
+    }
+    /* Insert some delay to issue WAV_RESUME request */
+    pinfo->resume_timer = lv_timer_create(resume_timer_cb, 600, pinfo);
+    lv_timer_set_repeat_count(pinfo->resume_timer, 1);
   }
   else {
     progress = (int) ((float)pinfo->ppos / (float)pinfo->fsize * 10);
     if (progress > 10)
       progress = 10;
-    pinfo->pre_val = pinfo->ppos;
+    pinfo->pre_val = lv_slider_get_value(screen->slider);
 
     lv_obj_add_state(screen->play_button, LV_STATE_CHECKED);
     lv_obj_add_flag(screen->scope_label, LV_OBJ_FLAG_HIDDEN);
