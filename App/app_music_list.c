@@ -262,12 +262,12 @@ static lv_obj_t *add_list_btn(lv_obj_t *parent, MUSIC_INFO *mi)
     lv_obj_set_grid_cell(icon, LV_GRID_ALIGN_START, 0, 1, LV_GRID_ALIGN_CENTER, 0, 2);
 
     lv_obj_t * title_label = lv_label_create(btn);
-    lv_label_set_text(title_label, mi->title);
+    lv_label_set_text_static(title_label, mi->title);
     lv_obj_set_grid_cell(title_label, LV_GRID_ALIGN_START, 1, 1, LV_GRID_ALIGN_CENTER, 0, 1);
     lv_obj_add_style(title_label, &style_title, 0);
 
     lv_obj_t * artist_label = lv_label_create(btn);
-    lv_label_set_text(artist_label, mi->artist);
+    lv_label_set_text_static(artist_label, mi->artist);
     lv_obj_add_style(artist_label, &style_artist, 0);
     lv_obj_set_grid_cell(artist_label, LV_GRID_ALIGN_START, 1, 1, LV_GRID_ALIGN_CENTER, 1, 1);
 

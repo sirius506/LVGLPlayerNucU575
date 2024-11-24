@@ -281,31 +281,6 @@ lv_obj_t * _lv_demo_music_main_create(lv_obj_t * parent, lv_group_t *g, lv_style
     lv_anim_start(&a);
 #endif
 
-#if 0
-    /* Create an intro from a logo + label */
-    LV_IMG_DECLARE(img_lv_demo_music_logo);
-    lv_obj_t * logo = lv_image_create(lv_screen_active());
-    lv_img_set_src(logo, &img_lv_demo_music_logo);
-    lv_obj_move_foreground(logo);
-
-    lv_obj_t * title = lv_label_create(lv_screen_active());
-    lv_label_set_text(title, "LVGL Demo\nMusic player");
-    lv_obj_set_style_text_align(title, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_style_text_font(title, font_large, 0);
-    lv_obj_set_style_text_line_space(title, 8, 0);
-    lv_obj_fade_out(title, 500, INTRO_TIME);
-    lv_obj_align_to(logo, spectrum_obj, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_align_to(title, logo, LV_ALIGN_OUT_LEFT_MID, -20, 0);
-
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in);
-    lv_anim_set_var(&a, logo);
-    lv_anim_set_time(&a, 400);
-    lv_anim_set_delay(&a, INTRO_TIME + 800);
-    lv_anim_set_values(&a, LV_ZOOM_NONE, 10);
-    lv_anim_set_ready_cb(&a, lv_obj_del_anim_ready_cb);
-    lv_anim_start(&a);
-#endif
-
     lv_obj_update_layout(main_cont);
     track_load(0);
 
@@ -772,7 +747,7 @@ static lv_obj_t * create_handle(lv_obj_t * parent)
 
     /*A handle to scroll to the track list*/
     lv_obj_t * handle_label = lv_label_create(cont);
-    lv_label_set_text(handle_label, "ALL TRACKS");
+    lv_label_set_text_static(handle_label, "ALL TRACKS");
     lv_obj_set_style_text_font(handle_label, layout->font_small, 0);
     lv_obj_set_style_text_color(handle_label, lv_color_hex(0x8a86b8), 0);
 
