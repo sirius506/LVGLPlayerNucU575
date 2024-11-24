@@ -47,6 +47,8 @@ extern lv_obj_t *music_player_create(AUDIO_CONF *audio_config, lv_group_t *g, lv
 
 extern int doom_main(int argc, char **argv);
 
+static WADLIST *wadlist;
+
 const GUI_LAYOUT GuiLayout = {
   .font_title = &lv_font_montserrat_20,
   .font_small = &lv_font_montserrat_12,
@@ -660,7 +662,7 @@ static int SelectApplication(BASE_SCREEN *sel_screen, SETUP_SCREEN *setups, lv_o
 
   title = lv_label_create(sel_screen->screen);
   lv_obj_add_style(title, &style_title, 0);
-  lv_label_set_text(title, "LVGL Player (Nucleo-U575ZI)");
+  lv_label_set_text_static(title, "LVGL Player (Nucleo-U575ZI)");
   lv_obj_align(title, LV_ALIGN_TOP_MID, 0, lv_pct(7));
 
   /* Create application buttons */
@@ -672,7 +674,7 @@ static int SelectApplication(BASE_SCREEN *sel_screen, SETUP_SCREEN *setups, lv_o
     lv_obj_add_event_cb(btn, app_select_handler, LV_EVENT_CLICKED, (void *)i);
 
     label = lv_label_create(btn);
-    lv_label_set_text(label, app_labels[i].label_text);
+    lv_label_set_text_static(label, app_labels[i].label_text);
     lv_obj_center(label);
     lv_group_add_obj(sel_screen->ing, btn);
   }
@@ -680,6 +682,8 @@ static int SelectApplication(BASE_SCREEN *sel_screen, SETUP_SCREEN *setups, lv_o
   activate_new_screen(sel_screen, NULL, NULL);
 
   timer_interval = 3;
+
+  postMainRequest(REQ_VERIFY_SD, NULL, 0);	// Start SD card verification
 
   while (1)
   {
@@ -699,17 +703,35 @@ static int SelectApplication(BASE_SCREEN *sel_screen, SETUP_SCREEN *setups, lv_o
         return (event.evval0);
         break;
       case GUIEV_SD_REPORT:
-        /* SD card verification failed. Show message box to reboot. */
+        if (event.evval0 == 0)
+        {
+          /* SD card verify successfull. */
 
-        lv_snprintf(sbuff, sizeof(sbuff)-1, "%s %s", (char *)event.evarg1, (char *)event.evarg2);
-        mbox = lv_msgbox_create(NULL);
-        lv_msgbox_add_title(mbox, "Bad SD Card");
-        lv_msgbox_add_text(mbox, sbuff);
-        btn = lv_msgbox_add_footer_button(mbox, "Reboot");
-        lv_obj_update_layout(btn);
+          label = lv_label_create(sel_screen->screen);
+          lv_label_set_text_static(label, LV_SYMBOL_OK " SD card verified.");
+          lv_obj_align_to(label, title, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
+          lv_refr_now(NULL);
+          wadlist = (WADLIST *)event.evarg1;
+        }
+        else
+        {
+          /* SD card verification failed. Show message box to reboot. */
 
-        lv_obj_add_event_cb(btn, reboot_event_cb, LV_EVENT_PRESSED, NULL);
-        lv_obj_center(mbox);
+          lv_snprintf(sbuff, sizeof(sbuff)-1, "%s %s", (char *)event.evarg1, (char *)event.evarg2);
+          mbox = lv_msgbox_create(NULL);
+          lv_msgbox_add_title(mbox, "Bad SD Card");
+          lv_msgbox_add_text(mbox, sbuff);
+          btn = lv_msgbox_add_footer_button(mbox, "Reboot");
+          lv_obj_update_layout(btn);
+          debug_printf("btn size = %d x %d\n", lv_obj_get_width(btn), lv_obj_get_height(btn));
+
+#if 0
+          lv_group_add_obj(starts->ing, starts->btn);
+#endif
+          lv_obj_add_event_cb(btn, reboot_event_cb, LV_EVENT_PRESSED, NULL);
+          lv_obj_center(mbox);
+        }
+        lv_refr_now(NULL);
         break;
       case GUIEV_ICON_CHANGE:
         process_icon_change(icon_label, event.evval0);
@@ -754,6 +776,7 @@ static int SelectApplication(BASE_SCREEN *sel_screen, SETUP_SCREEN *setups, lv_o
         NVIC_SystemReset();
         break;
       default:
+        debug_printf("EV %d\n", event.evcode);
         break;
       }
     }
@@ -788,7 +811,6 @@ void StartGuiTask(void *args)
   lv_obj_t *tlabel;
   lv_obj_t *btn;
   unsigned int new_interval, timer_interval;
-  WADLIST *wadlist;
   WADPROP *flash_game;
   WADPROP *sel_flash_game;
   WADLIST *sel_sd_game;
@@ -811,6 +833,8 @@ void StartGuiTask(void *args)
   lv_init();
   display = lv_display_create(DISP_HOR_RES, DISP_VER_RES);
   display->user_data = (void *)haldev->tft_lcd;
+
+  wadlist = NULL;
 
 #ifdef USE_BUF2
   lv_display_set_buffers(display, buf_1, buf_2, sizeof(buf_1), LV_DISP_RENDER_MODE_PARTIAL);
@@ -897,7 +921,7 @@ void StartGuiTask(void *args)
   
   starts->title = lv_label_create(starts->screen);
   lv_obj_add_style(starts->title, &style_title, 0);
-  lv_label_set_text(starts->title, "Doom Player (Nucleo-U575ZI)");
+  lv_label_set_text_static(starts->title, "Doom Player (Nucleo-U575ZI)");
   lv_obj_align(starts->title, LV_ALIGN_TOP_MID, 0, lv_pct(7));
 
   menus->title = lv_label_create(menus->screen);
@@ -960,7 +984,6 @@ void StartGuiTask(void *args)
   lv_obj_align(games->cheat_code, LV_ALIGN_TOP_MID, 0, lv_pct(35));
   lv_obj_add_event_cb(games->cheat_code, cheat_button_handler, LV_EVENT_ALL, NULL);
 
-  wadlist = NULL;
   tlabel = NULL;
   flash_game = NULL;
   sel_sd_game = NULL;
@@ -971,7 +994,29 @@ void StartGuiTask(void *args)
   switch (haldev->boot_mode)
   {
   case BOOTM_DOOM:
-    postMainRequest(REQ_VERIFY_SD, NULL, 0);	// Start SD card verification
+    /* SD card verify successfull. */
+
+    label = lv_label_create(starts->screen);
+    lv_label_set_text_static(label, LV_SYMBOL_OK " SD card verified.");
+    lv_obj_align_to(label, starts->title, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
+
+    /* Send SPI flash verify command. */
+
+    tlabel = lv_label_create(starts->screen);
+    lv_label_set_text_static(tlabel, " Checking SPI Flash...");
+    lv_obj_align_to(tlabel, label, LV_ALIGN_OUT_BOTTOM_MID, 0, H_PERCENT(2));
+
+    postMainRequest(REQ_VERIFY_FLASH, NULL, 0);
+
+    /* Start spinner */
+
+    starts->spinner = lv_spinner_create(starts->screen);
+    lv_spinner_set_anim_params(starts->spinner, 1000, 40);
+    lv_obj_set_size(starts->spinner, W_PERCENT(20), W_PERCENT(20));
+    lv_obj_align(starts->spinner, LV_ALIGN_TOP_MID, 0, H_PERCENT(45));
+    lv_obj_set_style_arc_width(starts->spinner, layout->spinner_width, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(starts->spinner, layout->spinner_width, LV_PART_INDICATOR);
+    lv_refr_now(NULL);
     break;
   case BOOTM_A2DP:
     postMainRequest(REQ_VERIFY_FONT, NULL, 0);	// Start font file verification
@@ -1060,55 +1105,9 @@ void StartGuiTask(void *args)
       case GUIEV_ICON_CHANGE:
         process_icon_change(icon_label, event.evval0);
         break;
-      case GUIEV_SD_REPORT:             // SD card verification has finished
-        if (event.evval0 == 0)
-        {
-          /* SD card verify successfull. */
-
-          label = lv_label_create(starts->screen);
-          lv_label_set_text(label, LV_SYMBOL_OK " SD card verified.");
-          lv_obj_align_to(label, starts->title, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
-
-          /* Send SPI flash verify command. */
-
-          tlabel = lv_label_create(starts->screen);
-          lv_label_set_text(tlabel, " Checking SPI Flash...");
-          lv_obj_align_to(tlabel, label, LV_ALIGN_OUT_BOTTOM_MID, 0, H_PERCENT(2));
-          wadlist = (WADLIST *)event.evarg1;
-
-          postMainRequest(REQ_VERIFY_FLASH, NULL, 0);
-
-          /* Start spinner */
-
-          starts->spinner = lv_spinner_create(starts->screen);
-          lv_spinner_set_anim_params(starts->spinner, 1000, 60);
-          lv_obj_set_size(starts->spinner, W_PERCENT(20), W_PERCENT(20));
-          lv_obj_align(starts->spinner, LV_ALIGN_TOP_MID, 0, H_PERCENT(45));
-          lv_obj_set_style_arc_width(starts->spinner, layout->spinner_width, LV_PART_MAIN);
-          lv_obj_set_style_arc_width(starts->spinner, layout->spinner_width, LV_PART_INDICATOR);
-lv_refr_now(NULL);
-        }
-        else
-        {
-          /* SD card verification failed. Show message box to reboot. */
-
-          lv_snprintf(sbuff, sizeof(sbuff)-1, "%s %s", (char *)event.evarg1, (char *)event.evarg2);
-          starts->mbox = lv_msgbox_create(NULL);
-          lv_msgbox_add_title(starts->mbox, "Bad SD Card");
-          lv_msgbox_add_text(starts->mbox, sbuff);
-          starts->btn = lv_msgbox_add_footer_button(starts->mbox, "Reboot");
-          lv_obj_update_layout(starts->btn);
-          debug_printf("btn size = %d x %d\n", lv_obj_get_width(starts->btn), lv_obj_get_height(starts->btn));
-
-          lv_group_add_obj(starts->ing, starts->btn);
-          lv_obj_add_event_cb(starts->btn, reboot_event_cb, LV_EVENT_PRESSED, NULL);
-          lv_obj_center(starts->mbox);
-        }
-        lv_refr_now(NULL);
-        Start_SDLMixer();
-        break;
       case GUIEV_FLASH_REPORT:                  // SPI flash verification finished
         lv_obj_delete(starts->spinner);    // Stop spinner
+        starts->spinner = NULL;
         {
           static lv_style_t style_flashbutton;
           static lv_style_t style_sdbutton;
@@ -1121,7 +1120,7 @@ lv_refr_now(NULL);
           if (event.evval0 == 0)
           {
             lv_style_set_bg_color(&style_flashbutton, lv_palette_main(LV_PALETTE_LIGHT_GREEN));
-            lv_label_set_text(tlabel, LV_SYMBOL_OK " SPI Flash verified.");
+            lv_label_set_text_static(tlabel, LV_SYMBOL_OK " SPI Flash verified.");
 
             /* Display game title availabe on the Flash */
 
@@ -1130,7 +1129,7 @@ lv_refr_now(NULL);
           else
           {
             lv_style_set_bg_color(&style_flashbutton, lv_palette_main(LV_PALETTE_GREY));
-            lv_label_set_text(tlabel, LV_SYMBOL_CLOSE " SPI Flash invalid.");
+            lv_label_set_text_static(tlabel, LV_SYMBOL_CLOSE " SPI Flash invalid.");
             flash_game = (WADPROP *)&InvalidFlashGame;
           }
           fbutton = lv_btn_create(starts->screen);
@@ -1188,15 +1187,14 @@ lv_refr_now(NULL);
           activate_new_screen((BASE_SCREEN *)starts, NULL, NULL);
         }
         lv_refr_now(NULL);
+        Start_SDLMixer();
         break;
       case GUIEV_FONT_REPORT:
-        {
-          a2dps->screen = lv_obj_create(NULL);
-          a2dps->ing = lv_group_create();
-          activate_new_screen((BASE_SCREEN *)a2dps, NULL, NULL);
-          menus->play_scr = a2dps->screen;
-          a2dp_player_create(a2dps);
-        }
+        a2dps->screen = lv_obj_create(NULL);
+        a2dps->ing = lv_group_create();
+        activate_new_screen((BASE_SCREEN *)a2dps, NULL, NULL);
+        menus->play_scr = a2dps->screen;
+        a2dp_player_create(a2dps);
         break;
       case GUIEV_OSCM_START:
         oscms->scope_screen = lv_obj_create(NULL);
@@ -1309,7 +1307,7 @@ lv_refr_now(NULL);
         switch (event.evval0)
         {
         case OP_START:
-          lv_label_set_text(copys->operation, "Erasing SPI Flash..");
+          lv_label_set_text_static(copys->operation, "Erasing SPI Flash..");
           copys->progress = lv_label_create(copys->screen);
           lv_label_set_text(copys->progress, "");
           lv_obj_align_to(copys->progress, copys->bar, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
@@ -1339,7 +1337,7 @@ lv_refr_now(NULL);
         switch (event.evval0)
         {
         case OP_START:
-          lv_label_set_text(copys->operation, "Copying to SPI Flash..");
+          lv_label_set_text_static(copys->operation, "Copying to SPI Flash..");
           if (event.evarg1)
             lv_label_set_text(copys->fname, event.evarg1);
           else
@@ -1614,12 +1612,20 @@ debug_printf("CHEAT_SEL\n");
     }
     else
     {
+      if (starts->spinner)
+      {
+        timer_interval = 3;
+        lv_timer_handler();
+      }
+      else
+      {
       new_interval = lv_timer_handler();
       if (new_interval != timer_interval)
       {
         timer_interval = new_interval/2;
         if (timer_interval > 10)
           timer_interval = 5;
+      }
       }
     }
   }
