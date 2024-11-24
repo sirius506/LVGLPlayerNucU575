@@ -331,12 +331,43 @@ int bsp_sdcard_inserted()
   return 0;
 }
 
+#define	CSIZE	(128*1024)
+
 uint32_t bsp_calc_crc(uint8_t *bp, int len)
 {
   uint32_t crcval;
+  int clen;
 
   osMutexAcquire(crcLockId, osWaitForever);
+#ifdef FAST_CALC
   crcval = HAL_CRC_Calculate(HalDevice.crc_comp, (uint32_t *)bp, len);
+#else
+  clen = CSIZE;
+  if (len > clen)
+  {
+    /* Big size means we are going to calculate CRC value of WAD file.
+     * Althogh it is possible to compute CRC values of given length at once,
+     * we divide given file as CSIZE peaces and accumulates computed value.
+     * In this way, we can insert litte delay and it result as good spinner
+     * rotating visual effect while we verify WAD file on the Flash.
+     */
+    crcval = HAL_CRC_Calculate(HalDevice.crc_comp, (uint32_t *)bp, CSIZE);
+    bp += CSIZE;
+    len -= CSIZE;
+    while (len > 0)
+    {
+      clen = (len > CSIZE)? CSIZE : len;
+      crcval = HAL_CRC_Accumulate(HalDevice.crc_comp, (uint32_t *)bp, clen);
+      bp += clen;
+      len -= clen;
+      osDelay(2);
+    }
+  }
+  else
+  {
+    crcval = HAL_CRC_Calculate(HalDevice.crc_comp, (uint32_t *)bp, len);
+  }
+#endif
   osMutexRelease(crcLockId);
   return crcval;
 }
