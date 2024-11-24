@@ -53,7 +53,7 @@ void set_sound_chart(CHART_INFO *chartInfo, SOUND_DATA *sdp)
    */
   chartInfo->posdiv = 1;
   points = sdp->length;
-  while (points > 6000)
+  while (points > 4000)
   {
     chartInfo->posdiv++;
     points = sdp->length / chartInfo->posdiv;

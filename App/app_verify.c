@@ -51,8 +51,6 @@ const WADPROP ValidWads[] = {
  {        0,          0, NULL, NULL },
 };
 
-static WADLIST *WadList;
-
 static const char *findWadName(char *fname, int fsize)
 {
   const WADPROP *wadp = ValidWads;
@@ -101,6 +99,7 @@ int VerifySDCard(void **errString1, void **errString2)
   CHECK_LIST *clist;
   int i;
   uint32_t foffset;
+  WADLIST *WadList;
   
   lsize = sizeof(FileNames)/sizeof(char *);
   ctop = (CHECK_LIST *)malloc(sizeof(CHECK_LIST) * lsize);
