@@ -404,6 +404,8 @@ static int build_music_list(OSCMUSICINFO **pinfo)
 static lv_obj_t *osc_mlist_create(OSCMUSICINFO *oscmInfo, int num_music, OSCM_SCREEN *screen);
 static void mlist_btn_check(lv_obj_t *list, uint32_t mid, bool state);
 
+extern lv_obj_t *create_reboot_mbox(char *title, char *msg);
+
 void StartOscMusic(OSCM_SCREEN *screen)
 {
   PLAYERINFO *pinfo = &PlayerInfo;
@@ -423,6 +425,12 @@ void StartOscMusic(OSCM_SCREEN *screen)
   wav_evqId = osMessageQueueNew(WAVEV_DEPTH, sizeof(WAVCONTROL_EVENT), &attributes_wavevq);
 
   num_music = build_music_list(&oscmInfo);
+  if (num_music == 0)
+  {
+    create_reboot_mbox("No music file found", "Please reboot");
+    while (1) osDelay(100);
+  }
+
   pinfo->state = WAVP_ST_IDLE;
 
   osc_mlist_create(oscmInfo, num_music, screen);

@@ -337,6 +337,7 @@ static int copyfile(const char *fname, uint32_t fsize, uint32_t foffset, uint8_t
     guiev.evarg1 = (void *)fname;
     guiev.evarg2 = "not found.";
     postGuiEvent(&guiev);
+    while (1) osDelay(100);
     return -1;
   }
 

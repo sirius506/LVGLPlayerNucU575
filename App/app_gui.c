@@ -214,6 +214,24 @@ void postGuiEventMessage(GUIEV_CODE evcode, uint32_t evval0, void *evarg1, void 
   }
 }
 
+lv_obj_t *create_reboot_mbox(char *title, char *msg_text)
+{
+  lv_obj_t *mbox;
+  lv_obj_t *btn;
+  lv_group_t *g;
+
+  mbox = lv_msgbox_create(NULL);
+  lv_msgbox_add_title(mbox, title);
+  lv_msgbox_add_text(mbox, msg_text);
+
+  btn = lv_msgbox_add_footer_button(mbox, "Reboot");
+  lv_obj_add_event_cb(btn, reboot_event_cb, LV_EVENT_CLICKED, NULL);
+  g = lv_group_create();
+  lv_group_add_obj(g, btn);
+  lv_indev_set_group(keydev, g);
+  return mbox;
+}
+
 /**     
  * @brief Called when Game menu button has clicked.
  */     
@@ -718,17 +736,7 @@ static int SelectApplication(BASE_SCREEN *sel_screen, SETUP_SCREEN *setups, lv_o
           /* SD card verification failed. Show message box to reboot. */
 
           lv_snprintf(sbuff, sizeof(sbuff)-1, "%s %s", (char *)event.evarg1, (char *)event.evarg2);
-          mbox = lv_msgbox_create(NULL);
-          lv_msgbox_add_title(mbox, "Bad SD Card");
-          lv_msgbox_add_text(mbox, sbuff);
-          btn = lv_msgbox_add_footer_button(mbox, "Reboot");
-          lv_obj_update_layout(btn);
-          debug_printf("btn size = %d x %d\n", lv_obj_get_width(btn), lv_obj_get_height(btn));
-
-#if 0
-          lv_group_add_obj(starts->ing, starts->btn);
-#endif
-          lv_obj_add_event_cb(btn, reboot_event_cb, LV_EVENT_PRESSED, NULL);
+          mbox = create_reboot_mbox("Bad SD Card", sbuff);
           lv_obj_center(mbox);
         }
         lv_refr_now(NULL);
@@ -825,8 +833,6 @@ void StartGuiTask(void *args)
   const char *kbtext;
   char sbuff[70];
   uint32_t cheatval;
-
-  static lv_group_t *g;
 
   debug_printf("GuiTask started.\n");
 
@@ -1314,15 +1320,7 @@ void StartGuiTask(void *args)
           break;
         case OP_ERROR:
           lv_snprintf(sbuff, sizeof(sbuff)-1, "%s %s", (char *)event.evarg1, (char *)event.evarg2);
-          copys->mbox = lv_msgbox_create(NULL);
-          lv_msgbox_add_title(copys->mbox, "Flash Erase Error");
-          lv_msgbox_add_text(copys->mbox, sbuff);
-          btn = lv_msgbox_add_footer_button(copys->mbox, "Reboot");
-          lv_obj_add_event_cb(btn, reboot_event_cb, LV_EVENT_CLICKED, NULL);
-          g = lv_group_create();
-          lv_group_add_obj(g, btn);
-          lv_indev_set_group(keydev, g);
-          lv_obj_add_event_cb(copys->mbox, reboot_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+          copys->mbox = create_reboot_mbox("Flash Erase Error", sbuff);
           lv_obj_center(copys->mbox);
           break;
         case OP_PROGRESS:
@@ -1346,15 +1344,7 @@ void StartGuiTask(void *args)
           break;
         case OP_ERROR:
           lv_snprintf(sbuff, sizeof(sbuff)-1, "%s %s", (char *)event.evarg1, (char *)event.evarg2);
-          copys->mbox = lv_msgbox_create(NULL);
-          lv_msgbox_add_title(copys->mbox, "Flash Erase Error");
-          lv_msgbox_add_text(copys->mbox, sbuff);
-
-          btn = lv_msgbox_add_footer_button(copys->mbox, "Reboot");
-          lv_obj_add_event_cb(btn, reboot_event_cb, LV_EVENT_CLICKED, NULL);
-          g = lv_group_create();
-          lv_group_add_obj(g, btn);
-          lv_indev_set_group(keydev, g);
+          copys->mbox = create_reboot_mbox("Flash Copy Error", sbuff);
           lv_obj_center(copys->mbox);
           break;
         case OP_PROGRESS:
@@ -1367,15 +1357,7 @@ void StartGuiTask(void *args)
           lv_obj_delete(copys->operation);
           lv_obj_delete(copys->progress);
           lv_obj_delete(copys->bar);
-          copys->mbox = lv_msgbox_create(NULL);
-          lv_msgbox_add_title(copys->mbox, "Copy done");
-          lv_msgbox_add_text(copys->mbox,  "Reboot to activate new game.");
-
-          btn = lv_msgbox_add_footer_button(copys->mbox, "Reboot");
-          lv_obj_add_event_cb(btn, reboot_event_cb, LV_EVENT_CLICKED, NULL);
-          g = lv_group_create();
-          lv_group_add_obj(g, btn);
-          lv_indev_set_group(keydev, g);
+          copys->mbox = create_reboot_mbox("Copy done", "Reboot to activate new game.");
           break;
         }
         break;
@@ -1612,20 +1594,12 @@ debug_printf("CHEAT_SEL\n");
     }
     else
     {
-      if (starts->spinner)
-      {
-        timer_interval = 3;
-        lv_timer_handler();
-      }
-      else
-      {
       new_interval = lv_timer_handler();
       if (new_interval != timer_interval)
       {
         timer_interval = new_interval/2;
         if (timer_interval > 10)
           timer_interval = 5;
-      }
       }
     }
   }
