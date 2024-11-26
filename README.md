@@ -3,11 +3,11 @@
 This is LVGL Player project for STMicro Nucleo-U575ZI-Q board with extension board.
 
 ## Hardware
-The extension board contains following parts.
+The [extension board](https://github.com/sirius506/LVGLPlayerNucU575/blob/main/Schematic.pdf) contains following parts.
 
 * TI TLV320DAC3203 for Audio output.
 * Micro SD card slot.
-* BT860-ST Bluetooth Module.
+* BT860-SA Bluetooth Module.
 * ER-TFM035-6. 480x320 Color LCD with capacitive touch panel.
 * W25Q256. 256Mbit QSPI Flash
 * APS6404L-3SQR. 64Mbit QSPI PSRAM
@@ -32,20 +32,40 @@ application on the initial startup screen.
 3. Osilloscope Music -- Play and display [Oscilloscope music](https://oscilloscopemusic.com/) files.
 
 * [LVGL](https://github.com/lvgl/lvgl) based GUI operation.
-* Sreenshot by User button on the Nucleo board. Screen images are saved on the SD card.
+* Sreenshot by User button (blue button) on the Nucleo board. Screen images are saved on the SD card.
+* Supports Bluetooth connected game controllers -- DUALSHOCK4, DualSense and 8BitDo Zero 2.
 
 ## Doom Player
-* Supports Bluetooth connected game controllers -- DUALSHOCK4, DualSense and 8BitDo Zero 2.
-* Supports DOOM1, DOOM2 and TNT WAD files. Selected WAD file is flashed to the SPI flash for the playing.
+* Supports DOOM1, DOOM2 and TNT WAD files. Selected WAD file is flashed to the SPI flash for the game playing.
 * Plays FLAC format game music files stored on the SD card.
 * Plays SFX PCM sounds found on the SPI flash.
 * Music player is based on LGVL demo code, but it performes realtime FFT for the fancy spectrum effect.
 * Runs on the FreeRTOS. It allows us LVGL GUI runs while Chocolate-Doom is running and provide Cheat code screen feature.
+* Game music files must be downloaded from [this site](http://sc55.duke4.net/games.php#doom). Please note that you need to download 'FLA Pack' files.
 
 ## Bluetooth Player
 * Bluethooth music player. Software acts as A2DP sink and works as bluetooth audio output device.
+* Only SBC codec is supported.
 
 ## Oscilloscope Music
-* Plays Oscilloscpe Music .WAV sound files and shows its visual effects on the LCD.
+* Plays [Oscilloscpe Music](https://oscilloscopemusic.com/) .WAV sound files on the SD card and shows its visual effects on the LCD.
+* This is very simple implementation. It simply plots upper 8bit PCM values as (X,Y) coordinates, but still you can enjoy visual effects.
+* You need to purchase necessary WAV files and store those files on the SD card.
 
 Please refer [Wiki pages](https://github.com/sirius506/DoomPlayerNucU575/wiki) for more descriptions and screen shot images.
+
+## Build
+
+To build LVGLPlayer, clone this repo and follow normal cmake build steps shown below.
+
+```
+% git clone --recursive https://github.com/sirius506/LVGLPlayerNucU575.git
+% cd LVGLPlayerNucU575
+% mkdir build
+% cd build
+% cmake ..
+% make -j
+```
+## Prepare SD card image
+
+To run LVGLPlayer firmware, you need a SD card which contains all necessary files. To prepare this SD card, follow these steps.
