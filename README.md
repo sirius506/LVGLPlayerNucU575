@@ -46,6 +46,7 @@ application on the initial startup screen.
 ## Bluetooth Player
 * Bluethooth music player. Software acts as A2DP sink and works as bluetooth audio output device.
 * Only SBC codec is supported.
+* Title and artist name displayed on the screen.
 
 ## Oscilloscope Music
 * Plays [Oscilloscpe Music](https://oscilloscopemusic.com/) .WAV sound files on the SD card and shows its visual effects on the LCD.
@@ -66,6 +67,11 @@ To build LVGLPlayer, clone this repo and follow normal cmake build steps shown b
 % cmake ..
 % make -j
 ```
-## Prepare SD card image
+## Prepare SD card
 
-To run LVGLPlayer firmware, you need a SD card which contains all necessary files. To prepare this SD card, follow these steps.
+To run LVGLPlayer firmware, you need a SD card which contains all necessary files. To prepare this SD card, follow below steps.
+
+1. unzip sdcard.zip and copy all contents into your SD card.
+2. Obtain Doom WAD file(s) and copy to under FlashData dir.
+3. Download SC55 music packs and copy flac files under doom1-music, doom2-music and tnt-music directory.
+4. Prepare ttf font file which is used to display music title and artist name in Bluetooth Player. Then rename its file name as 'AlbumFont.ttf' and copy it to under FlashData directory.
