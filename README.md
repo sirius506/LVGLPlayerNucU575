@@ -27,6 +27,8 @@ SB50 jumper on the Nucleo board.
 LVGL Player supports three applications and you can select one of the
 application on the initial startup screen.
 
+![select_screen](https://github.com/user-attachments/assets/f4b2d042-1b5c-420f-8219-2e2b0eccfac1)
+
 1. DoomPlayer -- Play DOOM music, sounds and games.
 2. Bluetooth Player -- Act as bluetooth A2DP sink client.
 3. Osilloscope Music -- Play and display [Oscilloscope music](https://oscilloscopemusic.com/) files.
@@ -43,15 +45,33 @@ application on the initial startup screen.
 * Runs on the FreeRTOS. It allows us LVGL GUI runs while Chocolate-Doom is running and provide Cheat code screen feature.
 * Game music files must be downloaded from [this site](http://sc55.duke4.net/games.php#doom). Please note that you need to download 'FLA Pack' files.
 
+![DoomPlayerStart](https://github.com/user-attachments/assets/fbc68a92-5db6-420b-83eb-81d23e44db99)
+
+![DoomPlayerMenu](https://github.com/user-attachments/assets/7ce2ef10-5a91-48d1-a33a-d13c271e0287)
+
+![DoomPlayerMusic](https://github.com/user-attachments/assets/64c4d27d-d4fb-4f43-9cf0-52608cd5dbc8)
+
+![DoomPlayerSound](https://github.com/user-attachments/assets/77bc90bd-78f0-4b23-834f-7d82ef2413ee)
+
+![DoomPlayerGame1](https://github.com/user-attachments/assets/35791cc3-d0b3-4a01-bd18-f9dfeedd7269)
+
+![DoomPlayerGame2](https://github.com/user-attachments/assets/4dcf60e3-f8c0-452a-b048-6c33286816d8)
+
 ## Bluetooth Player
 * Bluethooth music player. Software acts as A2DP sink and works as bluetooth audio output device.
 * Only SBC codec is supported.
 * Title and artist name displayed on the screen.
 
+![BTPlayer1](https://github.com/user-attachments/assets/a0663820-5dd8-48bc-ba4c-9e0037a6d7d8)
+
+![BTPlayer2](https://github.com/user-attachments/assets/23dcb86b-c939-4536-abaa-0109dea3ef62)
+
 ## Oscilloscope Music
 * Plays [Oscilloscpe Music](https://oscilloscopemusic.com/) .WAV sound files on the SD card and shows its visual effects on the LCD.
 * This is very simple implementation. It simply plots upper 8bit PCM values as (X,Y) coordinates, but still you can enjoy visual effects.
 * You need to purchase necessary WAV files and store those files on the SD card.
+
+![OscCore2](https://github.com/user-attachments/assets/bf867100-0e9a-4036-8a14-bad15a9174f5)
 
 Please refer [Wiki pages](https://github.com/sirius506/DoomPlayerNucU575/wiki) for more descriptions and screen shot images.
 
