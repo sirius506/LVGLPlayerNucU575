@@ -171,8 +171,6 @@ static int list_add(char *fname)
   int i;
   MUSIC_INFO *mi = MusicInfo;
 
-  fname = M_StringJoin(FLASH_DIR, "/", fname, NULL);
-
   for (i = 0; i < MAX_MUSIC; i++)
   {
     if (mi->path == NULL)

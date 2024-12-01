@@ -19,9 +19,8 @@ typedef struct {
  */
 static const char *FileNames[] = {
   "default.cfg",   "disco-doom.cfg", "doom1-music.cfg", "doom2-music.cfg",
-  "tnt-music.cfg", "tnt-music",      "doom1-music",     "doom2-music",
-  "Doom1.bin",     "DoomUlt.bin",    "DoomII1.bin",     "DoomII2.bin",
-  "Doom3.bin",     "Doom3a.bin",     "Doom3RE1.bin",
+  "tnt-music.cfg", "Doom1.bin",      "DoomUlt.bin",     "DoomII1.bin",
+  "DoomII2.bin",   "Doom3.bin",      "Doom3a.bin",      "Doom3RE1.bin",
   "Doom3RE2.bin",  TTF_FONT_NAME,
 };
 
