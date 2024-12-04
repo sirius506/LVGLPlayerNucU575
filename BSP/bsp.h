@@ -37,11 +37,6 @@ typedef struct {
 } DOOM_SAI_Handle;
 
 typedef struct {
-  DAC_HandleTypeDef  *hdac;
-  osSemaphoreId_t    *iosem;
-} DOOM_DAC_Handle;
-
-typedef struct {
   OSPI_HandleTypeDef *hospi;
   DEV_MODE           device_mode;
   QSPI_MODE          qspi_mode;
@@ -93,7 +88,6 @@ typedef struct {
   DCACHE_HandleTypeDef *dcache;
   CRC_HandleTypeDef *crc_comp;;
   SD_HandleTypeDef  *sdmmc;
-  DOOM_DAC_Handle   *audio_dac;
   TIM_HandleTypeDef *pwm_timer;
   BOOT_MODE         boot_mode;
 } HAL_DEVICE;

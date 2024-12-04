@@ -46,7 +46,6 @@ ADC_HandleTypeDef hadc1;
 
 CRC_HandleTypeDef hcrc;
 
-DAC_HandleTypeDef hdac1;
 DMA_NodeTypeDef Node_GPDMA1_Channel2;
 DMA_QListTypeDef List_GPDMA1_Channel2;
 DMA_HandleTypeDef handle_GPDMA1_Channel2;
@@ -96,7 +95,6 @@ DOOM_I2C_Handle  touch_i2c;
 DOOM_I2C_Handle  codec_i2c;
 DOOM_LCD_Handle  tft_lcd;
 DOOM_HASH_Handle comp_hash;
-DOOM_DAC_Handle  audio_dac;
 DOOM_SAI_Handle  audio_sai;
 
 /* USER CODE END PV */
@@ -109,7 +107,6 @@ static void MPU_Config(void);
 void MX_FREERTOS_Init(void);
 static void MX_GPIO_Init(void);
 static void MX_GPDMA1_Init(void);
-static void MX_DAC1_Init(void);
 static void MX_FMC_Init(void);
 static void MX_ICACHE_Init(void);
 static void MX_OCTOSPI1_Init(void);
@@ -176,7 +173,6 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_GPDMA1_Init();
-  MX_DAC1_Init();
   MX_FMC_Init();
   MX_ICACHE_Init();
   MX_OCTOSPI1_Init();
@@ -227,9 +223,6 @@ int main(void)
   haldev->tft_lcd->hdma2d->UserPointer = (void *)haldev->tft_lcd;
   haldev->tft_lcd->pwm_timer = &htim15;
   haldev->dcache = &hdcache1;
-
-  haldev->audio_dac = &audio_dac;
-  haldev->audio_dac->hdac = &hdac1;
 
   haldev->audio_sai = &audio_sai;
   haldev->audio_sai->hsai = &hsai_BlockA1;
@@ -456,68 +449,6 @@ static void MX_CRC_Init(void)
   /* USER CODE BEGIN CRC_Init 2 */
 
   /* USER CODE END CRC_Init 2 */
-
-}
-
-/**
-  * @brief DAC1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_DAC1_Init(void)
-{
-
-  /* USER CODE BEGIN DAC1_Init 0 */
-
-  /* USER CODE END DAC1_Init 0 */
-
-  DAC_ChannelConfTypeDef sConfig = {0};
-  DAC_AutonomousModeConfTypeDef sAutonomousMode = {0};
-
-  /* USER CODE BEGIN DAC1_Init 1 */
-
-  /* USER CODE END DAC1_Init 1 */
-
-  /** DAC Initialization
-  */
-  hdac1.Instance = DAC1;
-  if (HAL_DAC_Init(&hdac1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** DAC channel OUT1 config
-  */
-  sConfig.DAC_HighFrequency = DAC_HIGH_FREQUENCY_INTERFACE_MODE_AUTOMATIC;
-  sConfig.DAC_DMADoubleDataMode = DISABLE;
-  sConfig.DAC_SignedFormat = ENABLE;
-  sConfig.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_DISABLE;
-  sConfig.DAC_Trigger = DAC_TRIGGER_T6_TRGO;
-  sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
-  sConfig.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_EXTERNAL;
-  sConfig.DAC_UserTrimming = DAC_TRIMMING_FACTORY;
-  if (HAL_DAC_ConfigChannel(&hdac1, &sConfig, DAC_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Autonomous Mode
-  */
-  sAutonomousMode.AutonomousModeState = DAC_AUTONOMOUS_MODE_DISABLE;
-  if (HAL_DACEx_SetConfigAutonomousMode(&hdac1, &sAutonomousMode) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** DAC channel OUT2 config
-  */
-  if (HAL_DAC_ConfigChannel(&hdac1, &sConfig, DAC_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN DAC1_Init 2 */
-
-  /* USER CODE END DAC1_Init 2 */
 
 }
 
