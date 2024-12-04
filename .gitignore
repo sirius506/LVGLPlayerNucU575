@@ -48,6 +48,7 @@
 .tmp_versions/
 build/
 sdcard/
+release/
 modules.order
 Module.symvers
 Mkfile.old
