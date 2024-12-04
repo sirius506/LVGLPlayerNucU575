@@ -102,7 +102,7 @@ See also: [this page](https://github.com/sirius506/LVGLPlayerNucU575/wiki/SD-Car
 
 ### Install
 
-1. Build or download LVGLPlayerNucU575.elf from latest [relase](release).
+1. Build or download LVGLPlayerNucU575.elf from latest [relase](https://github.com/sirius506/LVGLPlayerNucU575/releases).
 2. Write elf binary into Nucleo-U575.
 3. Insert SD card and supply power. Be sure to have at least one WAD file under FlashData directory.
 4. On the application select screen. Press 'Doom Player' button.
