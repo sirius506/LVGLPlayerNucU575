@@ -28,9 +28,7 @@ FATFS SDFatFS;    /* File system object for SD logical drive */
 FIL SDFile;       /* File object for SD */
 FILINFO SDInfo;
 FIL MusicFile;
-#ifdef USE_JPEG
-FIL JpegFile;
-#endif
+FIL RGBFile;
 
 SEMAPHORE_DEF(sem_sdfile)
 
@@ -150,7 +148,9 @@ FIL *OpenMusicFile(char *name)
 
   res = f_open(&MusicFile, name, FA_READ);
   if (res != FR_OK)
+  {
     return NULL;
+  }
   return &MusicFile;
 }
 
@@ -159,22 +159,22 @@ void CloseMusicFile(FIL *pfile)
   f_close(pfile);
 }
 
-#ifdef USE_JPEG
-FIL *CreateJpegFile(char *name)
+FIL *CreateRGBFile(char *name)
 {
   FRESULT res;
 
-  res = f_open(&JpegFile, name, FA_CREATE_ALWAYS|FA_WRITE);
+  res = f_open(&RGBFile, name, FA_CREATE_ALWAYS|FA_WRITE);
   if (res != FR_OK)
+  {
     return NULL;
-  return &JpegFile;
+  }
+  return &RGBFile;
 }
 
-void CloseJpegFile(FIL *pfile)
+void CloseRGBFile(FIL *pfile)
 {
   f_close(pfile);
 }
-#endif
 
 boolean M_SDFileExists(char *filename)
 {

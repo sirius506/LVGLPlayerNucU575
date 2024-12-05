@@ -42,7 +42,6 @@ LV_IMG_DECLARE(Button_Shutdown)
 
 void StartDoomTask(void *argument);
 
-extern void bsp_process_touch(lv_indev_data_t *tp);
 extern lv_obj_t *music_player_create(AUDIO_CONF *audio_config, lv_group_t *g, lv_style_t *btn_style, lv_indev_t *keypad_dev);
 
 extern int doom_main(int argc, char **argv);
@@ -1174,7 +1173,9 @@ void StartGuiTask(void *args)
           for (wp = wadlist; wp->wadInfo; wp++)
           {
             sdgame = wp;
+#ifdef FLASH_GAME_CHECK
             if (sdgame->wadInfo != flash_game)  // Don't create button if the IWAD is on the SPI flash
+#endif
             {
               lv_obj_t *obj;
               lv_obj_t *label;

@@ -302,12 +302,13 @@ void bsp_get_date(char *tb)
   sprintf(tb, "%02d-%02d-%02d\r\n", datedef.Year, datedef.Month, datedef.Date);
 }
 
-void bsp_generate_snap_filename(char *cp, int size)
+void bsp_generate_snap_filename(char *cp, char *dirname, int size)
 {
   HAL_RTC_GetTime(&hrtc, &timedef, RTC_FORMAT_BIN);
   HAL_RTC_GetDate(&hrtc, &datedef, RTC_FORMAT_BIN);
 
-  lv_snprintf(cp, size, "IMG%02d%02d%02d%02d%02d%02d.rgb",
+  lv_snprintf(cp, size, "%s/IMG%02d%02d%02d%02d%02d%02d.rgb",
+      dirname,
       datedef.Year, datedef.Month, datedef.Date,
       timedef.Hours, timedef.Minutes, timedef.Seconds);
 }

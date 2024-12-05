@@ -45,8 +45,8 @@ void CloseFATFile(FIL *pfile);
 FIL *OpenMusicFile(char *name);
 void CloseMusicFile(FIL *pfile);
 FIL *CreateFATFile(char *name);
-FIL *CreateJpegFile(char *name);
-void CloseJpegFile(FIL *pfile);
+FIL *CreateRGBFile(char *name);
+void CloseRGBFile(FIL *pfile);
 
 /* USER CODE END Prototypes */
 #ifdef __cplusplus

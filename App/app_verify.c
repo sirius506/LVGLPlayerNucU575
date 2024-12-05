@@ -353,6 +353,7 @@ static int copyfile(const char *fname, uint32_t fsize, uint32_t foffset, uint8_t
       postGuiEvent(&guiev);
       break;;
     }
+    cpature_check();
     rsize -= nb;
     if (bcount == 0)
     {
@@ -427,6 +428,7 @@ void CopyFlash(WADLIST *list, uint32_t foffset)
     guiev.evval0 = OP_PROGRESS;
     guiev.evarg1 = (void *)(esize * 100 / fsize);
     postGuiEvent(&guiev);
+    cpature_check();
   }
   debug_printf("Erase done.\n");
   osDelay(10);

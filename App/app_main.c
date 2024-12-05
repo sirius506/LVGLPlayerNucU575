@@ -18,6 +18,10 @@ static uint8_t reqcmdBuffer[REQCMD_DEPTH * sizeof(REQUEST_CMD)];
 MESSAGEQ_DEF(reqcmdq, reqcmdBuffer, sizeof(reqcmdBuffer))
 static osMessageQueueId_t  reqcmdqId;
 
+static osEventFlagsId_t evreqFlagId;
+
+EVFLAG_DEF(mainreqFlag)
+
 extern void StartGuiTask(void *args);
 extern void StartPlayerGuiTask(void *args);
 extern void StartShellTask(void *arg);
@@ -28,10 +32,18 @@ extern void tft_init(HAL_DEVICE *haldev);
 extern lv_indev_data_t tp_data;
 extern void bsp_process_touch(lv_indev_data_t *tp);
 
+#define	MR_FLAG_CMD	0x01
+#define	MR_FLAG_CAPTURE	0x02
+
 void postMainRequest(int cmd, void *arg, int val)
 {
   REQUEST_CMD request;
+  uint32_t flags = MR_FLAG_CMD;
 
+  if (cmd == REQ_SCREEN_SAVE)
+    flags |= MR_FLAG_CAPTURE;
+
+  osEventFlagsSet(evreqFlagId, flags);
   request.cmd = cmd;
   request.arg = arg;
   request.val = val;
@@ -40,13 +52,13 @@ void postMainRequest(int cmd, void *arg, int val)
 
 extern const HeapRegion_t xHeapRegions[];
 
-#define	FNAME_LEN	22
+#define	FNAME_LEN	(9+22)
 #define	SCREEN_BUFF_SIZE	(480*3*320)
 #define	SCREEN_DIR	"/Screen"
 #define	WBSIZE	(1024*4)
 
 static uint8_t wbuffer[WBSIZE];
-extern void bsp_generate_snap_filename(char *cp, int size);
+extern void bsp_generate_snap_filename(char *cp, char *dirname, int size);
 
 void SaveScreenFile(uint8_t *bp, int len)
 {
@@ -58,9 +70,8 @@ void SaveScreenFile(uint8_t *bp, int len)
 
   nb = 0;
   res = FR_OK;
-  f_chdir(SCREEN_DIR);
-  bsp_generate_snap_filename(fname, FNAME_LEN);
-  pfile = CreateFATFile(fname);
+  bsp_generate_snap_filename(fname, SCREEN_DIR, FNAME_LEN);
+  pfile = CreateRGBFile(fname);
   if (pfile)
   {
     while (len > 0 && res == FR_OK)
@@ -72,10 +83,42 @@ void SaveScreenFile(uint8_t *bp, int len)
         bp += nb;
       len -= nb;
     }
-    CloseFATFile(pfile);
+    CloseRGBFile(pfile);
     debug_printf("save %s.\n", (res == FR_OK)? "success" : "falied");
   }
-  f_chdir("/");
+}
+
+static uint8_t *screen_buffer;
+
+void cpature_check()
+{
+  uint32_t evflag;
+  REQUEST_CMD request;
+  osStatus_t qst;
+  HAL_DEVICE *haldev = &HalDevice;
+
+  evflag = osEventFlagsGet(evreqFlagId);
+  if (evflag & MR_FLAG_CAPTURE)
+  {
+    osEventFlagsClear(evreqFlagId, MR_FLAG_CAPTURE|MR_FLAG_CMD);
+    if (screen_buffer)
+    {
+debug_printf("catpture in check!!\n");
+        Board_Audio_Pause(haldev);
+        bsp_lcd_save(screen_buffer);
+
+        SaveScreenFile(screen_buffer, SCREEN_BUFF_SIZE);
+        Board_Audio_Resume(haldev);
+debug_printf("image saved.\n");
+
+        /* Remove queued command */
+
+        do
+        {
+          qst = osMessageQueueGet(reqcmdqId, &request, NULL, 0);
+        } while (qst == osOK);
+    }
+  }
 }
 
 void StartDefaultTask(void *argument)
@@ -84,7 +127,6 @@ void StartDefaultTask(void *argument)
   GUI_EVENT guiev;
   int val, res;
   char *errs1, *errs2;
-  uint8_t *screen_buffer;
 
   HAL_DEVICE *haldev = &HalDevice;
 
@@ -97,6 +139,7 @@ debug_printf("MCU Rev: %x\n",  HAL_GetREVID());
 
   vPortDefineHeapRegions(xHeapRegions );
 
+  evreqFlagId = osEventFlagsNew(&attributes_mainreqFlag);
   reqcmdqId = osMessageQueueNew(REQCMD_DEPTH, sizeof(REQUEST_CMD), &attributes_reqcmdq);
 
   tft_init(haldev);
@@ -163,8 +206,24 @@ debug_printf("MCU Rev: %x\n",  HAL_GetREVID());
     REQUEST_CMD request;
     WADLIST *game;
     osStatus_t qst;
+    int32_t evflag;
 
-    qst = osMessageQueueGet(reqcmdqId, &request, NULL, wait_time);
+    evflag = osEventFlagsWait (evreqFlagId, MR_FLAG_CMD|MR_FLAG_CAPTURE, osFlagsWaitAny, wait_time);
+    if (evflag & MR_FLAG_CAPTURE)
+    {
+      if (screen_buffer)
+      {
+debug_printf("capture in main!\n");
+        Board_Audio_Pause(haldev);
+        bsp_lcd_save(screen_buffer);
+      }
+    }
+
+    if (evflag & MR_FLAG_CMD)
+    {
+      qst = osMessageQueueGet(reqcmdqId, &request, NULL, wait_time);
+    }
+
     if (qst != osOK)
     {
       debug_printf("qst = %d\n", qst);
@@ -218,8 +277,6 @@ debug_printf("MCU Rev: %x\n",  HAL_GetREVID());
     case REQ_SCREEN_SAVE:
       if (screen_buffer)
       {
-        Board_Audio_Pause(haldev);
-        bsp_lcd_save(screen_buffer);
         SaveScreenFile(screen_buffer, SCREEN_BUFF_SIZE);
         Board_Audio_Resume(haldev);
       }
