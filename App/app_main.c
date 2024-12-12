@@ -33,13 +33,12 @@ extern void tft_init(HAL_DEVICE *haldev);
 extern lv_indev_data_t tp_data;
 extern void bsp_process_touch(lv_indev_data_t *tp);
 
-#define	MR_FLAG_CMD	0x01
-#define	MR_FLAG_CAPTURE	0x02
+#define	MR_FLAG_CAPTURE	0x01
 
 void postMainRequest(int cmd, void *arg, int val)
 {
   REQUEST_CMD request;
-  if (inFlashUpdate)
+  if (inFlashUpdate && (cmd == REQ_SCREEN_SAVE))
   {
     osEventFlagsSet(evreqFlagId, MR_FLAG_CAPTURE);
   }
@@ -100,7 +99,7 @@ void cpature_check()
   evflag = osEventFlagsGet(evreqFlagId);
   if (evflag & MR_FLAG_CAPTURE)
   {
-    osEventFlagsClear(evreqFlagId, MR_FLAG_CAPTURE|MR_FLAG_CMD);
+    osEventFlagsClear(evreqFlagId, MR_FLAG_CAPTURE);
     if (screen_buffer)
     {
 debug_printf("catpture in check!!\n");
@@ -248,16 +247,17 @@ debug_printf("MCU Rev: %x\n",  HAL_GetREVID());
       wait_time = 3000;
       btapi_shutdown();
       break;
+#if 0
     case REQ_DUMMY:
       if (wait_time != osWaitForever)
         wait_time = 500;
       break;
-    case REQ_CAPTURE_SAVE:
-      debug_printf("capture data @ %x\n", request.arg);
-      break;
+#endif
     case REQ_SCREEN_SAVE:
       if (screen_buffer)
       {
+        Board_Audio_Pause(haldev);
+        bsp_lcd_save(screen_buffer);
         SaveScreenFile(screen_buffer, SCREEN_BUFF_SIZE);
         Board_Audio_Resume(haldev);
       }

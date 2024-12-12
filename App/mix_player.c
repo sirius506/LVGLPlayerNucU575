@@ -1013,17 +1013,21 @@ int Mix_PlayingMusic()
 
 int Mix_VolumeMusic(int volume)
 {
+#if 0
   MIXCONTROL_EVENT mixc;
+#endif
 
   if (volume < 0)
     volume = 75;
 
+#if 0
   mixc.event = MIX_SET_VOLUME;
   mixc.arg = (void *)volume;
   if (osMessageQueuePut(MixInfo.mixevqId, &mixc, 0, 0) != osOK)
   {
     debug_printf("%s: put failed.\n", __FUNCTION__);
   }
+#endif
 
   return volume;
 }

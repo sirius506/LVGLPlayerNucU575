@@ -35,8 +35,6 @@ typedef enum {
   REQ_COPY_FLASH,               // Copy SD game image onto SPI flash
   REQ_END_DOOM,
   REQ_TOUCH_INT,
-  REQ_DUMMY,
-  REQ_CAPTURE_SAVE,
   REQ_SCREEN_SAVE,
   REQ_VERIFY_FONT,
 } REQ_CODE;
