@@ -498,8 +498,6 @@ lv_obj_t *music_player_create(AUDIO_CONF *audio_config, lv_group_t *g, lv_style_
   IWAD_HEADER *dh;
   lv_obj_t *scr;
 
-  LoadMusicConfigs();
-
   play_frequency = audio_config->devconf->playRate;
 
   dirent = dirInfo->fs_direntry;

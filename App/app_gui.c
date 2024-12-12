@@ -1264,6 +1264,7 @@ void StartGuiTask(void *args)
 
         lv_group_delete(starts->ing);
         lv_obj_delete(starts->screen);
+        LoadMusicConfigs();
         break;
       case GUIEV_SD_GAME_SELECT:
         sel_sd_game = (WADLIST *)event.evarg1;
