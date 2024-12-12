@@ -14,7 +14,6 @@ static int initial_report;
 
 extern int fft_getcolor(uint8_t *p);
 extern void GetPlayerHealthColor(uint8_t *cval);
-extern volatile DOOM_SCREEN_STATUS DoomScreenStatus;
 
 static void DualSense_LVGL_Keycode(struct dualsense_input_report *rp, uint8_t hat, uint32_t vbutton);
 static void DualSense_DOOM_Keycode(struct dualsense_input_report *rp, uint8_t hat, uint32_t vbutton);
@@ -117,7 +116,14 @@ static void decode_report(struct dualsense_input_report *rp, int hid_mode)
   vbutton |= (rp->buttons[0] & 0xf0)>> 4;	/* Square, Cross, Circle, Triangle */
   vbutton |= hatmap[hat];
 
-  HidProcTable[hid_mode](rp, hat, vbutton);
+  if ((DoomScreenStatus == DOOM_SCREEN_SUSPEND) || (DoomScreenStatus == DOOM_SCREEN_SUSPENDED))
+  {
+    HidProcTable[HID_MODE_LVGL](rp, hat, vbutton);
+  }
+  else
+  {
+    HidProcTable[hid_mode](rp, hat, vbutton);
+  }
 
   if (rp->battery_level != prev_blevel)
   {

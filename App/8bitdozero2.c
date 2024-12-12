@@ -13,6 +13,7 @@
 #include "gamepad.h"
 #include "SDL.h"
 #include "SDL_joystick.h"
+#include "board_if.h"
 
 /*
  * button[0] : Left & Right
@@ -138,7 +139,16 @@ static void Zero2DecodeInputReport(HID_REPORT *report)
       if (rp->buttons[5] & 0x20)
         vbutton |= VBMASK_PS;
 
-      zero2HidProcTable[report->hid_mode](rp, vbutton);
+      if ((DoomScreenStatus == DOOM_SCREEN_SUSPEND) || (DoomScreenStatus == DOOM_SCREEN_SUSPENDED))
+      {
+        report->hid_mode = HID_MODE_LVGL;
+        zero2HidProcTable[report->hid_mode](rp, vbutton);
+        report->hid_mode = HID_MODE_DOOM;
+      }
+      else
+      {
+        zero2HidProcTable[report->hid_mode](rp, vbutton);
+      }
     }
   }
 }

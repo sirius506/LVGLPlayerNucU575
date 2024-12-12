@@ -16,7 +16,6 @@
 
 extern int fft_getcolor(uint8_t *p);
 extern void GetPlayerHealthColor(uint8_t *cval);
-extern volatile DOOM_SCREEN_STATUS DoomScreenStatus;
 
 static void DS4_LVGL_Keycode(struct ds4_input_report *rp, uint8_t hat, uint32_t vbutton, HID_REPORT *rep);
 static void DualShock_DOOM_Keycode(struct ds4_input_report *rp, uint8_t hat, uint32_t vbutton, HID_REPORT *rep);
