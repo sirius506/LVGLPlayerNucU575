@@ -19,6 +19,7 @@ MESSAGEQ_DEF(reqcmdq, reqcmdBuffer, sizeof(reqcmdBuffer))
 static osMessageQueueId_t  reqcmdqId;
 
 static osEventFlagsId_t evreqFlagId;
+static uint8_t inFlashUpdate;
 
 EVFLAG_DEF(mainreqFlag)
 
@@ -38,16 +39,17 @@ extern void bsp_process_touch(lv_indev_data_t *tp);
 void postMainRequest(int cmd, void *arg, int val)
 {
   REQUEST_CMD request;
-  uint32_t flags = MR_FLAG_CMD;
-
-  if (cmd == REQ_SCREEN_SAVE)
-    flags |= MR_FLAG_CAPTURE;
-
-  osEventFlagsSet(evreqFlagId, flags);
-  request.cmd = cmd;
-  request.arg = arg;
-  request.val = val;
-  osMessageQueuePut(reqcmdqId, &request, 0, 0);
+  if (inFlashUpdate)
+  {
+    osEventFlagsSet(evreqFlagId, MR_FLAG_CAPTURE);
+  }
+  else
+  {
+    request.cmd = cmd;
+    request.arg = arg;
+    request.val = val;
+    osMessageQueuePut(reqcmdqId, &request, 0, 0);
+  }
 }
 
 extern const HeapRegion_t xHeapRegions[];
@@ -93,8 +95,6 @@ static uint8_t *screen_buffer;
 void cpature_check()
 {
   uint32_t evflag;
-  REQUEST_CMD request;
-  osStatus_t qst;
   HAL_DEVICE *haldev = &HalDevice;
 
   evflag = osEventFlagsGet(evreqFlagId);
@@ -110,13 +110,6 @@ debug_printf("catpture in check!!\n");
         SaveScreenFile(screen_buffer, SCREEN_BUFF_SIZE);
         Board_Audio_Resume(haldev);
 debug_printf("image saved.\n");
-
-        /* Remove queued command */
-
-        do
-        {
-          qst = osMessageQueueGet(reqcmdqId, &request, NULL, 0);
-        } while (qst == osOK);
     }
   }
 }
@@ -206,23 +199,8 @@ debug_printf("MCU Rev: %x\n",  HAL_GetREVID());
     REQUEST_CMD request;
     WADLIST *game;
     osStatus_t qst;
-    int32_t evflag;
 
-    evflag = osEventFlagsWait (evreqFlagId, MR_FLAG_CMD|MR_FLAG_CAPTURE, osFlagsWaitAny, wait_time);
-    if (evflag & MR_FLAG_CAPTURE)
-    {
-      if (screen_buffer)
-      {
-debug_printf("capture in main!\n");
-        Board_Audio_Pause(haldev);
-        bsp_lcd_save(screen_buffer);
-      }
-    }
-
-    if (evflag & MR_FLAG_CMD)
-    {
-      qst = osMessageQueueGet(reqcmdqId, &request, NULL, wait_time);
-    }
+    qst = osMessageQueueGet(reqcmdqId, &request, NULL, wait_time);
 
     if (qst != osOK)
     {
@@ -257,8 +235,11 @@ debug_printf("capture in main!\n");
       postGuiEvent(&guiev);
       break; 
     case REQ_ERASE_FLASH:
+      inFlashUpdate = 1;
+      osEventFlagsClear(evreqFlagId, MR_FLAG_CAPTURE);
       game = (WADLIST *) request.arg;
       CopyFlash(game, (uint32_t)res);
+      inFlashUpdate = 0;
       break;
     case REQ_TOUCH_INT:
       bsp_process_touch(&tp_data);
