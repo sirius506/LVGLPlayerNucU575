@@ -53,6 +53,14 @@ application on the initial startup screen.
 
 ![DoomPlayerSound](https://github.com/user-attachments/assets/77bc90bd-78f0-4b23-834f-7d82ef2413ee)
 
+If gamepad is not connected when DOOM has started, control buttons are dusplayed on the LCD screen. But it is not easy to play the game, it is strongly recommented to use gamepad.
+
+![doom_small](https://github.com/user-attachments/assets/89af701a-7601-403e-8a4b-07e58540d4ff)
+
+While game play is on-going, touch center of LCD screen to bring cheat mode buttons.
+
+![doom_cheat](https://github.com/user-attachments/assets/338aee16-52bb-43d7-bdb6-4229785b9fa0)
+
 ![DoomPlayerGame1](https://github.com/user-attachments/assets/35791cc3-d0b3-4a01-bd18-f9dfeedd7269)
 
 ![DoomPlayerGame2](https://github.com/user-attachments/assets/4dcf60e3-f8c0-452a-b048-6c33286816d8)
