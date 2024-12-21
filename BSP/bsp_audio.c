@@ -164,6 +164,7 @@ void set_sai_pll(int sample_rate)
  */
 static void Player_Audio_Init(AUDIO_CONF *aconf, const AUDIO_INIT_PARAMS *param)
 {
+  int cvol;
   DOOM_SAI_Handle *audio = aconf->haldev->audio_sai;
 
   if (aconf->soundLockId == 0)
@@ -187,7 +188,11 @@ static void Player_Audio_Init(AUDIO_CONF *aconf, const AUDIO_INIT_PARAMS *param)
 
   aconf->sound_buffer = param->buffer;
   aconf->sound_buffer_size = param->buffer_size;
-  bsp_codec_init(aconf->haldev->codec_i2c, param->volume, param->sample_rate);
+
+  /* Set relative volume level for this application */
+  cvol = bsp_codec_getvol(aconf->haldev->codec_i2c);
+  bsp_codec_init(aconf->haldev->codec_i2c, cvol * param->volume / 100, param->sample_rate);
+
   aconf->sample_rate = param->sample_rate;
   aconf->volume = param->volume;
 
