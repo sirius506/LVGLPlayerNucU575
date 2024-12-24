@@ -28,6 +28,10 @@ set(LV_CONF_BUILD_DISABLE_DEMOS 1)
 set(LV_CONF_PATH ${CMAKE_CURRENT_SOURCE_DIR}/BSP/lv_conf.h
      CACHE STRING "" FORCE)
 
+set(FREERTOS_PATH "FreeRTOS")
+set(FREERTOS_HEAP "5" CACHE STRING "" FORCE)
+set(FREERTOS_PORT "GCC_ARM_CM33_NTZ_NONSECURE" CACHE STRING "" FORCE)
+
 # Include toolchain file
 include("cmake/gcc-arm-none-eabi.cmake")
 
@@ -51,8 +55,22 @@ add_subdirectory(CMSIS-DSP/Source)
 add_subdirectory(lvgl)
 add_subdirectory(btstack)
 add_subdirectory(BSP)
-add_subdirectory(RTT)
+add_subdirectory(SEGGER)
 add_subdirectory(chocolate-doom)
+
+add_library(freertos_config INTERFACE)
+
+target_include_directories(freertos_config SYSTEM INTERFACE
+  Core/Inc
+  SEGGER
+  SEGGER/Config
+)
+
+target_compile_definitions(freertos_config INTERFACE
+  projCOVERAGE_TEST=0
+)
+
+add_subdirectory(FreeRTOS)
 
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
@@ -148,19 +166,17 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${PROJECT_SOURCE_DIR}/Drivers/STM32U5xx_HAL_Driver/Inc/Legacy
     ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32U5xx/Include
     ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Include
-    ${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/FreeRTOS/Source/include
-    ${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM33_NTZ/non_secure
-    ${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2
-    ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/RTOS2/Include
+    ${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/CMSIS_RTOS_V2
     ${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/ff15/source
     ${PROJECT_SOURCE_DIR}/CMSIS-DSP-1.15.0/Include
     ${PROJECT_SOURCE_DIR}/SDL
     ${PROJECT_SOURCE_DIR}/btstack
     ${PROJECT_SOURCE_DIR}/btstack/src
-    ${PROJECT_SOURCE_DIR}/RTT
+    ${PROJECT_SOURCE_DIR}/SEGGER
     ${PROJECT_SOURCE_DIR}/App
     ${PROJECT_SOURCE_DIR}/BSP
     ${PROJECT_SOURCE_DIR}/Fusion
+    ${PROJECT_SOURCE_DIR}/FreeRTOS/include
     ${PROJECT_SOURCE_DIR}/lvgl
     ${PROJECT_SOURCE_DIR}/chocolate-doom-3.0.1/src
     $(PROJECT_SOURCE_DIR)/ntshell/src/lib/core
@@ -170,6 +186,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
+    USE_SYSTEMVIEW
 )
 
 target_compile_options(bsp PUBLIC
@@ -189,16 +206,14 @@ target_compile_options(lvgl INTERFACE
 )
 
 target_include_directories(lvgl INTERFACE
-    ${PROJECT_SOURCE_DIR}/RTT
+    ${PROJECT_SOURCE_DIR}/SEGGER
     ${PROJECT_SOURCE_DIR}/Core/Inc
     ${PROJECT_SOURCE_DIR}/Drivers/STM32U5xx_HAL_Driver/Inc
     ${PROJECT_SOURCE_DIR}/Drivers/STM32U5xx_HAL_Driver/Inc/Legacy
     ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32U5xx/Include
     ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Include
-    ${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/FreeRTOS/Source/include
-    ${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM33_NTZ/non_secure
-    ${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2
-    ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/RTOS2/Include
+    ${PROJECT_SOURCE_DIR}/FreeRTOS/include
+    ${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/CMSIS_RTOS_V2
 )
 
 target_include_directories(CMSISDSP PUBLIC
@@ -213,7 +228,8 @@ target_include_directories (doom PUBLIC
   App
   SDL
   BSP
-  RTT
+  SEGGER
+  SEGGER/Config
   Core/Inc
   lvgl
   chocolate-doom
@@ -221,18 +237,17 @@ target_include_directories (doom PUBLIC
   ${PROJECT_SOURCE_DIR}/Drivers/STM32U5xx_HAL_Driver/Inc/Legacy
   ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32U5xx/Include
   ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Include
-  Middlewares/Third_Party/FreeRTOS/Source/include
-  Middlewares/Third_Party/FreeRTOS/Source/portable/GCC
-  Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM33_NTZ/non_secure
-  ${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2
-  ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/RTOS2/Include
+  ${PROJECT_SOURCE_DIR}/FreeRTOS/Include
+  ${PROJECT_SOURCE_DIR}/FreeRTOS/portable/GCC/ARM_CM33_NTZ/non_secure
+  ${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/CMSIS_RTOS_V2
   Middlewares/Third_Party/ff15/source
 )
 
 target_include_directories(btstack PUBLIC
   App
   BSP
-  RTT
+  SEGGER
+  SEGGER/Config
   lvgl
   SDL
   btstack
@@ -246,22 +261,21 @@ target_include_directories(btstack PUBLIC
   ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32U5xx/Include
   ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Include
   Core/Inc
-  Middlewares/Third_Party/CMSIS/RTOS2/Include
-  Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2
-  Middlewares/Third_Party/FreeRTOS/Source/include
-  Middlewares/Third_Party/FreeRTOS/Source/portable/GCC
-  Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM33_NTZ/non_secure
+  Middlewares/Third_Party/CMSIS_RTOS_V2
+  ${PROJECT_SOURCE_DIR}/FreeRTOS/Include
+  ${PROJECT_SOURCE_DIR}/FreeRTOS/portable/GCC/ARM_CM33_NTZ/non_secure
 )
 
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
+    freertos_kernel
 
     # Add user defined libraries
     lvgl
     doom
     btstack
     bsp
-    rtt
+    segger
     CMSISDSP
 )

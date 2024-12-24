@@ -18,8 +18,6 @@ target_include_directories(stm32cubemx INTERFACE
     ../../Drivers/STM32U5xx_HAL_Driver/Inc/Legacy
     ../../Drivers/CMSIS/Device/ST/STM32U5xx/Include
     ../../Drivers/CMSIS/Include
-    ../../Middlewares/Third_Party/FreeRTOS/Source/include/
-    ../../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM33_NTZ/non_secure/
     ../../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/
     ../../Middlewares/Third_Party/CMSIS/RTOS2/Include/
 )
@@ -72,17 +70,7 @@ target_sources(stm32cubemx INTERFACE
     ../../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_uart.c
     ../../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_uart_ex.c
     ../../Core/Src/system_stm32u5xx.c
-    ../../Middlewares/Third_Party/FreeRTOS/Source/croutine.c
-    ../../Middlewares/Third_Party/FreeRTOS/Source/event_groups.c
-    ../../Middlewares/Third_Party/FreeRTOS/Source/list.c
-    ../../Middlewares/Third_Party/FreeRTOS/Source/queue.c
-    ../../Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.c
-    ../../Middlewares/Third_Party/FreeRTOS/Source/tasks.c
-    ../../Middlewares/Third_Party/FreeRTOS/Source/timers.c
-    ../../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM33_NTZ/non_secure/port.c
-    ../../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM33_NTZ/non_secure/portasm.c
-    ../../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c
-    ../../Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_5.c
+    ../../Middlewares/Third_Party/CMSIS_RTOS_V2/cmsis_os2.c
     ../../Core/Src/sysmem.c
     ../../Core/Src/syscalls.c
     ../../startup_stm32u575xx.s

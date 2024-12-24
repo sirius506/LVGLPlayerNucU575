@@ -25,13 +25,13 @@ target_include_directories(bsp PUBLIC
     ../Drivers/CMSIS/Device/ST/STM32U5xx/Include
     ../Drivers/CMSIS/Include
     ../Middlewares/Third_Party/ARM_CMSIS/CMSIS/DSP/Include
-    ../Middlewares/Third_Party/FreeRTOS/Source/include
-    ../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM33_NTZ/non_secure
-    ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2
-    ../Middlewares/Third_Party/CMSIS/RTOS2/Include
+    ../SEGGER
+    ../SEGGER/Config
+    ../FreeRTOS/include
+    ../FreeRTOS/portable/GCC/ARM_CM33_NTZ/non_secure
+    ../Middlewares/Third_Party/CMSIS_RTOS_V2
     ../Middlewares/Third_Party/ff15/source
     ../SDL
-    ../RTT
     ../App
     ../BSP
     ../lvgl

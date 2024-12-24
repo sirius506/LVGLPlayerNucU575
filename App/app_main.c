@@ -1,4 +1,7 @@
 #include <stdio.h>
+#ifdef USE_SYSTEMVIEW
+#include "SEGGER_SYSVIEW.h"
+#endif
 #include "DoomPlayer.h"
 #include <string.h>
 #include "board_if.h"
@@ -123,6 +126,11 @@ void StartDefaultTask(void *argument)
   HAL_DEVICE *haldev = &HalDevice;
 
   bsp_init(haldev);
+
+#ifdef USE_SYSTEMVIEW
+  SEGGER_SYSVIEW_Conf();
+  debug_printf("SystemView enabled.\n");
+#endif
 
 debug_printf("MCU Rev: %x\n",  HAL_GetREVID());
   val = Board_PSRAMInfo(haldev);
