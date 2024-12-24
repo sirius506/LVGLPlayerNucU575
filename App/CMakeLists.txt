@@ -57,14 +57,14 @@ add_library(app STATIC
 # Enable CMake support for ASM and C languages
 enable_language(C)
 
-target_compile_definitions(app PUBLIC 
+target_compile_definitions(app PRIVATE 
 	USE_FULL_LL_DRIVER 
 	USE_HAL_DRIVER 
 	STM32U575xx
     $<$<CONFIG:Debug>:DEBUG>
 )
 
-target_include_directories(app PUBLIC
+target_include_directories(app PRIVATE
     ${PROJECT_SOURCE_DIR}/lvgl/demos/music
     ${PROJECT_SOURCE_DIR}/Core/Inc
     ${PROJECT_SOURCE_DIR}/Drivers/STM32U5xx_HAL_Driver/Inc

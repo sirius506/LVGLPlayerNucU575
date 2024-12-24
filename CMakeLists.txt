@@ -13,7 +13,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
-set(CMAKE_BUILD_TYPE "Release")
+#set(CMAKE_BUILD_TYPE "Release")
 
 # Define the build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -189,15 +189,15 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     USE_SYSTEMVIEW
 )
 
-target_compile_options(bsp PUBLIC
+target_compile_options(bsp PRIVATE
 -DUSE_FULL_LL_DRIVER -DUSE_HAL_DRIVER -DSTM32U575xx -DARM_MATH_LOOPUNROLL
 )
 
-target_compile_options(btstack PUBLIC
+target_compile_options(btstack PRIVATE
 -DUSE_FULL_LL_DRIVER -DUSE_HAL_DRIVER -DSTM32U575xx -DARM_MATH_LOOPUNROLL
 )
 
-target_compile_options(CMSISDSP PUBLIC
+target_compile_options(CMSISDSP PRIVATE
 -DUSE_FULL_LL_DRIVER -DUSE_HAL_DRIVER -DSTM32U575xx -DARM_MATH_LOOPUNROLL
 )
 

@@ -11,14 +11,14 @@ add_library(bsp STATIC
   sd_diskio.c
 )
 
-target_compile_definitions(bsp PUBLIC 
+target_compile_definitions(bsp PRIVATE 
 	USE_FULL_LL_DRIVER 
 	USE_HAL_DRIVER 
 	STM32U575xx
     $<$<CONFIG:Debug>:DEBUG>
 )
 
-target_include_directories(bsp PUBLIC
+target_include_directories(bsp PRIVATE
     ../Core/Inc
     ../Drivers/STM32U5xx_HAL_Driver/Inc
     ../Drivers/STM32U5xx_HAL_Driver/Inc/Legacy
