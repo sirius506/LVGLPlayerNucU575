@@ -39,7 +39,7 @@ const AUDIO_INIT_PARAMS doom_audio_params = {
 };
 
 TASK_DEF(mixplayer, PLAYER_STACK_SIZE, osPriorityAboveNormal2)
-TASK_DEF(flacreader, READER_STACK_SIZE, osPriorityAboveNormal)
+TASK_DEF(flacreader, READER_STACK_SIZE, osPriorityNormal)
 
 #define MIXREADQ_DEPTH     3
 
