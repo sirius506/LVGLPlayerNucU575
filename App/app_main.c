@@ -1,5 +1,5 @@
 #include <stdio.h>
-#ifdef USE_SYSTEMVIEW
+#if (USE_SYSTEMVIEW == 1)
 #include "SEGGER_SYSVIEW.h"
 #endif
 #include "DoomPlayer.h"
@@ -127,7 +127,7 @@ void StartDefaultTask(void *argument)
 
   bsp_init(haldev);
 
-#ifdef USE_SYSTEMVIEW
+#if (USE_SYSTEMVIEW == 1)
   SEGGER_SYSVIEW_Conf();
   debug_printf("SystemView enabled.\n");
 #endif

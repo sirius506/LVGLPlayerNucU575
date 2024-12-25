@@ -20,11 +20,13 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
+set(SYSTEMVIEW_ENABLE "1")
+
 # Set the project name
 set(CMAKE_PROJECT_NAME LVGLPlayerNucU575)
 
-set(LV_CONF_BUILD_DISABLE_EXAMPLES 1)
-set(LV_CONF_BUILD_DISABLE_DEMOS 1)
+set(LV_CONF_BUILD_DISABLE_EXAMPLES "1")
+set(LV_CONF_BUILD_DISABLE_DEMOS "1")
 set(LV_CONF_PATH ${CMAKE_CURRENT_SOURCE_DIR}/BSP/lv_conf.h
      CACHE STRING "" FORCE)
 
@@ -68,6 +70,7 @@ target_include_directories(freertos_config SYSTEM INTERFACE
 
 target_compile_definitions(freertos_config INTERFACE
   projCOVERAGE_TEST=0
+  USE_SYSTEMVIEW=${SYSTEMVIEW_ENABLE}
 )
 
 add_subdirectory(FreeRTOS)
@@ -186,7 +189,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
-    USE_SYSTEMVIEW
+    USE_SYSTEMVIEW=${SYSTEMVIEW_ENABLE}
 )
 
 target_compile_options(bsp PRIVATE
