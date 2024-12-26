@@ -1,7 +1,5 @@
 #ifndef APP_GUI_H
 #define APP_GUI_H
-#include "bsp.h"
-#include "target.h"
 
 #include "lvgl.h"
 

@@ -164,22 +164,12 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
     ${PROJECT_SOURCE_DIR}/lvgl/demos/music
-    ${PROJECT_SOURCE_DIR}/Core/Inc
-    ${PROJECT_SOURCE_DIR}/Drivers/STM32U5xx_HAL_Driver/Inc
-    ${PROJECT_SOURCE_DIR}/Drivers/STM32U5xx_HAL_Driver/Inc/Legacy
-    ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32U5xx/Include
-    ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Include
-    ${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/CMSIS_RTOS_V2
-    ${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/ff15/source
     ${PROJECT_SOURCE_DIR}/CMSIS-DSP-1.15.0/Include
     ${PROJECT_SOURCE_DIR}/SDL
     ${PROJECT_SOURCE_DIR}/btstack
     ${PROJECT_SOURCE_DIR}/btstack/src
-    ${PROJECT_SOURCE_DIR}/SEGGER
     ${PROJECT_SOURCE_DIR}/App
     ${PROJECT_SOURCE_DIR}/BSP
-    ${PROJECT_SOURCE_DIR}/Fusion
-    ${PROJECT_SOURCE_DIR}/FreeRTOS/include
     ${PROJECT_SOURCE_DIR}/lvgl
     ${PROJECT_SOURCE_DIR}/chocolate-doom-3.0.1/src
     $(PROJECT_SOURCE_DIR)/ntshell/src/lib/core
@@ -190,10 +180,6 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
     USE_SYSTEMVIEW=${SYSTEMVIEW_ENABLE}
-)
-
-target_compile_options(bsp PRIVATE
--DUSE_FULL_LL_DRIVER -DUSE_HAL_DRIVER -DSTM32U575xx -DARM_MATH_LOOPUNROLL
 )
 
 target_compile_options(btstack PRIVATE
@@ -208,18 +194,11 @@ target_compile_options(lvgl INTERFACE
 -DUSE_FULL_LL_DRIVER -DUSE_HAL_DRIVER -DSTM32U575xx -DARM_MATH_LOOPUNROLL
 )
 
-target_include_directories(lvgl INTERFACE
+target_include_directories(lvgl PRIVATE
     ${PROJECT_SOURCE_DIR}/SEGGER
-    ${PROJECT_SOURCE_DIR}/Core/Inc
-    ${PROJECT_SOURCE_DIR}/Drivers/STM32U5xx_HAL_Driver/Inc
-    ${PROJECT_SOURCE_DIR}/Drivers/STM32U5xx_HAL_Driver/Inc/Legacy
-    ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32U5xx/Include
-    ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Include
-    ${PROJECT_SOURCE_DIR}/FreeRTOS/include
-    ${PROJECT_SOURCE_DIR}/Middlewares/Third_Party/CMSIS_RTOS_V2
 )
 
-target_include_directories(CMSISDSP PUBLIC
+target_include_directories(CMSISDSP PRIVATE
   Drivers/CMSIS/Core/Include
 )
 
@@ -237,7 +216,6 @@ target_include_directories (doom PUBLIC
   lvgl
   chocolate-doom
   ${PROJECT_SOURCE_DIR}/Drivers/STM32U5xx_HAL_Driver/Inc
-  ${PROJECT_SOURCE_DIR}/Drivers/STM32U5xx_HAL_Driver/Inc/Legacy
   ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32U5xx/Include
   ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Include
   ${PROJECT_SOURCE_DIR}/FreeRTOS/Include
@@ -246,7 +224,7 @@ target_include_directories (doom PUBLIC
   Middlewares/Third_Party/ff15/source
 )
 
-target_include_directories(btstack PUBLIC
+target_include_directories(btstack PRIVATE
   App
   BSP
   SEGGER
@@ -260,7 +238,6 @@ target_include_directories(btstack PUBLIC
   btstack/platform/freertos
   btstack/platform/embedded
   ${PROJECT_SOURCE_DIR}/Drivers/STM32U5xx_HAL_Driver/Inc
-  ${PROJECT_SOURCE_DIR}/Drivers/STM32U5xx_HAL_Driver/Inc/Legacy
   ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32U5xx/Include
   ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Include
   Core/Inc

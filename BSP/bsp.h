@@ -70,6 +70,7 @@ typedef struct {
   TIM_HandleTypeDef   *pwm_timer;
   osSemaphoreId_t     *iosem;
   osSemaphoreId_t     *lcd_lock;
+  osSemaphoreId_t     *dmasem;
   int                 owner_task;
 } DOOM_LCD_Handle;
 
@@ -83,6 +84,7 @@ typedef struct {
   DOOM_LCD_Handle   *tft_lcd;
   DOOM_HASH_Handle  *comp_hash;
   DOOM_SAI_Handle   *audio_sai;
+  DMA_HandleTypeDef *memdma;
   volatile uint16_t *tft_cmd_addr;
   volatile uint16_t *tft_data_addr;
   DCACHE_HandleTypeDef *dcache;

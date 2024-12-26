@@ -22,6 +22,8 @@ void bsp_release_lcd();
 SEMAPHORE_DEF(tftsem)
 SEMAPHORE_DEF(lcd_sem)
 
+SEMAPHORE_DEF(tft_dmasem)
+
 static const uint16_t Cmd_PGAMCTRL[] = {
   0xE0,
   0x00, 0x03, 0x09, 0x08, 0x16, 0x0A, 0x3F, 0x78,
@@ -52,13 +54,6 @@ static const uint16_t Cmd_FrameRate[] = { 0xB1, 0xA0 };          // 60Hz
 static const uint16_t Cmd_DisplayInversion[] = { 0xB4, 0x02 };   // 2-dot
 
 static const uint16_t Cmd_DisplayInternalMem[] =  { 0xB6, 0x02, 0x02, 0x3B };
-#ifdef USE_CAB
-#ifdef BUILD_BASE
-static const uint16_t Cmd_CAB_Control[] = { 0x55, 0x01 };
-#else
-static const uint16_t Cmd_CAB_Control[] = { 0x55, 0x03 };
-#endif
-#endif
 static const uint16_t Cmd_SetImage[] = { 0xE9, 0x00 };           // Disable 24bit data
 static const uint16_t Cmd_Adjust[] = { 0xF7, 0xA9, 0x51, 0x2C, 0x82 };
 static const uint16_t Cmd_SleepOut[] = { 0x11 };
@@ -199,6 +194,7 @@ if (DMA2D->CR & DMA2D_CR_START_Msk)
 
 void LCD_RGB565_PartialCopy(HAL_DEVICE *iodev, uint8_t *map, int xpos, int ypos, int width, int height)
 {
+#ifdef USE_DMA2D_FOR_FLUSH
   if (DMA2D->CR & DMA2D_CR_START_Msk)
   {
     debug_printf("DMA2D busy %d.\n", iodev->tft_lcd->owner_task);
@@ -230,6 +226,23 @@ void LCD_RGB565_PartialCopy(HAL_DEVICE *iodev, uint8_t *map, int xpos, int ypos,
 
   /*start transfer and enable interrupt */
   DMA2D->CR |= DMA2D_CR_START | DMA2D_CR_TCIE|DMA2D_CR_TEIE|DMA2D_CR_CEIE;
+#else
+  Cmd_ColumnSet[1] = xpos >> 8;
+  Cmd_ColumnSet[2] = xpos & 255;
+  Cmd_ColumnSet[3] = (xpos + width - 1)>> 8;
+  Cmd_ColumnSet[4] = (xpos + width - 1) & 255;
+  ili_send_command(iodev, Cmd_ColumnSet, 5);
+
+  Cmd_PageSet[1] = ypos >> 8;
+  Cmd_PageSet[2] = ypos & 255;
+  Cmd_PageSet[3] = (ypos + height - 1)>> 8;
+  Cmd_PageSet[4] = (ypos + height - 1) & 255;
+  ili_send_command(iodev, Cmd_PageSet, 5);
+
+  *iodev->tft_cmd_addr = CMD_MEM_WRITE;	// Memroy WRITE
+
+  HAL_DMA_Start_IT(iodev->memdma, map, (uint32_t)iodev->tft_data_addr, width * height * 2);
+#endif
 }
 
 static const uint16_t DeviceId[3] = { 0x00, 0x94, 0x88 };
@@ -280,14 +293,27 @@ debug_printf("DMA2D done\n");
   bsp_release_lcd(lcd_handle);
 }
 
+void FlushTransferComplete(DMA_HandleTypeDef *hdma)
+{
+  UNUSED(hdma);
+  HAL_DEVICE *iodev = &HalDevice;
+
+  osSemaphoreRelease(iodev->tft_lcd->dmasem);
+  bsp_release_lcd(iodev->tft_lcd);
+}
+
 void bsp_wait_lcd(DOOM_LCD_Handle *tft_lcd)
 {
   osStatus_t st;
+#ifdef USE_DMA2D_FOR_FLUSH
 
   st = osSemaphoreAcquire(tft_lcd->iosem, osWaitForever);
   if (st != osOK)
     debug_printf("%s: st = %d\n", __FUNCTION__, st);
   while (DMA2D->CR & DMA2D_CR_START_Msk);
+#else
+  st = osSemaphoreAcquire(tft_lcd->dmasem, osWaitForever);
+#endif
 }
 
 void bsp_acquire_lcd(DOOM_LCD_Handle *lcd_handle, int thistask)
@@ -312,6 +338,9 @@ void bsp_release_lcd(DOOM_LCD_Handle *lcd_handle)
 int tft_init(HAL_DEVICE *iodev)
 {
   iodev->tft_lcd->iosem = osSemaphoreNew(1, 0, &attributes_tftsem);
+  iodev->tft_lcd->dmasem = osSemaphoreNew(1, 0, &attributes_tft_dmasem);
+
+  HAL_DMA_RegisterCallback(iodev->memdma, HAL_DMA_XFER_CPLT_CB_ID, FlushTransferComplete);
 
   HAL_DMA2D_RegisterCallback(iodev->tft_lcd->hdma2d, HAL_DMA2D_TRANSFERCOMPLETE_CB_ID, dma2d_callback);
   HAL_DMA2D_RegisterCallback(iodev->tft_lcd->hdma2d, HAL_DMA2D_TRANSFERERROR_CB_ID, dma2d_error_callback);
