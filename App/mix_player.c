@@ -70,9 +70,9 @@ static const AUDIO_STEREO SilentBuffer[BUF_FRAMES];
 
 #define	NUMTAPS	31
 
-SECTION_SRDSRAM int16_t   sInBuffer[BUF_FRAMES];
-SECTION_SRDSRAM float32_t sFloatBuffer[BUF_FRAMES];
-float32_t DeciStateBuffer[BUF_FRAMES+NUMTAPS-1];
+SECTION_SRDSRAM int16_t   sInBuffer[NUM_FRAMES];
+SECTION_SRDSRAM float32_t sFloatBuffer[NUM_FRAMES];
+SECTION_SRDSRAM float32_t DeciStateBuffer[NUM_FRAMES+NUMTAPS-1];
 
 float32_t audio_buffer[AUDIO_SAMPLES];	// Decimated Audio samples
 
@@ -624,7 +624,7 @@ static void StartMixPlayerTask(void *args)
   fftInfo = &FftInfo;
   fftInfo->magdiv = param->fft_magdiv;
   fft_count = 0;
-  arm_fir_decimate_init_f32(&decimate_instance, NUMTAPS, FFT_DECIMATION_FACTOR, (float32_t *)Coeffs, DeciStateBuffer, BUF_FRAMES/2);
+  arm_fir_decimate_init_f32(&decimate_instance, NUMTAPS, FFT_DECIMATION_FACTOR, (float32_t *)Coeffs, DeciStateBuffer, NUM_FRAMES);
   arm_hamming_f32(hamming_window, FFT_SAMPLES);
 
   pDriver = (AUDIO_OUTPUT_DRIVER *)audio_config->devconf->pDriver;
