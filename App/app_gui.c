@@ -15,6 +15,8 @@
 #include "app_setup.h"
 #include "btapi.h"
 
+#define	TIMER_INTERVAL	16
+
 volatile DOOM_SCREEN_STATUS DoomScreenStatus;
 
 TASK_DEF(doomTask, 800, osPriorityBelowNormal)
@@ -108,7 +110,7 @@ static lv_indev_t *keydev;		/* Gamepad device */
 static uint16_t buf_1[DISP_HOR_RES * 56];
 static uint16_t buf_2[DISP_HOR_RES * 56];
 #else
-static uint16_t buf_1[DISP_HOR_RES * 80];
+static uint16_t buf_1[DISP_HOR_RES * 100];
 #endif
 static lv_style_t style_title;
 static lv_style_t style_focus;
@@ -623,8 +625,6 @@ void set_pad_defocus(lv_group_t *gr)
   }
 }
 
-extern void enter_setup_event(lv_event_t *e);
-
 void activate_new_screen(BASE_SCREEN *base, void (*list_action)(), void *arg_ptr)
 {
   lv_obj_t *fobj;
@@ -669,7 +669,7 @@ void activate_new_screen(BASE_SCREEN *base, void (*list_action)(), void *arg_ptr
 
 static int SelectApplication(BASE_SCREEN *sel_screen, SETUP_SCREEN *setups, lv_obj_t *icon_label)
 {
-  unsigned int new_interval, timer_interval;
+  unsigned int timer_interval;
   osStatus_t st;
   lv_obj_t *title;
   lv_obj_t *mbox;
@@ -698,7 +698,7 @@ static int SelectApplication(BASE_SCREEN *sel_screen, SETUP_SCREEN *setups, lv_o
 
   activate_new_screen(sel_screen, NULL, NULL);
 
-  timer_interval = 3;
+  timer_interval = TIMER_INTERVAL;
 
   postMainRequest(REQ_VERIFY_SD, NULL, 0);	// Start SD card verification
 
@@ -789,11 +789,7 @@ static int SelectApplication(BASE_SCREEN *sel_screen, SETUP_SCREEN *setups, lv_o
     }
     else
     {
-      new_interval = lv_timer_handler();
-      if (new_interval != timer_interval)
-      {
-        timer_interval = new_interval/2;
-      }
+      timer_interval = lv_timer_handler();
     }
   }
 }
@@ -817,7 +813,7 @@ void StartGuiTask(void *args)
   lv_obj_t *label;
   lv_obj_t *tlabel;
   lv_obj_t *btn;
-  unsigned int new_interval, timer_interval;
+  unsigned int timer_interval;
   WADPROP *flash_game;
   WADPROP *sel_flash_game;
   WADLIST *sel_sd_game;
@@ -1031,8 +1027,7 @@ void StartGuiTask(void *args)
     break;
   }
 
-  timer_interval = 3;
-
+  timer_interval = TIMER_INTERVAL;
 
   while (1)
   {
@@ -1596,13 +1591,7 @@ debug_printf("CHEAT_SEL\n");
     }
     else
     {
-      new_interval = lv_timer_handler();
-      if (new_interval != timer_interval)
-      {
-        timer_interval = new_interval/2;
-        if (timer_interval > 10)
-          timer_interval = 5;
-      }
+      timer_interval = lv_timer_handler();
     }
   }
   debug_printf("%s: ???\n", __FUNCTION__);
