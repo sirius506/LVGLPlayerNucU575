@@ -195,7 +195,10 @@ target_compile_options(lvgl INTERFACE
 )
 
 target_include_directories(lvgl PRIVATE
-    ${PROJECT_SOURCE_DIR}/SEGGER
+  Core/Inc
+  ${PROJECT_SOURCE_DIR}/SEGGER
+  ${PROJECT_SOURCE_DIR}/FreeRTOS/Include
+  ${PROJECT_SOURCE_DIR}/FreeRTOS/portable/GCC/ARM_CM33_NTZ/non_secure
 )
 
 target_include_directories(CMSISDSP PRIVATE
