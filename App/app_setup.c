@@ -83,6 +83,9 @@ void enter_setup_event(lv_event_t *e)
   lv_dir_t dir;
   lv_obj_t *fobj;
 
+#ifdef DEBUG_SETUP
+  debug_printf("%s\n", __FUNCTION__);
+#endif
   if (param == NULL)
   {
     dir = lv_indev_get_gesture_dir(lv_indev_active());
@@ -135,15 +138,27 @@ void enter_setup_event(lv_event_t *e)
  */
 void start_setup()
 {
+  lv_obj_t *fobj;
   HAL_DEVICE *haldev = (HAL_DEVICE *)&HalDevice;
+  SETUP_SCREEN *setups = &SetupScreen;
 
+#ifdef DEBUG_SETUP
+  debug_printf("%s\n", __FUNCTION__);
+#endif
   if (DoomScreenStatus == DOOM_SCREEN_ACTIVE)
   {
      DoomScreenStatus = DOOM_SCREEN_SUSPEND;
   }
-  lv_slider_set_value(SetupScreen.vol_slider,
+  setups->caller_ing = lv_indev_get_group(setups->keydev);
+  lv_slider_set_value(setups->vol_slider,
           bsp_codec_getvol(haldev->codec_i2c) / 10, LV_ANIM_OFF);
-  lv_screen_load_anim(SetupScreen.setup_screen, LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
+  lv_screen_load_anim(setups->setup_screen, LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
+  lv_indev_set_group(setups->keydev, setups->ing);
+  fobj = lv_group_get_focused(setups->ing);
+  if (fobj == NULL)
+    fobj = lv_group_get_obj_by_index(setups->ing, 0);
+  if (fobj && IsPadAvailable())
+    lv_obj_add_state(fobj, LV_STATE_FOCUS_KEY);
 }
 
 static void quit_setup_event(lv_event_t *e)
@@ -185,7 +200,7 @@ static void brightness_event_cb(lv_event_t *e)
 }
 
 /**
- *  @brif Resume DOOM task when setup screen has unloaded.
+ *  @brief Resume DOOM task when setup screen has unloaded.
  */
 static void setupscr_event_cb(lv_event_t *ev)
 {

@@ -23,5 +23,6 @@ void UpdateBluetoothButton(SETUP_SCREEN *screen);
 void set_pad_focus(lv_group_t *gr);
 void set_pad_defocus(lv_group_t *gr);
 int IsPadAvailable();
+void enter_setup_event(lv_event_t *e);
 
 extern SETUP_SCREEN SetupScreen;
