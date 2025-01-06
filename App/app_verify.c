@@ -208,11 +208,8 @@ int VerifySDCard(void **errString1, void **errString2)
   return foffset;
 }
 
-int VerifyFont(void **p1, void **p2)
+int VerifyFont(void **p1, void **p2, int flash_size)
 {
-  int flash_size;
-  
-  flash_size = Board_FlashInfo(&HalDevice);
   if (flash_size < 0)
   {
     debug_printf("OSPI_NOR_GetInfo failed.\n");
@@ -221,11 +218,6 @@ int VerifyFont(void **p1, void **p2)
     return -1;
   }
   debug_printf("%d KB flash found.\n", flash_size / 1024);
-
-  /* Initialize QSPI flash as memory mapped mode. */
-
-  Board_Flash_Init(&HalDevice, 1);
-  osDelay(10);  // Insert little delay to make sure QSPI is really mapped.
 
   if (find_flash_file(TTF_FONT_NAME))
   {
@@ -240,15 +232,12 @@ int VerifyFont(void **p1, void **p2)
 /*
  *  Verify IWAD file on the SPI Flash.
  */
-int VerifyFlash(void **p1, void **p2)
+int VerifyFlash(void **p1, void **p2, int flash_size)
 {
   QSPI_DIRHEADER *dhp;
   FS_DIRENT *fsp;
   uint32_t crcval;
   const WADPROP *pInfo;
-  int flash_size;
-  
-  flash_size = Board_FlashInfo(&HalDevice);
   if (flash_size < 0)
   {
     debug_printf("OSPI_NOR_GetInfo failed.\n");
@@ -257,11 +246,6 @@ int VerifyFlash(void **p1, void **p2)
     return -1;
   }
   debug_printf("%d KB flash found.\n", flash_size / 1024);
-
-  /* Initialize QSPI flash as memory mapped mode. */
-
-  Board_Flash_Init(&HalDevice, 1);
-  osDelay(10);  // Insert little delay to make sure QSPI is really mapped.
 
   dhp = (QSPI_DIRHEADER *)QSPI_FLASH_ADDR;
 

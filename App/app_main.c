@@ -122,6 +122,7 @@ void StartDefaultTask(void *argument)
   GUI_EVENT guiev;
   int val, res;
   char *errs1, *errs2;
+  int32_t flash_size;
 
   HAL_DEVICE *haldev = &HalDevice;
 
@@ -151,7 +152,9 @@ debug_printf("MCU Rev: %x\n",  HAL_GetREVID());
 
   errs1 = NULL;
 
-  //osDelay(400);
+  flash_size = Board_FlashInfo(haldev);
+  Board_Flash_Init(haldev, 1);
+  osDelay(40);
 
   if (bsp_sdcard_inserted())
   {
@@ -229,14 +232,14 @@ debug_printf("MCU Rev: %x\n",  HAL_GetREVID());
       break;
     case REQ_VERIFY_FLASH: 
       guiev.evcode = GUIEV_FLASH_REPORT;
-      guiev.evval0 = VerifyFlash((void *)&errs1, (void *)&errs2);
+      guiev.evval0 = VerifyFlash((void *)&errs1, (void *)&errs2, flash_size);
       guiev.evarg1 = errs1;
       guiev.evarg2 = errs2;
       postGuiEvent(&guiev);
       break; 
     case REQ_VERIFY_FONT:
       guiev.evcode = GUIEV_FONT_REPORT;
-      guiev.evval0 = VerifyFlash((void *)&errs1, (void *)&errs2);
+      guiev.evval0 = VerifyFlash((void *)&errs1, (void *)&errs2, flash_size);
       guiev.evarg1 = errs1;
       guiev.evarg2 = errs2;
       postGuiEvent(&guiev);
