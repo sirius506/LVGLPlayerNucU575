@@ -19,7 +19,7 @@
 static btstack_packet_callback_registration_t hci_event_callback_registration;
 static btstack_tlv_flash_bank_t btstack_tlv_flash_bank_context;
 
-static hci_transport_config_uart_t transport_config = { 
+static const hci_transport_config_uart_t transport_config = { 
     HCI_TRANSPORT_CONFIG_UART,
     115200,
     2000000,  // main baudrate
