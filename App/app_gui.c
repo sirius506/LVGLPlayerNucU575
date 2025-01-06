@@ -794,7 +794,7 @@ static int SelectApplication(BASE_SCREEN *sel_screen, SETUP_SCREEN *setups, lv_o
   }
 }
 
-extern void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress);
+extern int oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress);
 
 void StartGuiTask(void *args)
 {
@@ -1545,7 +1545,10 @@ debug_printf("CHEAT_SEL\n");
         Board_Endoom(event.evarg1);
         break;
       case GUIEV_DRAW:
-        oscDraw(oscms, event.evarg1, (int)event.evarg2);
+        if (oscDraw(oscms, event.evarg1, (int)event.evarg2))
+        {
+          timer_interval = lv_timer_handler();
+        }
         break;
       case GUIEV_AVRCP_CONNECT:
         show_a2dp_buttons();

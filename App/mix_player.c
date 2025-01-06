@@ -237,7 +237,7 @@ typedef struct {
   int16_t magdiv;
 } FFTINFO;
 
-SECTION_SRDSRAM FFTINFO FftInfo;
+FFTINFO FftInfo;
 
 typedef struct {
   FIL  *pfile;
@@ -252,7 +252,7 @@ typedef struct {
   osMessageQueueId_t *readqId;
 } FLACINFO;
 
-SECTION_SRDSRAM FLACINFO FlacInfo;
+FLACINFO FlacInfo;
 
 static SECTION_SRDSRAM arm_fir_decimate_instance_f32 decimate_instance;
 static SECTION_SRDSRAM arm_rfft_fast_instance_f32 fft_instance;

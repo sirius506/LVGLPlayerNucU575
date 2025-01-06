@@ -790,7 +790,7 @@ static void vline(int xpos, int py, int cy)
 }
 #endif
 
-void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress)
+int oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress)
 {
   int i;
   int left, right;
@@ -798,6 +798,7 @@ void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress)
   int d;
   static int px, py;
 #endif
+  int retval = 0;
   static int dcount;
 
   dcount++;
@@ -810,8 +811,7 @@ void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress)
     px = py = 128;
 #endif
     lv_image_set_src(screen->scope_image, &oscImage1);
-    lv_timer_handler();
-    return;
+    return 1;
   }
 
   for (i = 0; i < AUDIO_FRAME_SIZE; i++)
@@ -857,7 +857,7 @@ void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress)
       lv_image_set_src(screen->scope_image,
                        (screen->disp_toggle & 1)? &oscImage2 : &oscImage1);
       lv_bar_set_value(screen->progress_bar, progress, LV_ANIM_OFF);
-      lv_timer_handler();
+      retval = 1;
       break;
     case 1:
       if (screen->disp_toggle & 1)
@@ -879,7 +879,7 @@ void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress)
       lv_image_set_src(screen->scope_image,
                        (screen->disp_toggle & 1)? &oscImage2 : &oscImage1);
       lv_bar_set_value(screen->progress_bar, progress, LV_ANIM_OFF);
-      lv_timer_handler();
+      retval = 1;
       break;
     case 1:
       if (screen->disp_toggle & 1)
@@ -892,6 +892,7 @@ void oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress)
       break;
     }
   }
+  return retval;
 }
 
 static lv_style_t style_scrollbar;
