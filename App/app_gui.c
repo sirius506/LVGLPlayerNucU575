@@ -98,7 +98,6 @@ static uint8_t padkeyBuffer[PADKEYQ_DEPTH * sizeof(lv_indev_data_t)];
 MESSAGEQ_DEF(padkeyq, padkeyBuffer, sizeof(padkeyBuffer));
 
 osThreadId_t    doomtaskId;
-static int lvgl_active;
 static lv_display_t *display;
 
 lv_indev_data_t tp_data;
@@ -706,8 +705,12 @@ static int SelectApplication(BASE_SCREEN *sel_screen, SETUP_SCREEN *setups, lv_o
   {
     GUI_EVENT event;
 
+#ifdef USE_GUIEV_LVTIMER
+    osMessageQueueGet(guievqId, &event, NULL, osWaitForever);
+#else
     st = osMessageQueueGet(guievqId, &event, NULL, timer_interval);
     if (st == osOK)
+#endif
     {
       switch (event.evcode)
       {
@@ -782,15 +785,23 @@ static int SelectApplication(BASE_SCREEN *sel_screen, SETUP_SCREEN *setups, lv_o
         osDelay(200);
         NVIC_SystemReset();
         break;
+#ifdef USE_GUIEV_LVTIMER
+      case GUIEV_LVTIMER:
+        lv_timer_handler();
+        break;
+#endif
       default:
         debug_printf("EV %d\n", event.evcode);
         break;
       }
     }
+#ifdef USE_GUIEV_LVTIMER
+#else
     else
     {
-      timer_interval = lv_timer_handler();
+      lv_timer_handler();
     }
+#endif
   }
 }
 
@@ -845,7 +856,6 @@ void StartGuiTask(void *args)
   lv_display_set_flush_cb(display, disp_flush);
   lv_display_set_flush_wait_cb(display, drv_wait_cb);
 
-  lvgl_active = 1;
   cheatval = 0;
 
   if (bsp_touch_init(haldev) == 0)
@@ -1033,8 +1043,12 @@ void StartGuiTask(void *args)
   {
     GUI_EVENT event;
 
+#ifdef USE_GUIEV_LVTIMER
+    st = osMessageQueueGet(guievqId, &event, NULL, osWaitForever);
+#else
     st = osMessageQueueGet(guievqId, &event, NULL, timer_interval);
     if (st == osOK)
+#endif
     {
       switch (event.evcode)
       {
@@ -1545,10 +1559,14 @@ debug_printf("CHEAT_SEL\n");
         Board_Endoom(event.evarg1);
         break;
       case GUIEV_DRAW:
+#ifdef USE_GUIEV_LVTIMER
+        oscDraw(oscms, event.evarg1, (int)event.evarg2);
+#else
         if (oscDraw(oscms, event.evarg1, (int)event.evarg2))
         {
-          timer_interval = lv_timer_handler();
+          lv_timer_handler();
         }
+#endif
         break;
       case GUIEV_AVRCP_CONNECT:
         show_a2dp_buttons();
@@ -1587,15 +1605,21 @@ debug_printf("CHEAT_SEL\n");
       case GUIEV_TRACK_CHANGED:
         change_track_cover(a2dps);
         break;
+      case GUIEV_LVTIMER:
+        lv_timer_handler();
+        break;
       default:
         debug_printf("Not implemented (%d).\n", event.evcode);
         break;
       }
     }
+#ifdef USE_GUIEV_LVTIMER
+#else
     else
     {
-      timer_interval = lv_timer_handler();
+      lv_timer_handler();
     }
+#endif
   }
   debug_printf("%s: ???\n", __FUNCTION__);
 }
@@ -1635,8 +1659,22 @@ FS_DIRENT *find_flash_file(char *name)
 
 void gui_timer_inc()
 {
-  if (lvgl_active)
+#ifdef USE_GUIEV_LVTIMER
+  static uint32_t gui_timer_ticks;
+#endif
+
+  if (guievqId)
+  {
     lv_tick_inc(1);
+#ifdef USE_GUIEV_LVTIMER
+    gui_timer_ticks++;
+    if (gui_timer_ticks == TIMER_INTERVAL)
+    {
+      gui_timer_ticks = 0;
+      postGuiEventMessage(GUIEV_LVTIMER, 0, NULL, NULL); 
+    }
+#endif
+  }
 }
 
 void StartDoomTask(void *argument)
