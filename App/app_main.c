@@ -11,6 +11,8 @@
 #include "audio_output.h"
 #include "m_misc.h"
 
+#define USE_BMP_FORMAT
+
 extern HAL_DEVICE HalDevice;
 
 TASK_DEF(guitask,     1400, osPriorityBelowNormal3)
@@ -38,6 +40,42 @@ extern void bsp_process_touch(lv_indev_data_t *tp);
 
 #define	MR_FLAG_CAPTURE	0x01
 
+static const uint8_t bmpheader[] = {
+  0x42, 0x4d,			// Magic Number
+  0x8a, 0x08, 0x07, 0x00,	// File size
+  0x00, 0x00, 0x00, 0x00,	// Reserved
+  0x8a, 0x00, 0x00, 0x00,	// Offset
+
+  0x7c, 0x00, 0x00, 0x00,	// V5 header size
+  0xe0, 0x01, 0x00, 0x00,	// width
+  0xc0, 0xfe, 0xff, 0xff,	// height
+  0x01, 0x00,			// Number of plane
+  0x18, 0x00,			// Number of bits per pixel
+  0x00, 0x00, 0x00, 0x00,	// No compression
+  0x00, 0x08, 0x07, 0x00,	// Picture data size
+  0x00, 0x00, 0x00, 0x00,	// horizonatal resolution
+  0x00, 0x00, 0x00, 0x00,	// vertivcal resolution
+  0x00, 0x00, 0x00, 0x00,	// Number of colors
+  0x00, 0x00, 0x00, 0x00,	// Number of important colors
+  0x00, 0x00, 0xff, 0x00,	// Red color mask
+  0x00, 0xff, 0x00, 0x00,	// Greeen color mask
+  0xff, 0x00, 0x00, 0x00,	// Blue color mask
+  0x00, 0x00, 0x00, 0x00,	// Alpha channel mask
+  0x42, 0x47, 0x52, 0x73,	// Color space - sRGB
+
+  0x8f, 0xc2, 0xf5, 0x28, 0x51, 0xb8,
+  0x1e, 0x15, 0x1e, 0x85, 0xeb, 0x01,
+  0x33, 0x33, 0x33, 0x13, 0x66, 0x66,
+  0x66, 0x26, 0x66, 0x66, 0x66, 0x06,
+  0x99, 0x99, 0x99, 0x09, 0x3d, 0x0a,
+  0xd7, 0x03, 0x28, 0x5c, 0x8f, 0x32,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x04, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00,
+};
+
 void postMainRequest(int cmd, void *arg, int val)
 {
   REQUEST_CMD request;
@@ -62,7 +100,7 @@ extern const HeapRegion_t xHeapRegions[];
 #define	WBSIZE	(1024*4)
 
 static uint8_t wbuffer[WBSIZE];
-extern void bsp_generate_snap_filename(char *cp, char *dirname, int size);
+extern void bsp_generate_snap_filename(char *cp, char *dirname, int size, char *ext);
 
 void SaveScreenFile(uint8_t *bp, int len)
 {
@@ -74,7 +112,50 @@ void SaveScreenFile(uint8_t *bp, int len)
 
   nb = 0;
   res = FR_OK;
-  bsp_generate_snap_filename(fname, SCREEN_DIR, FNAME_LEN);
+#ifdef USE_BMP_FORMAT
+  {
+    int i;
+    uint8_t *wp, wb;
+
+    /* Swap Red and Blue */
+    wp = bp;
+    for (i = 0; i < 480*320; i++)
+    {
+      wb = wp[2];
+      wp[2] = wp[0];
+      wp[0] = wb;
+      wp += 3;
+    }
+  }
+  bsp_generate_snap_filename(fname, SCREEN_DIR, FNAME_LEN, "bmp");
+  pfile = CreateRGBFile(fname);
+  if (pfile)
+  {
+    memcpy(wbuffer, bmpheader, sizeof(bmpheader));
+    nw = WBSIZE - sizeof(bmpheader);
+    memcpy(wbuffer + sizeof(bmpheader), bp, nw);
+    res = f_write(pfile, wbuffer, WBSIZE, &nb);
+    len -= nw;
+    bp += nw;
+    while (len > 0 && res == FR_OK)
+    {
+      nw = (len > WBSIZE)? WBSIZE : len;
+      memcpy(wbuffer, bp, nw);
+      res = f_write(pfile, wbuffer, nw, &nb);
+      if (res == FR_OK)
+        bp += nb;
+      else
+      {
+        debug_printf("res = %d, nb = %d/%d\n", res, nb, nw);
+        break;
+      }
+      len -= nb;
+    }
+    CloseRGBFile(pfile);
+    debug_printf("save %s.\n", (res == FR_OK)? "success" : "falied");
+  }
+#else
+  bsp_generate_snap_filename(fname, SCREEN_DIR, FNAME_LEN, "rgb");
   pfile = CreateRGBFile(fname);
   if (pfile)
   {
@@ -90,6 +171,7 @@ void SaveScreenFile(uint8_t *bp, int len)
     CloseRGBFile(pfile);
     debug_printf("save %s.\n", (res == FR_OK)? "success" : "falied");
   }
+#endif
 }
 
 static uint8_t *screen_buffer;
