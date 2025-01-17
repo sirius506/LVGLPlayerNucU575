@@ -19,11 +19,14 @@ void btapi_setup()
   btreqqId = osMessageQueueNew(BTREQ_DEPTH, sizeof(BTREQ_PARAM), &attributes_btreqq);
 }
 
-static const avrcp_media_attribute_id_t media_attributes[4] = {
+static const avrcp_media_attribute_id_t media_attributes[3] = {
   AVRCP_MEDIA_ATTR_TITLE,
   AVRCP_MEDIA_ATTR_ARTIST,
-  AVRCP_MEDIA_ATTR_DEFAULT_COVER_ART,
   AVRCP_MEDIA_ATTR_SONG_LENGTH_MS,
+};
+
+static const avrcp_media_attribute_id_t cover_attributes[1] = {
+  AVRCP_MEDIA_ATTR_DEFAULT_COVER_ART,
 };
 
 void process_btapi_request(BTSTACK_INFO *info)
@@ -84,8 +87,16 @@ debug_printf("shutdown: %d, %d\n", info->hid_host_cid, info->a2dp_cid);
       if (info->avrcp_cid)
       {
         st = avrcp_controller_get_element_attributes(info->avrcp_cid, 3, media_attributes);
+        (void)st;
+      }
+      break;
+    case BTREQ_GET_COVER:
+      info->avrcp_cid = req.argval;
+      if (info->avrcp_cid)
+      {
+        st = avrcp_controller_get_element_attributes(info->avrcp_cid, 1, cover_attributes);
 #ifdef BTAPI_DEBUG
-        if (st) debug_printf("get_info: %d\n", st);
+        if (st) debug_printf("get_cover: %d\n", st);
 #else
         (void)st;
 #endif

@@ -29,9 +29,38 @@ extern RTC_HandleTypeDef hrtc;
 
 const HeapRegion_t xHeapRegions[3] = {
   { (uint8_t *)RTOS_HEAP_ADDR,  RTOS_HEAP_SIZE },
-  { (uint8_t *)QSPI_PSRAM_ADDR, QSPI_PSRAM_SIZE },
+  { (uint8_t *)QSPI_PSRAM_ADDR, QSPI_PSRAM_SIZE - JPEG_BUFF_SIZE - JPEG_FB_SIZE },
   { NULL, 0 }
 };
+
+int jpeg_buff_write(int offset, uint8_t *pdata, int wlen)
+{
+  uint8_t *bp;
+
+  if (offset < 0)
+    debug_printf("buff_write: %d\n", offset);
+  bp = (uint8_t *)JPEG_BUFF_ADDR + offset;
+  if (bp + wlen > (uint8_t *)JPEG_BUFF_LAST)
+  {
+    wlen -= (uint32_t)bp + wlen - JPEG_BUFF_LAST;
+  }
+  memcpy(bp, pdata, wlen);
+  return wlen;
+}
+
+int jpeg_buff_read(int offset, uint8_t *pdata, int rlen)
+{
+  uint8_t *bp;
+
+  bp = (uint8_t *)JPEG_BUFF_ADDR + offset;
+  if (bp + rlen > (uint8_t *)JPEG_BUFF_LAST)
+  {
+    rlen -= (uint32_t)bp + rlen - JPEG_BUFF_LAST;
+  }
+  memcpy(pdata, bp, rlen);
+  return rlen;
+}
+
 
 void *malloc(size_t size)
 {

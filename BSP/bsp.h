@@ -87,7 +87,6 @@ typedef struct {
   DMA_HandleTypeDef *memdma;
   volatile uint16_t *tft_cmd_addr;
   volatile uint16_t *tft_data_addr;
-  DCACHE_HandleTypeDef *dcache;
   CRC_HandleTypeDef *crc_comp;;
   SD_HandleTypeDef  *sdmmc;
   TIM_HandleTypeDef *pwm_timer;
@@ -128,4 +127,6 @@ int gamepad_is_owner();
 
 uint32_t bsp_calc_crc(uint8_t *bp, int len);
 uint32_t bsp_accumulate_crc(uint8_t *bp, int len);
+int jpeg_buff_write(int offset, uint8_t *pdata, int wlen);
+int jpeg_buff_read(int offset, uint8_t *pdata, int rlen);
 #endif

@@ -11,7 +11,6 @@
 #include "board_if.h"
 #include "app_music.h"
 #include "a2dp_player.h"
-#include "src/display/lv_display_private.h"
 #include "app_setup.h"
 #include "btapi.h"
 
@@ -106,10 +105,11 @@ static lv_indev_t *keydev;		/* Gamepad device */
 
 #define USE_BUF2
 #ifdef USE_BUF2
-static uint16_t buf_1[DISP_HOR_RES * 56];
-static uint16_t buf_2[DISP_HOR_RES * 56];
+#define	BUF_HEIGHT	56
+static uint16_t buf_1[DISP_HOR_RES * BUF_HEIGHT];
+static uint16_t buf_2[DISP_HOR_RES * BUF_HEIGHT];
 #else
-static uint16_t buf_1[DISP_HOR_RES * 100];
+static uint16_t buf_1[DISP_HOR_RES * 40];
 #endif
 static lv_style_t style_title;
 static lv_style_t style_focus;
@@ -1069,7 +1069,10 @@ void StartGuiTask(void *args)
       case GUIEV_FFT_UPDATE:
         if ((lv_screen_active() == menus->play_scr) && (padInfo->hid_mode != HID_MODE_DOOM))
         {
-          app_spectrum_update(event.evval0);
+          if (haldev->boot_mode == BOOTM_DOOM)
+            app_spectrum_update(event.evval0);
+          else
+            app_fftbar_update(event.evarg1);
         }
         bsp_ledpwm_update(haldev, event.evarg1);
         break;
@@ -1604,6 +1607,9 @@ debug_printf("CHEAT_SEL\n");
         break;
       case GUIEV_TRACK_CHANGED:
         change_track_cover(a2dps);
+        break;
+      case GUIEV_COVER_ART:
+        change_track_cover_image(a2dps, event.evval0, event.evarg1);
         break;
       case GUIEV_LVTIMER:
         lv_timer_handler();

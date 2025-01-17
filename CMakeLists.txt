@@ -27,8 +27,7 @@ set(CMAKE_PROJECT_NAME LVGLPlayerNucU575)
 
 set(LV_CONF_BUILD_DISABLE_EXAMPLES "1")
 set(LV_CONF_BUILD_DISABLE_DEMOS "1")
-set(LV_CONF_PATH ${CMAKE_CURRENT_SOURCE_DIR}/BSP/lv_conf.h
-     CACHE STRING "" FORCE)
+set(LV_CONF_BUILD_DISABLE_THORVG_INTERNAL "1")
 
 set(FREERTOS_PATH "FreeRTOS")
 set(FREERTOS_HEAP "5" CACHE STRING "" FORCE)
@@ -108,6 +107,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/mix_player.c
     App/sdl_helper.c
     App/sdl_joystick.c
+    App/tjpgd.c
     App/assets/output/Action_Left.c
     App/assets/output/Action_Right.c
     App/assets/output/Arrow_Up.c
@@ -182,20 +182,14 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     USE_SYSTEMVIEW=${SYSTEMVIEW_ENABLE}
 )
 
+
 target_compile_options(btstack PRIVATE
--DUSE_FULL_LL_DRIVER -DUSE_HAL_DRIVER -DSTM32U575xx -DARM_MATH_LOOPUNROLL
-)
-
-target_compile_options(CMSISDSP PRIVATE
--DUSE_FULL_LL_DRIVER -DUSE_HAL_DRIVER -DSTM32U575xx -DARM_MATH_LOOPUNROLL
-)
-
-target_compile_options(lvgl INTERFACE
 -DUSE_FULL_LL_DRIVER -DUSE_HAL_DRIVER -DSTM32U575xx -DARM_MATH_LOOPUNROLL
 )
 
 target_include_directories(lvgl PRIVATE
   Core/Inc
+  ${PROJECT_SOURCE_DIR}/BSP
   ${PROJECT_SOURCE_DIR}/SEGGER
   ${PROJECT_SOURCE_DIR}/FreeRTOS/Include
   ${PROJECT_SOURCE_DIR}/FreeRTOS/portable/GCC/ARM_CM33_NTZ/non_secure

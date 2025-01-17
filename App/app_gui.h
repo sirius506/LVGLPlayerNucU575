@@ -100,6 +100,7 @@ typedef enum {
   GUIEV_STREAM_PLAY,
   GUIEV_STREAM_PAUSE,
   GUIEV_TRACK_CHANGED,
+  GUIEV_COVER_ART,
 } GUIEV_CODE;
 
 typedef struct {
@@ -185,6 +186,7 @@ typedef struct {
   lv_obj_t  *artist_label;
   int       cover_count;
   int       cur_cover;
+  lv_obj_t  *cover_image;
 } A2DP_SCREEN;
 
 typedef struct {

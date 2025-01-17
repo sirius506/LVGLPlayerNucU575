@@ -575,14 +575,18 @@ lv_obj_t * create_spectrum_obj(lv_obj_t * parent)
     lv_obj_t * obj = lv_obj_create(parent);
     lv_obj_remove_style_all(obj);
 #if LV_DEMO_MUSIC_LARGE
-    lv_obj_set_height(obj, 500);
+      lv_obj_set_height(obj, 500);
 #else
-    lv_obj_set_height(obj, 250);
+      lv_obj_set_height(obj, 250);
 #endif
-    lv_obj_remove_flag(obj, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_event_cb(obj, spectrum_draw_event_cb, LV_EVENT_ALL, NULL);
-    lv_obj_refresh_ext_draw_size(obj);
-    album_image_obj = album_image_create(obj);
+      lv_obj_remove_flag(obj, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
+      lv_obj_add_event_cb(obj, spectrum_draw_event_cb, LV_EVENT_ALL, NULL);
+      lv_obj_refresh_ext_draw_size(obj);
+
+      if (album_image_obj == NULL)
+      {
+        album_image_obj = album_image_create(obj);
+      }
     return obj;
 }
 
@@ -1096,6 +1100,7 @@ static lv_obj_t * album_image_create(lv_obj_t * parent)
     if (id < 0) id = 0;
 
     lv_obj_t * img;
+
     img = lv_image_create(parent);
 
     cfp = track_cover(id);

@@ -17,6 +17,7 @@ typedef enum {
  BTREQ_SEND_REPORT,
  BTREQ_GET_STATUS,
  BTREQ_GET_INFO,
+ BTREQ_GET_COVER,
  BTREQ_AVRCP_PLAY,
  BTREQ_AVRCP_PAUSE,
  BTREQ_AVRCP_NEXT,
@@ -50,14 +51,23 @@ typedef struct {
   uint16_t   cHandle;	/* Connection Handle */
 } PEER_DEVICE;
 
+#define	CINFO_UNKNOWN 		0
+#define	CINFO_COVER_CONN	1
+#define	CINFO_TRACK_CHANGED 	2
+#define	CINFO_COVER_REQUESTED	4
+
 typedef struct {
   uint16_t      state;
   uint16_t      avrcp_cid;
   uint16_t      a2dp_cid;
   uint16_t      hid_host_cid;
+  uint8_t       playback_state;
+  uint8_t       cover_state;
+  uint8_t       cover_count;
   int         deviceCount;
   PEER_DEVICE hidDevice;
   PEER_DEVICE a2dpHost;
+  uint8_t     image_handle[8];
 } BTSTACK_INFO;
 
 void btapi_avrcp_play();

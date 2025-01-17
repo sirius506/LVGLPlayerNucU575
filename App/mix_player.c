@@ -481,12 +481,14 @@ static void drflac_close_fatfs(drflac* pFlac)
     drflac__free_from_callbacks(pFlac, &pFlac->allocationCallbacks);
 }
 
+#define	FRANGES	4
 #if FFT_SAMPLES == 2048
 static const int frange[] = { 8, 45, 300, 600, 0 };
 #else
-static const int frange[] = { 5, 23, 150, 300, 0 };
+//static const int frange[] = { 5, 23, 150, 512, 0 };
+static const int frange[] = { 7, 70, 208, 512, 0 };
 #endif
-static int band_val[4];
+static int band_val[FRANGES];
 
 int fft_getband(int band)
 {

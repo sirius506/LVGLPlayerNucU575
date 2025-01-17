@@ -42,6 +42,8 @@ set(BTSRCS
   src/classic/btstack_sbc_plc.c
   src/classic/avrcp.c
   src/classic/avrcp_controller.c
+  src/classic/avrcp_cover_art_client.c
+  src/classic/goep_client.c
   src/classic/avrcp_target.c
   src/classic/btstack_link_key_db_tlv.c
   src/classic/device_id_server.c

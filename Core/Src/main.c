@@ -223,7 +223,6 @@ int main(void)
   haldev->tft_lcd->hdma2d = &hdma2d;
   haldev->tft_lcd->hdma2d->UserPointer = (void *)haldev->tft_lcd;
   haldev->tft_lcd->pwm_timer = &htim15;
-  haldev->dcache = &hdcache1;
 
   haldev->audio_sai = &audio_sai;
   haldev->audio_sai->hsai = &hsai_BlockA1;

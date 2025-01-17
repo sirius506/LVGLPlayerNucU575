@@ -72,6 +72,7 @@
 #include "SDL_mixer.h"
 
 //#define AVRCP_BROWSING_ENABLED
+#define	COVER_ART_DEMO
 
 #ifdef HAVE_BTSTACK_AUDIO_EFFECTIVE_SAMPLERATE
 #include "btstack_sample_rate_compensation.h"
@@ -82,6 +83,8 @@
 #define NUM_CHANNELS 2
 #define BYTES_PER_FRAME     (2*NUM_CHANNELS)
 #define MAX_SBC_FRAME_SIZE 120
+
+#define	MAX_COVER_TRY	5
 
 static bd_addr_t device_addr;
 
@@ -136,6 +139,34 @@ static int       request_frames;
 // sink state
 static int volume_percentage = 0;
 static avrcp_battery_status_t battery_status = AVRCP_BATTERY_STATUS_WARNING;
+
+#ifdef ENABLE_AVRCP_COVER_ART
+static char a2dp_sink_demo_image_handle[8];
+static avrcp_cover_art_client_t a2dp_sink_demo_cover_art_client;
+static bool a2dp_sink_demo_cover_art_client_connected;
+static uint16_t a2dp_sink_demo_cover_art_cid;
+static uint8_t a2dp_sink_demo_ertm_buffer[2000];
+static l2cap_ertm_config_t a2dp_sink_demo_ertm_config = {
+        1,  // ertm mandatory
+        2,  // max transmit, some tests require > 1
+        2000,
+        12000,
+        512,    // l2cap ertm mtu
+        2,
+        2,
+        1,      // 16-bit FCS
+};
+static bool a2dp_sink_cover_art_download_active;
+static uint32_t a2dp_sink_cover_art_file_size;
+#ifdef HAVE_POSIX_FILE_IO
+static const char * a2dp_sink_demo_thumbnail_path = "cover.jpg";
+static FILE * a2dp_sink_cover_art_file;
+#endif
+#ifdef COVER_ART_DEMO
+static bool a2dp_sink_track_changed;
+void cover_art_set_cover(const uint8_t *cover_data, uint32_t cover_len);
+#endif
+#endif
 
 typedef struct {
     uint8_t  reconfigure;
@@ -210,6 +241,10 @@ static void avrcp_target_packet_handler(uint8_t packet_type, uint16_t channel, u
 
 int setup_a2dp_sink()
 {
+#ifdef ENABLE_AVRCP_COVER_ART
+    goep_client_init();
+    avrcp_cover_art_client_init();
+#endif
 
     // Init profiles
     a2dp_sink_init();
@@ -250,6 +285,9 @@ int setup_a2dp_sink()
     uint16_t controller_supported_features = 1 << AVRCP_CONTROLLER_SUPPORTED_FEATURE_CATEGORY_PLAYER_OR_RECORDER;
 #ifdef AVRCP_BROWSING_ENABLED
     controller_supported_features |= 1 << AVRCP_CONTROLLER_SUPPORTED_FEATURE_BROWSING;
+#endif
+#ifdef ENABLE_AVRCP_COVER_ART
+    controller_supported_features |= 1 << AVRCP_CONTROLLER_SUPPORTED_FEATURE_COVER_ART_GET_LINKED_THUMBNAIL;
 #endif
     avrcp_controller_create_sdp_record(sdp_avrcp_controller_service_buffer, sdp_create_service_record_handle(),
                                        controller_supported_features, NULL, NULL);
@@ -305,6 +343,18 @@ int setup_a2dp_sink()
     return 0;
 }
 /* LISTING_END */
+
+void check_cover_download(BTSTACK_INFO *pinfo)
+{
+debug_printf("check: cover_state = %x, palyback = %d\n", pinfo->cover_state, pinfo->playback_state);
+  if ((pinfo->playback_state == AVRCP_PLAYBACK_STATUS_PLAYING) &&
+      (pinfo->cover_state == (CINFO_COVER_CONN|CINFO_TRACK_CHANGED)))
+  {
+    btapi_post_request(BTREQ_GET_COVER, pinfo->avrcp_cid);
+    pinfo->cover_state &= ~CINFO_TRACK_CHANGED;
+    pinfo->cover_state |= CINFO_COVER_REQUESTED;
+  }
+}
 
 static void playback_handler(int16_t * buffer, uint16_t num_audio_frames){
 
@@ -578,6 +628,89 @@ static void hci_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *p
     }
 }
 
+#ifdef ENABLE_AVRCP_COVER_ART
+
+static void a2dp_sink_demo_cover_art_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size) {
+    UNUSED(channel);
+    UNUSED(size);
+    uint8_t status;
+    uint16_t cid;
+    BTSTACK_INFO *pinfo = &BtStackInfo;
+
+    switch (packet_type){
+        case BIP_DATA_PACKET:
+            if (a2dp_sink_cover_art_download_active){
+#ifdef COVER_ART_DEMO
+                jpeg_buff_write(a2dp_sink_cover_art_file_size, packet, size);
+#endif
+                a2dp_sink_cover_art_file_size += size;
+                //debug_printf("Cover art       : TODO - store %u bytes image data\n", size);
+            } else {
+                uint16_t i;
+                for (i=0;i<size;i++){
+                    putchar(packet[i]);
+                }
+                printf("\n");
+            }
+            break;
+        case HCI_EVENT_PACKET:
+            switch (hci_event_packet_get_type(packet)){
+                case HCI_EVENT_AVRCP_META:
+                    switch (hci_event_avrcp_meta_get_subevent_code(packet)){
+                        case AVRCP_SUBEVENT_COVER_ART_CONNECTION_ESTABLISHED:
+                            status = avrcp_subevent_cover_art_connection_established_get_status(packet);
+                            cid = avrcp_subevent_cover_art_connection_established_get_cover_art_cid(packet);
+                            if (status == ERROR_CODE_SUCCESS){
+                                printf("Cover Art       : connection established, cover art cid 0x%02x\n", cid);
+                                a2dp_sink_demo_cover_art_client_connected = true;
+                                pinfo->cover_state |= CINFO_COVER_CONN;
+                                //check_cover_download(pinfo);
+                                btapi_post_request(BTREQ_GET_STATUS, pinfo->avrcp_cid);
+                            } else {
+                                printf("Cover Art       : connection failed, status 0x%02x\n", status);
+                                a2dp_sink_demo_cover_art_cid = 0;
+                                pinfo->cover_state = CINFO_UNKNOWN;
+                            }
+                            break;
+                        case AVRCP_SUBEVENT_COVER_ART_OPERATION_COMPLETE:
+                            if (a2dp_sink_cover_art_download_active){
+                                a2dp_sink_cover_art_download_active = false;
+                                debug_printf("Cover Art       : download complete, size %u bytes'\n", a2dp_sink_cover_art_file_size);
+#ifdef COVER_ART_DEMO
+                                cover_art_set_cover((const uint8_t *)JPEG_BUFF_ADDR, a2dp_sink_cover_art_file_size);
+#endif
+                            }
+                            break;
+                        case AVRCP_SUBEVENT_COVER_ART_CONNECTION_RELEASED:
+                            a2dp_sink_demo_cover_art_client_connected = false;
+                            a2dp_sink_demo_cover_art_cid = 0;
+                            cover_art_set_cover(NULL, 0);
+                            printf("Cover Art       : connection released 0x%02x\n",
+                                   avrcp_subevent_cover_art_connection_released_get_cover_art_cid(packet));
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+static uint8_t a2dp_sink_demo_cover_art_connect(void) {
+    uint8_t status;
+    status = avrcp_cover_art_client_connect(&a2dp_sink_demo_cover_art_client, a2dp_sink_demo_cover_art_packet_handler,
+                                            device_addr, a2dp_sink_demo_ertm_buffer,
+                                            sizeof(a2dp_sink_demo_ertm_buffer), &a2dp_sink_demo_ertm_config,
+                                            &a2dp_sink_demo_cover_art_cid);
+    return status;
+}
+#endif
+
 static void avrcp_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size){
     UNUSED(channel);
     UNUSED(size);
@@ -602,6 +735,9 @@ static void avrcp_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t 
             }
 
             connection->avrcp_cid = local_cid;
+            pinfo->avrcp_cid = local_cid;
+            pinfo->playback_state = AVRCP_PLAYBACK_STATUS_STOPPED;
+            pinfo->cover_state = CINFO_UNKNOWN;
             avrcp_subevent_connection_established_get_bd_addr(packet, address);
             printf("AVRCP: Connected to %s, cid 0x%02x\n", bd_addr_to_str(address), connection->avrcp_cid);
             postGuiEventMessage(GUIEV_AVRCP_CONNECT, 0, NULL, NULL);
@@ -638,6 +774,7 @@ static void avrcp_controller_packet_handler(uint8_t packet_type, uint16_t channe
     uint8_t avrcp_subevent_value[256];
     uint8_t play_status;
     uint8_t event_id;
+    BTSTACK_INFO *pinfo = &BtStackInfo;
 
     a2dp_sink_demo_avrcp_connection_t * avrcp_connection = &a2dp_sink_demo_avrcp_connection;
 
@@ -665,6 +802,12 @@ static void avrcp_controller_packet_handler(uint8_t packet_type, uint16_t channe
             avrcp_controller_enable_notification(avrcp_connection->avrcp_cid, AVRCP_NOTIFICATION_EVENT_NOW_PLAYING_CONTENT_CHANGED);
             avrcp_controller_enable_notification(avrcp_connection->avrcp_cid, AVRCP_NOTIFICATION_EVENT_TRACK_CHANGED);
 
+#ifdef ENABLE_AVRCP_COVER_ART
+            // image handles become invalid on player change, registe for notifications
+            avrcp_controller_enable_notification(a2dp_sink_demo_avrcp_connection.avrcp_cid, AVRCP_NOTIFICATION_EVENT_UIDS_CHANGED);
+            // trigger cover art client connection
+            a2dp_sink_demo_cover_art_connect();
+#endif
             break;
 
         case AVRCP_SUBEVENT_NOTIFICATION_STATE:
@@ -679,10 +822,12 @@ static void avrcp_controller_packet_handler(uint8_t packet_type, uint16_t channe
         case AVRCP_SUBEVENT_NOTIFICATION_PLAYBACK_STATUS_CHANGED:
             debug_printf("AVRCP Controller: Playback status changed %s\n", avrcp_play_status2str(avrcp_subevent_notification_playback_status_changed_get_play_status(packet)));
             play_status = avrcp_subevent_notification_playback_status_changed_get_play_status(packet);
+            pinfo->playback_state = play_status;
             switch (play_status){
                 case AVRCP_PLAYBACK_STATUS_PLAYING:
                     avrcp_connection->playing = true;
                     postGuiEventMessage(GUIEV_STREAM_PLAY, 0, NULL, NULL);
+                    //check_cover_download(pinfo);
                     break;
                 default:
                     avrcp_connection->playing = false;
@@ -699,7 +844,9 @@ static void avrcp_controller_packet_handler(uint8_t packet_type, uint16_t channe
         case AVRCP_SUBEVENT_NOTIFICATION_TRACK_CHANGED:
             debug_printf("AVRCP Controller: Track changed\n");
             btapi_post_request(BTREQ_GET_INFO, avrcp_connection->avrcp_cid);
-            postGuiEventMessage(GUIEV_TRACK_CHANGED, 0, NULL, NULL);
+            pinfo->cover_state &= ~(CINFO_COVER_REQUESTED);
+            pinfo->cover_state |= CINFO_TRACK_CHANGED;
+            pinfo->cover_count = 0;
             break;
 
         case AVRCP_SUBEVENT_NOTIFICATION_AVAILABLE_PLAYERS_CHANGED:
@@ -713,11 +860,15 @@ static void avrcp_controller_packet_handler(uint8_t packet_type, uint16_t channe
             break;
         }
         case AVRCP_SUBEVENT_NOW_PLAYING_TRACK_INFO:
+#if 0
             debug_printf("AVRCP Controller: Track %d\n", avrcp_subevent_now_playing_track_info_get_track(packet));
+#endif
             break;
 
         case AVRCP_SUBEVENT_NOW_PLAYING_TOTAL_TRACKS_INFO:
+#if 0
             debug_printf("AVRCP Controller: Total Tracks %d\n", avrcp_subevent_now_playing_total_tracks_info_get_total_tracks(packet));
+#endif
             break;
 
         case AVRCP_SUBEVENT_NOW_PLAYING_TITLE_INFO:
@@ -725,7 +876,9 @@ static void avrcp_controller_packet_handler(uint8_t packet_type, uint16_t channe
                 memcpy(avrcp_subevent_value, avrcp_subevent_now_playing_title_info_get_value(packet), avrcp_subevent_now_playing_title_info_get_value_len(packet));
                 postMusicInfo(0, avrcp_subevent_value, avrcp_subevent_now_playing_title_info_get_value_len(packet));
             }  
+#if 0
             btapi_post_request(BTREQ_GET_STATUS, avrcp_connection->avrcp_cid);
+#endif
             break;
 
         case AVRCP_SUBEVENT_NOW_PLAYING_ARTIST_INFO:
@@ -738,31 +891,46 @@ static void avrcp_controller_packet_handler(uint8_t packet_type, uint16_t channe
         case AVRCP_SUBEVENT_NOW_PLAYING_ALBUM_INFO:
             if (avrcp_subevent_now_playing_album_info_get_value_len(packet) > 0){
                 memcpy(avrcp_subevent_value, avrcp_subevent_now_playing_album_info_get_value(packet), avrcp_subevent_now_playing_album_info_get_value_len(packet));
+#if 0
                 printf("AVRCP Controller: Album %s\n", avrcp_subevent_value);
+#endif
             }  
             break;
         
         case AVRCP_SUBEVENT_NOW_PLAYING_GENRE_INFO:
+#if 0
             if (avrcp_subevent_now_playing_genre_info_get_value_len(packet) > 0){
                 memcpy(avrcp_subevent_value, avrcp_subevent_now_playing_genre_info_get_value(packet), avrcp_subevent_now_playing_genre_info_get_value_len(packet));
                 printf("AVRCP Controller: Genre %s\n", avrcp_subevent_value);
             }  
+#endif
             break;
         case AVRCP_SUBEVENT_NOW_PLAYING_SONG_LENGTH_MS_INFO:
 debug_printf("song_length! %d\n", avrcp_subevent_now_playing_song_length_ms_info_get_song_length(packet));
+            check_cover_download(pinfo);
 #if 0
             if (avrcp_subevent_now_playing_song_length_ms_info_get_value_len(packet) > 0){
                 memcpy(avrcp_subevent_value, avrcp_subevent_now_playing_song_length_ms_info_get_value(packet), avrcp_subevent_now_playing_song_length_ms_info_get_value_len(packet));
                 printf("AVRCP Controller: song_length %s\n", avrcp_subevent_value);
+            Mix_Set_Position(
+                avrcp_subevent_now_playing_song_length_ms_info_get_song_length(packet), 0);
             }  
+#else
+            if (avrcp_subevent_now_playing_song_length_ms_info_get_song_length(packet) > 0){
+              btapi_post_request(BTREQ_GET_STATUS, avrcp_connection->avrcp_cid);
+              Mix_Set_Position(
+                avrcp_subevent_now_playing_song_length_ms_info_get_song_length(packet), 0);
+            }
 #endif
             break;
 
         case AVRCP_SUBEVENT_PLAY_STATUS:
+#if 0
             debug_printf("AVRCP Controller: Song length %"PRIu32" ms, Song position %"PRIu32" ms, Play status %s\n", 
                 avrcp_subevent_play_status_get_song_length(packet), 
                 avrcp_subevent_play_status_get_song_position(packet),
                 avrcp_play_status2str(avrcp_subevent_play_status_get_play_status(packet)));
+#endif
             Mix_Set_Position(
                 avrcp_subevent_play_status_get_song_length(packet), 
                 avrcp_subevent_play_status_get_song_position(packet));
@@ -784,6 +952,42 @@ debug_printf("song_length! %d\n", avrcp_subevent_now_playing_song_length_ms_info
             debug_printf("AVRCP Controller: Set Player App Value %s\n", avrcp_ctype2str(avrcp_subevent_player_application_value_response_get_command_type(packet)));
             break;
 
+#ifdef ENABLE_AVRCP_COVER_ART
+        case AVRCP_SUBEVENT_NOTIFICATION_EVENT_UIDS_CHANGED:
+            if (a2dp_sink_demo_cover_art_client_connected){
+                printf("AVRCP Controller: UIDs changed -> disconnect cover art client\n");
+                avrcp_cover_art_client_disconnect(a2dp_sink_demo_cover_art_cid);
+            }
+            break;
+
+        case AVRCP_SUBEVENT_NOW_PLAYING_COVER_ART_INFO:
+            if (avrcp_subevent_now_playing_cover_art_info_get_value_len(packet) == 7){
+                memcpy(a2dp_sink_demo_image_handle, avrcp_subevent_now_playing_cover_art_info_get_value(packet), 7);
+                debug_printf("AVRCP Controller: Cover Art %s (%d)\n", a2dp_sink_demo_image_handle, pinfo->cover_count);
+                if (memcmp(pinfo->image_handle, a2dp_sink_demo_image_handle, 7))
+                {
+                  memcpy(pinfo->image_handle, a2dp_sink_demo_image_handle, 7);
+#ifdef COVER_ART_DEMO
+                  a2dp_sink_cover_art_download_active = true;
+debug_printf("download activated\n");
+                  a2dp_sink_cover_art_file_size = 0;
+                  avrcp_cover_art_client_get_linked_thumbnail(a2dp_sink_demo_cover_art_cid, a2dp_sink_demo_image_handle);
+                }
+                pinfo->cover_count = 0;
+#endif
+            }
+            else
+            {
+                debug_printf("??? len = %d, cid = %x\n", avrcp_subevent_now_playing_cover_art_info_get_value_len(packet),
+                                               avrcp_subevent_now_playing_cover_art_info_get_avrcp_cid(packet));
+                if (pinfo->cover_count < MAX_COVER_TRY)
+                {
+                  pinfo->cover_count++;
+                  btapi_post_request(BTREQ_GET_COVER, pinfo->avrcp_cid);
+                }
+            }
+            break;
+#endif
         default:
 debug_printf("Ignore %x", packet[2] & 255);
             break;
@@ -971,6 +1175,21 @@ void btstack_start_a2dp_sink()
     setup_a2dp_sink();
     hal_audio_setup();
 
+}
+
+void cover_art_set_cover(const uint8_t *cover_data, uint32_t cover_len)
+{
+  BTSTACK_INFO *pinfo = &BtStackInfo;
+
+  if (cover_data == NULL)
+  {
+    debug_printf("No Image.\n");
+  }
+  else if (cover_len < JPEG_BUFF_SIZE)
+  {
+    postGuiEventMessage(GUIEV_COVER_ART, cover_len, (void *)cover_data, (void *)cover_data);
+  }
+  pinfo->cover_state &= ~CINFO_COVER_REQUESTED;
 }
 
 /* EXAMPLE_END */

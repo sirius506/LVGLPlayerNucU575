@@ -5,15 +5,27 @@
 #include "DoomPlayer.h"
 #include "app_music.h"
 #include "a2dp_player.h"
+#include "tjpgd.h"
 
 /*********************
  *      DEFINES
  *********************/
 
+#define	N_BPP	(3 - JD_FORMAT)
+
+typedef struct {
+  uint32_t offset;
+  uint8_t *fbuf;
+  uint32_t wfbuf;
+} IODEV;
+
 extern lv_obj_t * spectrum_obj;
 static lv_obj_t * play_obj;
 static lv_obj_t * slider_obj;
 static lv_obj_t * time_obj;
+
+#define	TJPG_WBSIZE	3500
+static uint8_t tjpg_work_buffer[TJPG_WBSIZE];
 
 static void prev_click_event_cb(lv_event_t * e)
 {
@@ -44,6 +56,41 @@ static void play_click_event_cb(lv_event_t * e)
     {
         btapi_avrcp_pause();
     }
+}
+
+static size_t tjpgd_infunc(JDEC *jd, uint8_t *buff, size_t nbyte)
+{
+    IODEV *dev = (IODEV *)jd->device;
+
+    if (buff)
+    {
+      jpeg_buff_read(dev->offset, buff, nbyte);
+#ifdef DEBUG_JPEG
+debug_printf("infunc: %d - %d (%d)\n", dev->offset, dev->offset + nbyte - 1, nbyte);
+#endif
+    }
+    dev->offset += nbyte;
+    return nbyte;
+}
+
+static int tjpgd_outfunc(JDEC *jd, void *bitmap, JRECT *rect)
+{
+    IODEV *dev = (IODEV *)jd->device;
+    uint8_t *src, *dst;
+    uint16_t y, bws;
+    uint32_t bwd;
+
+    /* Copy the output image rectangle to the frame buffer */
+    src = (uint8_t *)bitmap;
+    dst = dev->fbuf + N_BPP * (rect->top * dev->wfbuf + rect->left);
+    bws = N_BPP * (rect->right - rect->left + 1);
+    bwd = N_BPP * dev->wfbuf;
+    for (y = rect->top; y <= rect->bottom; y++)
+    {
+      memcpy(dst, src, bws);	/* Copy a line */
+      src += bws; dst += bwd;
+    }
+    return 1;
 }
 
 static void slider_event_cb(lv_event_t * e)
@@ -243,54 +290,119 @@ void set_playbtn_state(lv_imagebutton_state_t new_state)
     lv_imagebutton_set_state(play_obj, new_state);
 }
 
-extern lv_obj_t * create_spectrum_obj(lv_obj_t * parent);
+static lv_image_dsc_t imgdesc;
+static lv_obj_t *bar_box;
+
+static lv_obj_t *create_visual_box(A2DP_SCREEN *a2dps)
+{
+  lv_obj_t *vbox;
+  lv_image_header_t *header;
+
+  vbox = lv_obj_create(a2dps->screen);
+  lv_obj_set_flex_flow(vbox, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(vbox, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_END);
+  lv_obj_remove_style_all(vbox);
+  lv_obj_set_width(vbox, 200);
+  lv_obj_set_height(vbox, 280);
+
+  a2dps->cover_image = lv_image_create(vbox);
+
+  memset(&imgdesc, 0, sizeof(lv_image_dsc_t));
+  header = &imgdesc.header;
+  header->magic = LV_IMAGE_HEADER_MAGIC;
+#if JD_FORMAT == 0
+  header->cf = LV_COLOR_FORMAT_RGB888;
+#else
+  header->cf = LV_COLOR_FORMAT_RGB565;
+#endif
+  header->w = header->h = 200;
+  header->stride = 200 * N_BPP;
+  imgdesc.data_size = header->w * header->h * N_BPP;
+  imgdesc.data = (uint8_t *)JPEG_FB_ADDR;
+  lv_image_set_src(a2dps->cover_image, &imgdesc);
+
+  bar_box = lv_obj_create(vbox);
+  lv_obj_remove_style_all(bar_box);
+  lv_obj_set_width(bar_box, 200);
+
+  lv_obj_set_flex_flow(bar_box, LV_FLEX_FLOW_ROW);
+
+  static lv_style_t style_bg;
+  static lv_style_t style_indic;
+
+  lv_style_init(&style_indic);
+  lv_style_init(&style_indic);
+  lv_style_set_bg_opa(&style_bg, LV_OPA_0);
+  lv_style_set_radius(&style_bg, 0);
+  lv_style_set_pad_column(&style_bg, 2);
+  lv_style_set_bg_opa(&style_indic, LV_OPA_COVER);
+  lv_style_set_bg_color(&style_indic, lv_palette_main(LV_PALETTE_ORANGE));
+  lv_style_set_bg_grad_color(&style_indic, lv_palette_main(LV_PALETTE_LIGHT_GREEN));
+  lv_style_set_bg_grad_dir(&style_indic, LV_GRAD_DIR_VER);
+  lv_style_set_radius(&style_indic, 0);
+
+  lv_obj_add_style(bar_box, &style_bg, 0);
+
+  uint32_t i;
+  for (i = 0; i < 4; i++)
+  {
+    lv_obj_t *bar;
+
+    bar = lv_bar_create(bar_box);
+    lv_obj_add_style(bar, &style_bg, LV_PART_MAIN);
+    lv_obj_add_style(bar, &style_indic, LV_PART_INDICATOR);
+    lv_obj_set_size(bar, 40, 70);
+    lv_bar_set_range(bar, 0, 80);
+    lv_bar_set_value(bar, 0, LV_ANIM_OFF);
+  }
+
+  lv_obj_align(a2dps->cover_image, LV_ALIGN_TOP_MID, 0, 0);
+  lv_obj_align(bar_box, LV_ALIGN_BOTTOM_MID, 0, 60);
+
+  return vbox;
+}
 
 lv_obj_t * a2dp_player_create(A2DP_SCREEN *a2dps)
 {
-  a2dps->cover_count = register_cover_file();
-  a2dps->cur_cover = 0;
+  lv_obj_set_layout(a2dps->screen, LV_LAYOUT_GRID);
 
   lv_obj_t * title_box = create_title_box(a2dps, a2dps->screen);
   lv_obj_t * ctrl_box = create_ctrl_box(a2dps, a2dps->screen, a2dps->ing);
-  spectrum_obj = create_spectrum_obj(a2dps->screen);
+  lv_obj_t *visual_box = create_visual_box(a2dps);
 
-    /*Arrange the content into a grid*/
-    static const lv_coord_t grid_cols[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
-    static const lv_coord_t grid_rows[] = {LV_DEMO_MUSIC_HANDLE_SIZE,     /*Spacing*/
-                                           LV_GRID_FR(1),   /*Spacer*/
+  /*Arrange the content into a grid*/
+  static const lv_coord_t grid_cols[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
+  static const lv_coord_t grid_rows[] = {  3,
+                                           LV_GRID_FR(1),
                                            LV_GRID_CONTENT, /*Title box*/
                                            LV_GRID_FR(1),   /*Spacer*/
-                                           LV_GRID_CONTENT, /*Icon box*/
-                                           LV_GRID_FR(3),   /*Spacer*/
                                            LV_GRID_CONTENT, /*Control box*/
-                                           LV_GRID_FR(1),   /*Spacer*/
-                                           LV_GRID_CONTENT, /*Handle box*/
-                                           LV_GRID_FR(1),   /*Spacer*/
-                                           LV_DEMO_MUSIC_HANDLE_SIZE,     /*Spacing*/
+                                           10,
+                                           10,
                                            LV_GRID_TEMPLATE_LAST
                                           };
 
-    lv_obj_set_grid_dsc_array(a2dps->screen, grid_cols, grid_rows);
-    lv_obj_set_style_grid_row_align(a2dps->screen, LV_GRID_ALIGN_SPACE_BETWEEN, 0);
-    lv_obj_set_grid_cell(title_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_CENTER, 2, 1);
-    lv_obj_set_grid_cell(ctrl_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_CENTER, 6, 1);
-    lv_obj_set_grid_cell(spectrum_obj, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_CENTER, 1, 9);
+  lv_obj_set_grid_dsc_array(a2dps->screen, grid_cols, grid_rows);
+  lv_obj_set_style_grid_row_align(a2dps->screen, LV_GRID_ALIGN_SPACE_BETWEEN, 0);
+  lv_obj_set_grid_cell(title_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_CENTER, 2, 1);
+  lv_obj_set_grid_cell(ctrl_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_CENTER, 4, 1);
+  lv_obj_set_grid_cell(visual_box, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_START, 1, 5);
 
-    return a2dps->screen;
+  return a2dps->screen;
 }
-
-static lv_image_dsc_t imgdesc;
 
 void change_track_cover(A2DP_SCREEN *a2dps)
 {
   COVER_INFO *cfp;
-  lv_obj_t * img;
 
   a2dps->cur_cover++;
   if (a2dps->cur_cover >= a2dps->cover_count)
     a2dps->cur_cover = 0;
 
-  img = lv_image_create(spectrum_obj);
+  if (a2dps->cover_image == NULL)
+  {
+    a2dps->cover_image = lv_image_create(spectrum_obj);
+  }
 
   cfp = track_cover(a2dps->cur_cover);
   if (cfp)
@@ -298,19 +410,51 @@ void change_track_cover(A2DP_SCREEN *a2dps)
       lv_image_dsc_t *desc = (lv_image_dsc_t *)(cfp->faddr);
 
       imgdesc = *desc;
+      imgdesc.header.cf = LV_COLOR_FORMAT_RGB565A8;
       imgdesc.data_size = desc->header.w * desc->header.h * 2;
       imgdesc.data = cfp->faddr + 12;
-      lv_image_set_src(img, &imgdesc);
+      lv_image_set_src(a2dps->cover_image, &imgdesc);
   }
-  lv_image_set_antialias(img, false);
-  lv_obj_align(img, LV_ALIGN_CENTER, 0, 0);
+  lv_image_set_antialias(a2dps->cover_image, false);
+  lv_obj_align(a2dps->cover_image, LV_ALIGN_CENTER, 0, 0);
 #if 0
   lv_obj_add_event_cb(img, album_gesture_event_cb, LV_EVENT_GESTURE, NULL);
   lv_obj_remove_flag(img, LV_OBJ_FLAG_GESTURE_BUBBLE);
   lv_obj_add_flag(img, LV_OBJ_FLAG_CLICKABLE);
 #endif
+}
 
-  //return img;
+void change_track_cover_image(A2DP_SCREEN *a2dps, int img_len, uint8_t *img_data)
+{
+  JRESULT res;
+  JDEC jdec;
+  IODEV devid;
+
+  if (a2dps->cover_image == NULL)
+  {
+    a2dps->cover_image = lv_image_create(spectrum_obj);
+  }
+
+  if (img_len > 0)
+  {
+    devid.offset = 0;
+    res = jd_prepare(&jdec, tjpgd_infunc, tjpg_work_buffer, TJPG_WBSIZE, &devid);
+    if (res == JDR_OK)
+    {
+      if ((jdec.width = 200) && (jdec.height == 200))
+      {
+        devid.fbuf = (uint8_t *)JPEG_FB_ADDR;
+        devid.wfbuf = jdec.width;
+
+        res = jd_decomp(&jdec, tjpgd_outfunc, 0);
+        if (res == JDR_OK)
+        {
+          lv_image_set_src(a2dps->cover_image, &imgdesc);
+          lv_obj_align(a2dps->cover_image, LV_ALIGN_TOP_MID, 0, 0);
+        }
+      }
+    }
+  }
 }
 
 void app_ppos_update(MIX_INFO *mixInfo)
@@ -319,4 +463,17 @@ void app_ppos_update(MIX_INFO *mixInfo)
     lv_slider_set_range(slider_obj, 0, slen);
     lv_slider_set_value(slider_obj, mixInfo->psec, LV_ANIM_ON);
     lv_label_set_text_fmt(time_obj, "%"LV_PRIu32":%02"LV_PRIu32, slen / 60, slen % 60);
+}
+
+void app_fftbar_update(int *bandval)
+{
+  uint32_t i;
+
+  for (i = 0; i < 4; i++)
+  {
+     lv_obj_t *bar;
+
+     bar = lv_obj_get_child(bar_box, i);
+     lv_bar_set_value(bar, *bandval++, LV_ANIM_OFF);
+  }
 }
