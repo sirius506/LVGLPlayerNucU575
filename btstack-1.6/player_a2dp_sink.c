@@ -95,6 +95,7 @@ static btstack_sample_rate_compensation_t sample_rate_compensation;
 static btstack_packet_callback_registration_t hci_event_callback_registration;
 
 extern BTSTACK_INFO BtStackInfo;
+extern void hal_audio_setup();
 
 static uint8_t  sdp_avdtp_sink_service_buffer[150];
 static uint8_t  sdp_avrcp_target_service_buffer[150];
@@ -163,9 +164,10 @@ static const char * a2dp_sink_demo_thumbnail_path = "cover.jpg";
 static FILE * a2dp_sink_cover_art_file;
 #endif
 #ifdef COVER_ART_DEMO
-static bool a2dp_sink_track_changed;
 void cover_art_set_cover(const uint8_t *cover_data, uint32_t cover_len);
 #endif
+
+static btstack_timer_source_t cover_request_timer;
 #endif
 
 typedef struct {
@@ -355,6 +357,7 @@ debug_printf("check: cover_state = %x, palyback = %d\n", pinfo->cover_state, pin
     pinfo->cover_state |= CINFO_COVER_REQUESTED;
   }
 }
+
 
 static void playback_handler(int16_t * buffer, uint16_t num_audio_frames){
 
@@ -766,6 +769,18 @@ static void avrcp_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t 
     }
 }
 
+void send_cover_get(btstack_timer_source_t *ts)
+{
+    UNUSED(ts);
+    BTSTACK_INFO *pinfo = &BtStackInfo;
+
+    if (pinfo->cover_count > 0)
+    {
+debug_printf("send GET_COVER\n");
+      btapi_post_request(BTREQ_GET_COVER, pinfo->avrcp_cid);
+    }
+}
+
 static void avrcp_controller_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size){
     UNUSED(channel);
     UNUSED(size);
@@ -983,7 +998,13 @@ debug_printf("download activated\n");
                 if (pinfo->cover_count < MAX_COVER_TRY)
                 {
                   pinfo->cover_count++;
-                  btapi_post_request(BTREQ_GET_COVER, pinfo->avrcp_cid);
+                  btstack_run_loop_set_timer_handler(&cover_request_timer, &send_cover_get);
+                  btstack_run_loop_set_timer(&cover_request_timer, 120 * pinfo->cover_count);
+                  btstack_run_loop_add_timer(&cover_request_timer);
+                }
+                else
+                {
+                  debug_printf("Cover Info request failed,\n");
                 }
             }
             break;
@@ -1181,11 +1202,12 @@ void cover_art_set_cover(const uint8_t *cover_data, uint32_t cover_len)
 {
   BTSTACK_INFO *pinfo = &BtStackInfo;
 
-  if (cover_data == NULL)
+  if ((cover_data == NULL) || (cover_len > JPEG_BUFF_SIZE))
   {
     debug_printf("No Image.\n");
+    postGuiEventMessage(GUIEV_COVER_ART, 0, NULL, NULL);
   }
-  else if (cover_len < JPEG_BUFF_SIZE)
+  else
   {
     postGuiEventMessage(GUIEV_COVER_ART, cover_len, (void *)cover_data, (void *)cover_data);
   }

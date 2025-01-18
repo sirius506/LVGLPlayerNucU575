@@ -320,6 +320,8 @@ static lv_obj_t *create_visual_box(A2DP_SCREEN *a2dps)
   imgdesc.data_size = header->w * header->h * N_BPP;
   imgdesc.data = (uint8_t *)JPEG_FB_ADDR;
   lv_image_set_src(a2dps->cover_image, &imgdesc);
+  memset((void*)JPEG_FB_ADDR, 0xff, 200*3*200);
+  lv_obj_align(a2dps->cover_image, LV_ALIGN_TOP_MID, 0, 0);
 
   bar_box = lv_obj_create(vbox);
   lv_obj_remove_style_all(bar_box);
@@ -429,6 +431,7 @@ void change_track_cover_image(A2DP_SCREEN *a2dps, int img_len, uint8_t *img_data
   JRESULT res;
   JDEC jdec;
   IODEV devid;
+  int cover_valid = 0;
 
   if (a2dps->cover_image == NULL)
   {
@@ -449,12 +452,17 @@ void change_track_cover_image(A2DP_SCREEN *a2dps, int img_len, uint8_t *img_data
         res = jd_decomp(&jdec, tjpgd_outfunc, 0);
         if (res == JDR_OK)
         {
-          lv_image_set_src(a2dps->cover_image, &imgdesc);
-          lv_obj_align(a2dps->cover_image, LV_ALIGN_TOP_MID, 0, 0);
+          cover_valid = 1;
         }
       }
     }
   }
+  if (cover_valid == 0)
+  {
+    /* Shown as blank image */
+    memset((void*)JPEG_FB_ADDR, 0xff, 200*3*200);
+  }
+  lv_image_set_src(a2dps->cover_image, &imgdesc);
 }
 
 void app_ppos_update(MIX_INFO *mixInfo)
