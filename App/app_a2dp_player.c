@@ -5,19 +5,13 @@
 #include "DoomPlayer.h"
 #include "app_music.h"
 #include "a2dp_player.h"
-#include "tjpgd.h"
+#include "jpeg_if.h"
 
 /*********************
  *      DEFINES
  *********************/
 
 #define	N_BPP	(3 - JD_FORMAT)
-
-typedef struct {
-  uint32_t offset;
-  uint8_t *fbuf;
-  uint32_t wfbuf;
-} IODEV;
 
 extern lv_obj_t * spectrum_obj;
 static lv_obj_t * play_obj;
@@ -56,41 +50,6 @@ static void play_click_event_cb(lv_event_t * e)
     {
         btapi_avrcp_pause();
     }
-}
-
-static size_t tjpgd_infunc(JDEC *jd, uint8_t *buff, size_t nbyte)
-{
-    IODEV *dev = (IODEV *)jd->device;
-
-    if (buff)
-    {
-      jpeg_buff_read(dev->offset, buff, nbyte);
-#ifdef DEBUG_JPEG
-debug_printf("infunc: %d - %d (%d)\n", dev->offset, dev->offset + nbyte - 1, nbyte);
-#endif
-    }
-    dev->offset += nbyte;
-    return nbyte;
-}
-
-static int tjpgd_outfunc(JDEC *jd, void *bitmap, JRECT *rect)
-{
-    IODEV *dev = (IODEV *)jd->device;
-    uint8_t *src, *dst;
-    uint16_t y, bws;
-    uint32_t bwd;
-
-    /* Copy the output image rectangle to the frame buffer */
-    src = (uint8_t *)bitmap;
-    dst = dev->fbuf + N_BPP * (rect->top * dev->wfbuf + rect->left);
-    bws = N_BPP * (rect->right - rect->left + 1);
-    bwd = N_BPP * dev->wfbuf;
-    for (y = rect->top; y <= rect->bottom; y++)
-    {
-      memcpy(dst, src, bws);	/* Copy a line */
-      src += bws; dst += bwd;
-    }
-    return 1;
 }
 
 static void slider_event_cb(lv_event_t * e)
@@ -296,7 +255,6 @@ static lv_obj_t *bar_box;
 static lv_obj_t *create_visual_box(A2DP_SCREEN *a2dps)
 {
   lv_obj_t *vbox;
-  lv_image_header_t *header;
 
   vbox = lv_obj_create(a2dps->screen);
   lv_obj_set_flex_flow(vbox, LV_FLEX_FLOW_COLUMN);
@@ -306,21 +264,8 @@ static lv_obj_t *create_visual_box(A2DP_SCREEN *a2dps)
   lv_obj_set_height(vbox, 280);
 
   a2dps->cover_image = lv_image_create(vbox);
+  jpegif_init();
 
-  memset(&imgdesc, 0, sizeof(lv_image_dsc_t));
-  header = &imgdesc.header;
-  header->magic = LV_IMAGE_HEADER_MAGIC;
-#if JD_FORMAT == 0
-  header->cf = LV_COLOR_FORMAT_RGB888;
-#else
-  header->cf = LV_COLOR_FORMAT_RGB565;
-#endif
-  header->w = header->h = 200;
-  header->stride = 200 * N_BPP;
-  imgdesc.data_size = header->w * header->h * N_BPP;
-  imgdesc.data = (uint8_t *)JPEG_FB_ADDR;
-  lv_image_set_src(a2dps->cover_image, &imgdesc);
-  memset((void*)JPEG_FB_ADDR, 0xff, 200*3*200);
   lv_obj_align(a2dps->cover_image, LV_ALIGN_TOP_MID, 0, 0);
 
   bar_box = lv_obj_create(vbox);
@@ -426,43 +371,18 @@ void change_track_cover(A2DP_SCREEN *a2dps)
 #endif
 }
 
-void change_track_cover_image(A2DP_SCREEN *a2dps, int img_len, uint8_t *img_data)
+void change_track_cover_image(A2DP_SCREEN *a2dps, int img_len, lv_image_dsc_t *imgdesc)
 {
-  JRESULT res;
-  JDEC jdec;
-  IODEV devid;
-  int cover_valid = 0;
-
-  if (a2dps->cover_image == NULL)
+debug_printf("cover_image: %d @ %x\n", img_len, imgdesc);
+  if (img_len == 0)
   {
-    a2dps->cover_image = lv_image_create(spectrum_obj);
+    lv_obj_add_flag(a2dps->cover_image, LV_OBJ_FLAG_HIDDEN);
   }
-
-  if (img_len > 0)
+  else
   {
-    devid.offset = 0;
-    res = jd_prepare(&jdec, tjpgd_infunc, tjpg_work_buffer, TJPG_WBSIZE, &devid);
-    if (res == JDR_OK)
-    {
-      if ((jdec.width = 200) && (jdec.height == 200))
-      {
-        devid.fbuf = (uint8_t *)JPEG_FB_ADDR;
-        devid.wfbuf = jdec.width;
-
-        res = jd_decomp(&jdec, tjpgd_outfunc, 0);
-        if (res == JDR_OK)
-        {
-          cover_valid = 1;
-        }
-      }
-    }
+    lv_image_set_src(a2dps->cover_image, imgdesc);
+    lv_obj_clear_flag(a2dps->cover_image, LV_OBJ_FLAG_HIDDEN);
   }
-  if (cover_valid == 0)
-  {
-    /* Shown as blank image */
-    memset((void*)JPEG_FB_ADDR, 0xff, 200*3*200);
-  }
-  lv_image_set_src(a2dps->cover_image, &imgdesc);
 }
 
 void app_ppos_update(MIX_INFO *mixInfo)

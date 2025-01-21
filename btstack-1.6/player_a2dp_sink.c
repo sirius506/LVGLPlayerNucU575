@@ -74,6 +74,10 @@
 //#define AVRCP_BROWSING_ENABLED
 #define	COVER_ART_DEMO
 
+#ifdef COVER_ART_DEMO
+#include "jpeg_if.h"
+#endif
+
 #ifdef HAVE_BTSTACK_AUDIO_EFFECTIVE_SAMPLERATE
 #include "btstack_sample_rate_compensation.h"
 #endif
@@ -163,9 +167,6 @@ static uint32_t a2dp_sink_cover_art_file_size;
 static const char * a2dp_sink_demo_thumbnail_path = "cover.jpg";
 static FILE * a2dp_sink_cover_art_file;
 #endif
-#ifdef COVER_ART_DEMO
-void cover_art_set_cover(const uint8_t *cover_data, uint32_t cover_len);
-#endif
 
 static btstack_timer_source_t cover_request_timer;
 #endif
@@ -253,7 +254,6 @@ int setup_a2dp_sink()
     avrcp_init();
     avrcp_controller_init();
     avrcp_target_init();
-
 
     // Configure A2DP Sink
     a2dp_sink_register_packet_handler(&a2dp_sink_packet_handler);
@@ -644,7 +644,7 @@ static void a2dp_sink_demo_cover_art_packet_handler(uint8_t packet_type, uint16_
         case BIP_DATA_PACKET:
             if (a2dp_sink_cover_art_download_active){
 #ifdef COVER_ART_DEMO
-                jpeg_buff_write(a2dp_sink_cover_art_file_size, packet, size);
+                jpegif_write(packet, size);
 #endif
                 a2dp_sink_cover_art_file_size += size;
                 //debug_printf("Cover art       : TODO - store %u bytes image data\n", size);
@@ -680,14 +680,16 @@ static void a2dp_sink_demo_cover_art_packet_handler(uint8_t packet_type, uint16_
                                 a2dp_sink_cover_art_download_active = false;
                                 debug_printf("Cover Art       : download complete, size %u bytes'\n", a2dp_sink_cover_art_file_size);
 #ifdef COVER_ART_DEMO
-                                cover_art_set_cover((const uint8_t *)JPEG_BUFF_ADDR, a2dp_sink_cover_art_file_size);
+                                jpegif_stop();
+                                pinfo->cover_state &= ~CINFO_COVER_REQUESTED;
 #endif
                             }
                             break;
                         case AVRCP_SUBEVENT_COVER_ART_CONNECTION_RELEASED:
                             a2dp_sink_demo_cover_art_client_connected = false;
                             a2dp_sink_demo_cover_art_cid = 0;
-                            cover_art_set_cover(NULL, 0);
+                            pinfo->cover_state &= ~CINFO_COVER_REQUESTED;
+                            postGuiEventMessage(GUIEV_COVER_ART, 0, NULL, NULL);
                             printf("Cover Art       : connection released 0x%02x\n",
                                    avrcp_subevent_cover_art_connection_released_get_cover_art_cid(packet));
                             break;
@@ -763,6 +765,7 @@ static void avrcp_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t 
             connection->avrcp_cid = 0;
             connection->notifications_supported_by_target = 0;
             postGuiEventMessage(GUIEV_AVRCP_DISC, 0, NULL, NULL);
+            postGuiEventMessage(GUIEV_COVER_ART, 0, NULL, NULL);
             return;
         default:
             break;
@@ -862,6 +865,7 @@ static void avrcp_controller_packet_handler(uint8_t packet_type, uint16_t channe
             pinfo->cover_state &= ~(CINFO_COVER_REQUESTED);
             pinfo->cover_state |= CINFO_TRACK_CHANGED;
             pinfo->cover_count = 0;
+            postGuiEventMessage(GUIEV_COVER_ART, 0, NULL, NULL);
             break;
 
         case AVRCP_SUBEVENT_NOTIFICATION_AVAILABLE_PLAYERS_CHANGED:
@@ -986,6 +990,7 @@ debug_printf("song_length! %d\n", avrcp_subevent_now_playing_song_length_ms_info
                   a2dp_sink_cover_art_download_active = true;
 debug_printf("download activated\n");
                   a2dp_sink_cover_art_file_size = 0;
+                  jpegif_start();
                   avrcp_cover_art_client_get_linked_thumbnail(a2dp_sink_demo_cover_art_cid, a2dp_sink_demo_image_handle);
                 }
                 pinfo->cover_count = 0;
@@ -1073,7 +1078,6 @@ static void a2dp_sink_packet_handler(uint8_t packet_type, uint16_t channel, uint
     if (packet_type != HCI_EVENT_PACKET) return;
     if (hci_event_packet_get_type(packet) != HCI_EVENT_A2DP_META) return;
 
-debug_printf("%s:\n", __FUNCTION__);
     a2dp_sink_demo_a2dp_connection_t * a2dp_conn = &a2dp_sink_demo_a2dp_connection;
 
     switch (packet[2]){
@@ -1196,22 +1200,6 @@ void btstack_start_a2dp_sink()
     setup_a2dp_sink();
     hal_audio_setup();
 
-}
-
-void cover_art_set_cover(const uint8_t *cover_data, uint32_t cover_len)
-{
-  BTSTACK_INFO *pinfo = &BtStackInfo;
-
-  if ((cover_data == NULL) || (cover_len > JPEG_BUFF_SIZE))
-  {
-    debug_printf("No Image.\n");
-    postGuiEventMessage(GUIEV_COVER_ART, 0, NULL, NULL);
-  }
-  else
-  {
-    postGuiEventMessage(GUIEV_COVER_ART, cover_len, (void *)cover_data, (void *)cover_data);
-  }
-  pinfo->cover_state &= ~CINFO_COVER_REQUESTED;
 }
 
 /* EXAMPLE_END */

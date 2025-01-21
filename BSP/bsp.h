@@ -127,6 +127,4 @@ int gamepad_is_owner();
 
 uint32_t bsp_calc_crc(uint8_t *bp, int len);
 uint32_t bsp_accumulate_crc(uint8_t *bp, int len);
-int jpeg_buff_write(int offset, uint8_t *pdata, int wlen);
-int jpeg_buff_read(int offset, uint8_t *pdata, int rlen);
 #endif

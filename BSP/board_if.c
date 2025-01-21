@@ -88,11 +88,6 @@ int Board_PSRAMInfo(HAL_DEVICE *haldev)
   {
     cap = psramid[2] & 0xE0;
     debug_printf("PSRAM detected (%d)\n", cap);
-#if 0
-    haldev->qspi_psram->hospi.Instance->CR &= ~1;
-    haldev->qspi_psram->hospi.Instance->DCR2 = 2;
-    haldev->qspi_psram->hospi.Instance->CR |= 1;
-#endif
     return cap;
   }
   return 0;

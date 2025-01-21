@@ -486,7 +486,7 @@ static void drflac_close_fatfs(drflac* pFlac)
 static const int frange[] = { 8, 45, 300, 600, 0 };
 #else
 //static const int frange[] = { 5, 23, 150, 512, 0 };
-static const int frange[] = { 7, 70, 208, 512, 0 };
+static const int frange[] = { 15, 70, 208, 512, 0 };
 #endif
 static int band_val[FRANGES];
 

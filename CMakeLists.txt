@@ -13,7 +13,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
-#set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_BUILD_TYPE "Release")
 
 # Define the build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -88,6 +88,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Middlewares/Third_Party/ff15/source/ffsystem.c
     Middlewares/Third_Party/ff15/source/ffunicode.c
     App/app_gui.c
+    App/jpeg_if.c
     App/app_main.c
     App/app_a2dp_player.c
     App/app_music_list.c
