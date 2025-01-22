@@ -53,7 +53,7 @@ application on the initial startup screen.
 
 ![DoomPlayerSound](https://github.com/user-attachments/assets/77bc90bd-78f0-4b23-834f-7d82ef2413ee)
 
-If gamepad is not connected when DOOM has started, control buttons are dusplayed on the LCD screen. But it is not easy to play the game, it is strongly recommented to use gamepad.
+If gamepad is not connected when DOOM has started, control buttons are displayed on the LCD screen. But it is not easy to play the game, it is strongly recommented to use gamepad.
 
 ![doom_small](https://github.com/user-attachments/assets/89af701a-7601-403e-8a4b-07e58540d4ff)
 
@@ -70,9 +70,11 @@ While game play is on-going, touch center of LCD screen to bring cheat mode butt
 * Only SBC codec is supported.
 * Title and artist name displayed on the screen.
 
-![BTPlayer1](https://github.com/user-attachments/assets/a0663820-5dd8-48bc-ba4c-9e0037a6d7d8)
+![IMG240122134504](https://github.com/user-attachments/assets/b1bf8205-1930-4cf9-be88-4e7d4c5a33e7)
 
-![BTPlayer2](https://github.com/user-attachments/assets/23dcb86b-c939-4536-abaa-0109dea3ef62)
+![IMG240122093558](https://github.com/user-attachments/assets/ea9c3550-ccec-4fbd-b9d5-01e10dbf74c1)
+
+![IMG240122140244](https://github.com/user-attachments/assets/034bd091-fd5c-472d-9acb-d32da9b01438)
 
 ## Oscilloscope Music
 * Plays [Oscilloscpe Music](https://oscilloscopemusic.com/) .WAV sound files on the SD card and shows its visual effects on the LCD.
@@ -80,6 +82,16 @@ While game play is on-going, touch center of LCD screen to bring cheat mode butt
 * You need to purchase necessary WAV files and store those files on the SD card.
 
 ![OscCore2](https://github.com/user-attachments/assets/bf867100-0e9a-4036-8a14-bad15a9174f5)
+
+
+![OscCore3](https://github.com/user-attachments/assets/20ee7a28-dc10-43ab-a09e-eafb821838f7)
+![OscCore5](https://github.com/user-attachments/assets/b9fbd95b-1320-4528-976e-b0973c33d476)
+
+![OscFunction2](https://github.com/user-attachments/assets/eb4fbffb-53fc-4739-96db-92271637e641)
+![OscFunction3](https://github.com/user-attachments/assets/ed0e3b06-f57a-4f11-9224-c3ab04a117b3)
+
+![OscFunction4](https://github.com/user-attachments/assets/6a94c06f-ea43-49fb-a7c9-64167109fc55)
+![OscFunction6](https://github.com/user-attachments/assets/6e48bbb2-19b7-4b59-9eae-e977542a0b0b)
 
 Please refer [Wiki pages](https://github.com/sirius506/DoomPlayerNucU575/wiki) for more descriptions and screen shot images.
 
