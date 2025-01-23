@@ -20,7 +20,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-set(SYSTEMVIEW_ENABLE "1")
+set(SYSTEMVIEW_ENABLE "0")
 
 # Set the project name
 set(CMAKE_PROJECT_NAME LVGLPlayerNucU575)

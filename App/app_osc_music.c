@@ -873,7 +873,7 @@ int oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress)
   else
   {
     /* Refresh screen every six frames */
-    switch (dcount % 5)
+    switch (dcount % 6)
     {
     case 0:
       lv_image_set_src(screen->scope_image,

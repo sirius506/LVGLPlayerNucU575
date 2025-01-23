@@ -1,8 +1,8 @@
 #include <stdio.h>
+#include "DoomPlayer.h"
 #if (USE_SYSTEMVIEW == 1)
 #include "SEGGER_SYSVIEW.h"
 #endif
-#include "DoomPlayer.h"
 #include <string.h>
 #include "board_if.h"
 #include "app_verify.h"

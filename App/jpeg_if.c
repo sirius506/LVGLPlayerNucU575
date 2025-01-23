@@ -181,8 +181,6 @@ void StartJpegTask(void *arg)
   JDEC jdec;
   JPEGIF_INFO *jpegInfo = &JpegIfInfo;
 
-debug_printf("jpegtask started.\n");
-
   while (1)
   {
 debug_printf("Waiting for START\n");
@@ -203,12 +201,7 @@ debug_printf("JPEG: %d x %d\n", jdec.width, jdec.height);
           postGuiEventMessage(GUIEV_COVER_ART, 200*2*200, &imgdesc, &imgdesc);
         }
       }
-      else
-      {
-          postGuiEventMessage(GUIEV_COVER_ART, 0, &imgdesc, &imgdesc);
-      }
     }
-debug_printf("res = %d\n", res);
     osEventFlagsClear(jpegInfo->flagsId, JPEGEV_EMPTY|JPEGEV_FEED|JPEGEV_EOF);
   }
 }

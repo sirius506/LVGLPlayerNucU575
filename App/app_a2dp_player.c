@@ -11,15 +11,10 @@
  *      DEFINES
  *********************/
 
-#define	N_BPP	(3 - JD_FORMAT)
-
 extern lv_obj_t * spectrum_obj;
 static lv_obj_t * play_obj;
 static lv_obj_t * slider_obj;
 static lv_obj_t * time_obj;
-
-#define	TJPG_WBSIZE	3500
-static uint8_t tjpg_work_buffer[TJPG_WBSIZE];
 
 static void prev_click_event_cb(lv_event_t * e)
 {
@@ -128,7 +123,7 @@ void show_a2dp_buttons()
 {
     for (int i = 0; i < 5; i++)
     {
-      lv_obj_clear_flag(ctrl_buttons[i], LV_OBJ_FLAG_HIDDEN);
+      lv_obj_remove_flag(ctrl_buttons[i], LV_OBJ_FLAG_HIDDEN);
     }
 }
 
@@ -262,6 +257,8 @@ static lv_obj_t *create_visual_box(A2DP_SCREEN *a2dps)
   lv_obj_remove_style_all(vbox);
   lv_obj_set_width(vbox, 200);
   lv_obj_set_height(vbox, 280);
+  lv_obj_remove_flag(vbox, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_remove_flag(vbox, LV_OBJ_FLAG_CLICKABLE);
 
   a2dps->cover_image = lv_image_create(vbox);
   jpegif_init();
@@ -283,8 +280,13 @@ static lv_obj_t *create_visual_box(A2DP_SCREEN *a2dps)
   lv_style_set_radius(&style_bg, 0);
   lv_style_set_pad_column(&style_bg, 2);
   lv_style_set_bg_opa(&style_indic, LV_OPA_COVER);
+#if 1
   lv_style_set_bg_color(&style_indic, lv_palette_main(LV_PALETTE_ORANGE));
   lv_style_set_bg_grad_color(&style_indic, lv_palette_main(LV_PALETTE_LIGHT_GREEN));
+#else
+  lv_style_set_bg_color(&style_indic, lv_palette_main(LV_PALETTE_ORANGE));
+  lv_style_set_bg_grad_color(&style_indic, lv_palette_main(LV_PALETTE_LIME));
+#endif
   lv_style_set_bg_grad_dir(&style_indic, LV_GRAD_DIR_VER);
   lv_style_set_radius(&style_indic, 0);
 
@@ -381,7 +383,7 @@ debug_printf("cover_image: %d @ %x\n", img_len, imgdesc);
   else
   {
     lv_image_set_src(a2dps->cover_image, imgdesc);
-    lv_obj_clear_flag(a2dps->cover_image, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(a2dps->cover_image, LV_OBJ_FLAG_HIDDEN);
   }
 }
 
