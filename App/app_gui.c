@@ -14,12 +14,13 @@
 #include "app_setup.h"
 #include "btapi.h"
 
-#define	TIMER_INTERVAL	16
+#define	TIMER_INTERVAL	10
 
 volatile DOOM_SCREEN_STATUS DoomScreenStatus;
 
 TASK_DEF(doomTask, 800, osPriorityBelowNormal)
 TASK_DEF(btstacktask,  500, osPriorityNormal2)
+MUTEX_DEF(guilock);
 
 extern void StartBtstackTask(void *arg);
 extern void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen);
@@ -113,6 +114,7 @@ static uint16_t buf_1[DISP_HOR_RES * 40];
 #endif
 static lv_style_t style_title;
 static lv_style_t style_focus;
+static osMutexId_t guilockId;
 static osMessageQueueId_t  guievqId;
 static osMessageQueueId_t  padkeyqId;
 
@@ -189,10 +191,12 @@ void postGuiEvent(const GUI_EVENT *event)
   {
     osDelay(10);
   }
+  osMutexAcquire(guilockId, osWaitForever);
   if (osMessageQueuePut(guievqId, event, 0, 0) != osOK)
   {
     debug_printf("%s: put %d failed.\n", __FUNCTION__, event->evcode);
   }
+  osMutexRelease(guilockId);
 }
 
 void postGuiEventMessage(GUIEV_CODE evcode, uint32_t evval0, void *evarg1, void *evarg2)
@@ -208,10 +212,12 @@ void postGuiEventMessage(GUIEV_CODE evcode, uint32_t evval0, void *evarg1, void 
   {
     osDelay(10);
   }
+  osMutexAcquire(guilockId, osWaitForever);
   if (osMessageQueuePut(guievqId, &ev, 0, 0) != osOK)
   {
     debug_printf("%s: put failed. (%d)\n", __FUNCTION__, evcode);
   }
+  osMutexRelease(guilockId);
 }
 
 lv_obj_t *create_reboot_mbox(char *title, char *msg_text)
@@ -887,6 +893,7 @@ void StartGuiTask(void *args)
   padInfo = &nullPad;
   icon_value = 0;
 
+  guilockId = osMutexNew(&attributes_guilock);
   guievqId = osMessageQueueNew(GUIEVQ_DEPTH, sizeof(GUI_EVENT), &attributes_guievq);
   padkeyqId = osMessageQueueNew(PADKEYQ_DEPTH, sizeof(lv_indev_data_t), &attributes_padkeyq);
 
