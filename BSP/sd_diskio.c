@@ -30,6 +30,7 @@
 #include "ff.h"
 #include "ff_gen_drv.h"
 #include "sd_diskio.h"
+#include "debug.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -381,9 +382,7 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
   uint16_t event;
   osStatus_t status;
 
-#if defined(ENABLE_SCRATCH_BUFFER)
   int32_t ret;
-#endif
 
   /*
   * ensure the SDCard is ready for a new operation
@@ -394,56 +393,43 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
     return res;
   }
 
-#if defined(ENABLE_SCRATCH_BUFFER)
   if (!((uint32_t)buff & 0x3))
   {
-#endif
-#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
-  uint32_t alignedAddr;
-  /*
-    the SCB_CleanDCache_by_Addr() requires a 32-Byte aligned address
-    adjust the address and the D-Cache size to clean accordingly.
-  */
-  alignedAddr = (uint32_t)buff & ~0x1F;
-  SCB_CleanDCache_by_Addr((uint32_t*)alignedAddr, count*BLOCKSIZE + ((uint32_t)buff - alignedAddr));
-#endif
-
-  if(BSP_SD_WriteBlocks_DMA((uint32_t*)buff,
+    if(BSP_SD_WriteBlocks_DMA((uint32_t*)buff,
                            (uint32_t) (sector),
                            count) == MSD_OK)
-  {
-    //HAL_GPIO_WritePin(USER_LED1_GPIO_Port, USER_LED1_Pin, GPIO_PIN_RESET);
-    status = osMessageQueueGet(SDQueueID, (void *)&event, NULL, SD_TIMEOUT);
-    if ((status == osOK) && (event == WRITE_CPLT_MSG))
     {
+      status = osMessageQueueGet(SDQueueID, (void *)&event, NULL, SD_TIMEOUT);
+      if ((status == osOK) && (event == WRITE_CPLT_MSG))
+      {
+        uint8_t sd_ret = 0;
+
         timer = osKernelGetTickCount();
         /* block until SDIO IP is ready or a timeout occur */
         while(osKernelGetTickCount() - timer  < SD_TIMEOUT)
         {
-          if (BSP_SD_GetCardState() == SD_TRANSFER_OK)
+          sd_ret = BSP_SD_GetCardState();
+          if (sd_ret == SD_TRANSFER_OK)
           {
             res = RES_OK;
             break;
           }
         }
+        if (res != RES_OK)
+        {
+          debug_printf("timeout, %d\n", sd_ret);
+        }
+      }
     }
-    //HAL_GPIO_WritePin(USER_LED1_GPIO_Port, USER_LED1_Pin, GPIO_PIN_SET);
   }
-#if defined(ENABLE_SCRATCH_BUFFER)
-  else {
+  else
+  {
     /* Slow path, fetch each sector a part and memcpy to destination buffer */
     UINT i;
 
     ret = MSD_OK;
-#if (ENABLE_SD_DMA_CACHE_MAINTENANCE == 1)
-    /*
-     * invalidate the scratch buffer before the next write to get the actual data instead of the cached one
-     */
-     SCB_InvalidateDCache_by_Addr((uint32_t*)scratch, BLOCKSIZE);
-#endif
-      //HAL_GPIO_WritePin(USER_LED1_GPIO_Port, USER_LED1_Pin, GPIO_PIN_RESET);
-      for (i = 0; i < count; i++)
-      {
+    for (i = 0; i < count; i++)
+    {
         memcpy((void *)scratch, buff, BLOCKSIZE);
         buff += BLOCKSIZE;
 
@@ -475,17 +461,15 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
         }
         else
         {
+debug_printf("WriteBlock error %d\n", ret);
           break;
         }
-      }
-      //HAL_GPIO_WritePin(USER_LED1_GPIO_Port, USER_LED1_Pin, GPIO_PIN_SET);
-
-      if ((i == count) && (ret == MSD_OK ))
-        res = RES_OK;
     }
 
+    if ((i == count) && (ret == MSD_OK ))
+        res = RES_OK;
+
   }
-#endif
 
   return res;
 }
