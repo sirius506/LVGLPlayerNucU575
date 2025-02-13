@@ -11,8 +11,6 @@
 #include "audio_output.h"
 #include "m_misc.h"
 
-#define USE_BMP_FORMAT
-
 extern HAL_DEVICE HalDevice;
 
 TASK_DEF(guitask,     1400, osPriorityBelowNormal3)
@@ -112,7 +110,6 @@ void SaveScreenFile(uint8_t *bp, int len)
 
   nb = 0;
   res = FR_OK;
-#ifdef USE_BMP_FORMAT
   {
     int i;
     uint8_t *wp, wb;
@@ -154,24 +151,6 @@ void SaveScreenFile(uint8_t *bp, int len)
     CloseRGBFile(pfile);
     debug_printf("save %s.\n", (res == FR_OK)? "success" : "falied");
   }
-#else
-  bsp_generate_snap_filename(fname, SCREEN_DIR, FNAME_LEN, "rgb");
-  pfile = CreateRGBFile(fname);
-  if (pfile)
-  {
-    while (len > 0 && res == FR_OK)
-    {
-      nw = (len > WBSIZE)? WBSIZE : len;
-      memcpy(wbuffer, bp, nw);
-      res = f_write(pfile, wbuffer, nw, &nb);
-      if (res == FR_OK)
-        bp += nb;
-      len -= nb;
-    }
-    CloseRGBFile(pfile);
-    debug_printf("save %s.\n", (res == FR_OK)? "success" : "falied");
-  }
-#endif
 }
 
 static uint8_t *screen_buffer;
