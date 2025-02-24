@@ -585,8 +585,8 @@ static const uint8_t index_data[I1_INDEX_SIZE] = {
   0x00,0x00,0x00,0xff,0x80,0xE0,0x00,0xFF,
 };
 
-uint8_t oscImage_map1[40*320+8];
-uint8_t oscImage_map2[40*320+8];
+uint8_t oscImage_map1[I1_INDEX_SIZE+32*256];
+uint8_t oscImage_map2[I1_INDEX_SIZE+32*256];
 
 const lv_image_dsc_t oscImage1 = {
   .header.magic = LV_IMAGE_HEADER_MAGIC,
