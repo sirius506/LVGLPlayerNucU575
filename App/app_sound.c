@@ -58,7 +58,7 @@ void set_sound_chart(CHART_INFO *chartInfo, SOUND_DATA *sdp)
     chartInfo->posdiv++;
     points = sdp->length / chartInfo->posdiv;
   }
-  dp = chartInfo->chart_vars = malloc(sizeof(lv_coord_t) * sdp->length / chartInfo->posdiv);
+  dp = chartInfo->chart_vars = malloc(sizeof(lv_coord_t) * ((sdp->length / chartInfo->posdiv) + 1));
   pcm = sdp->pos;
 
   /* WAD PCM data is 8bit, but we need 16bit signed value for chart widget.  */
