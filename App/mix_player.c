@@ -416,7 +416,7 @@ static void drflac__on_meta(void* pUserData, drflac_metadata* pMetadata)
           wp = dp;
           dp += clen;
           *dp++ = 0;
-          //debug_printf("%s\n", wp);
+          debug_printf("%s\n", wp);
           if (strncmp(wp, "LOOP_START=", 11) == 0)
             piflac->loop_start = atoi(wp+11);
           else if (strncmp(wp, "LOOP_END=", 9) == 0)
@@ -660,7 +660,7 @@ debug_printf("loop_count = %d\n", flacInfo->loop_count);
             /* We have passed loop_end positon, fix the num_read count. */
             num_read -= (flacInfo->pcm_pos - flacInfo->loop_end);
             flacInfo->seek_pos = flacInfo->loop_start;
-debug_printf("need seek.\n");
+debug_printf("need seek. %d, %d\n", flacInfo->pcm_pos, flacInfo->loop_end);
           }
           if (num_read > 0)
           {
@@ -690,10 +690,26 @@ debug_printf("PCM seek %d\n", flacInfo->seek_pos);
           }
           else
           {
-            pmusic = NULL;
-            osMessageQueuePut(flacInfo->musicbufqId, &pmusic, 0, 0);
-            drflac_close_fatfs(pflac);
-            pflac = NULL;
+            /* Reached to EOF */
+            if (flacInfo->loop_count < 0)		/* Need to loop */
+            {
+              AUDIO_STEREO *mp = pmusic;
+              memset(mp, 0, NUM_FRAMES * 4);
+              osMessageQueuePut(flacInfo->musicbufqId, &pmusic, 0, 0);
+              flacInfo->seek_pos = flacInfo->loop_start;
+debug_printf("PCM seek2 %d\n", flacInfo->seek_pos);
+              drflac_seek_to_pcm_frame(pflac, flacInfo->loop_start);
+              flacInfo->pcm_pos = flacInfo->loop_start;
+              flacInfo->seek_pos = 0;
+              bindex ^= 1;
+            }
+            else
+            {
+              pmusic = NULL;
+              osMessageQueuePut(flacInfo->musicbufqId, &pmusic, 0, 0);
+              drflac_close_fatfs(pflac);
+              pflac = NULL;
+            }
           }
         }
         break;
