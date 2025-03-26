@@ -1,14 +1,22 @@
 /**
- *  Oscilloscope Music Player
+ *  Oscilloscope Music & Lissagious Sound Player
  */
 #include "DoomPlayer.h"
 #include "board_if.h"
 #include "fatfs.h"
 #include "audio_output.h"
 #include "app_setup.h"
+#include <arm_math.h>
 
 #define AUDIO_FRAME_SIZE        (192*6) /* 16bit, 192K sampling, 6ms */
 #define OSC_BUF_FACTOR      4
+
+#define	LISA_SAMPLING	192000
+
+const float PI2 = 2.0 * PI;
+
+#define	MIN_FREQ	100
+#define	MAX_FREQ	1000
 
 #define FREEQ_DEPTH     OSC_BUF_FACTOR
 #define WAVREADQ_DEPTH  5
@@ -58,6 +66,12 @@ enum {
 };
 
 enum {
+  SOUND_START = 1,
+  SOUND_NEXT,
+  SOUND_STOP,
+};
+
+enum {
   WAV_PLAY,
   WAV_DATA_REQ,
   WAV_PAUSE,
@@ -87,6 +101,17 @@ typedef struct {
   uint16_t post_val;
   lv_timer_t *resume_timer;
 } PLAYERINFO;
+
+typedef struct {
+  int       state;
+  int       index_x;
+  int       index_y;
+  int       max_index_x;
+  int       max_index_y;
+  int       rot_x;
+  float32_t fx;
+  float32_t fy;
+} SOUNDERINFO;
 
 const char *MusicList[] = {
    "N-SPHERES/1 Function.wav",
@@ -199,6 +224,7 @@ osMessageQueueId_t free_bufqId;
 osMessageQueueId_t wav_evqId;
 
 PLAYERINFO PlayerInfo;
+SOUNDERINFO SounderInfo;
 
 static lv_style_t osc_style;
 
@@ -239,6 +265,15 @@ const AUDIO_INIT_PARAMS oscm_audio_params = {
   .buffer_size = sizeof(FinalOscBuffer),
   .volume = AUDIO_DEF_VOL,
   .sample_rate = 192000,
+  .txhalf_comp = osc_half_complete,
+  .txfull_comp = osc_full_complete,
+};
+
+const AUDIO_INIT_PARAMS lissa_audio_params = {
+  .buffer = FinalOscBuffer,
+  .buffer_size = sizeof(FinalOscBuffer),
+  .volume = AUDIO_DEF_VOL,
+  .sample_rate = LISA_SAMPLING,
   .txhalf_comp = osc_half_complete,
   .txfull_comp = osc_full_complete,
 };
@@ -800,6 +835,7 @@ int oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress)
 #endif
   int retval = 0;
   static int dcount;
+  int modc;
 
   dcount++;
 
@@ -848,49 +884,42 @@ int oscDraw(OSCM_SCREEN *screen, AUDIO_STEREO *mp, int progress)
 #endif
     mp++;
   }
+
   if (crate == 96000)
-  {
-    /* Refresh screen every three frames */
-    switch (dcount % 3)
-    {
-    case 0:
-      lv_image_set_src(screen->scope_image,
-                       (screen->disp_toggle & 1)? &oscImage2 : &oscImage1);
-      lv_bar_set_value(screen->progress_bar, progress, LV_ANIM_OFF);
-      retval = 1;
-      break;
-    case 1:
-      if (screen->disp_toggle & 1)
-        memset(oscImage_map2 + I1_INDEX_SIZE, 0, sizeof(oscImage_map2) - I1_INDEX_SIZE);
-      else
-        memset(oscImage_map1 + I1_INDEX_SIZE, 0, sizeof(oscImage_map1) - I1_INDEX_SIZE);
-      screen->disp_toggle ^= 1;
-      break;
-    default:
-      break;
-    }
-  }
+    modc = 3;
+  else if (crate == 192000)
+    modc = 6;
   else
+    modc = 20;
+
+  switch (dcount % modc)
   {
-    /* Refresh screen every six frames */
-    switch (dcount % 6)
-    {
-    case 0:
+  case 0:
       lv_image_set_src(screen->scope_image,
                        (screen->disp_toggle & 1)? &oscImage2 : &oscImage1);
-      lv_bar_set_value(screen->progress_bar, progress, LV_ANIM_OFF);
+      if (crate != 0)
+      {
+        lv_bar_set_value(screen->progress_bar, progress, LV_ANIM_OFF);
+      }
       retval = 1;
       break;
-    case 1:
+  case 1:
       if (screen->disp_toggle & 1)
-        memset(oscImage_map2 + I1_INDEX_SIZE, 0, sizeof(oscImage_map2) - I1_INDEX_SIZE);
+        memset(oscImage_map1 + I1_INDEX_SIZE, 0, sizeof(oscImage_map2) - I1_INDEX_SIZE);
       else
-        memset(oscImage_map1 + I1_INDEX_SIZE, 0, sizeof(oscImage_map1) - I1_INDEX_SIZE);
+        memset(oscImage_map2 + I1_INDEX_SIZE, 0, sizeof(oscImage_map1) - I1_INDEX_SIZE);
       screen->disp_toggle ^= 1;
+      if (crate == 0)
+      {
+        SOUNDERINFO *sinfo = &SounderInfo;
+
+        SounderInfo.index_x += SounderInfo.rot_x;
+        if (sinfo->index_x == sinfo->max_index_x) sinfo->index_x = 0;
+        if (sinfo->index_y == sinfo->max_index_y) sinfo->index_y = 0;
+      }
       break;
-    default:
+  default:
       break;
-    }
   }
   return retval;
 }
@@ -1064,4 +1093,287 @@ void oscm_process_stick(OSCM_SCREEN *screen, int evcode, int direction, int cfla
       lv_indev_set_group(screen->keydev, screen->list_ing);
     }
   }
+}
+
+void fill_wave(AUDIO_STEREO *paudio, SOUNDERINFO *sinfo)
+{
+  int i;
+
+  for (i = 0; i < AUDIO_FRAME_SIZE; i++)
+  {
+    int32_t val;
+
+    val = arm_sin_f32(PI2*sinfo->fx*sinfo->index_x/LISA_SAMPLING) * 32768.0;
+    if (val > 32767) val = 32767;
+    paudio->ch0 = val;
+    val = arm_sin_f32(PI2*sinfo->fy*sinfo->index_y/LISA_SAMPLING) * 32768.0;
+    if (val > 32767) val = 32767;
+    paudio->ch1 = val;
+    sinfo->index_x++;
+    sinfo->index_y++;
+    if (sinfo->index_x == sinfo->max_index_x) sinfo->index_x = 0;
+    if (sinfo->index_y == sinfo->max_index_y) sinfo->index_y = 0;
+    paudio++;
+  }
+}
+
+void StartSoundGeneratorTask(void *args)
+{
+  osStatus_t st;
+  uint16_t cmd;
+  AUDIO_OUTPUT_DRIVER *pDriver;
+  AUDIO_CONF *audio_config;
+  HAL_DEVICE *haldev = (HAL_DEVICE *)args;
+  SOUNDERINFO *sinfo = &SounderInfo;
+  AUDIO_STEREO *paudio;
+
+  crate = 0;
+  haldev->audio_sai->saitx_half_comp = osc_half_complete;
+  haldev->audio_sai->saitx_full_comp = osc_full_complete;
+  audio_config = get_audio_config(NULL);
+  pDriver = (AUDIO_OUTPUT_DRIVER *)audio_config->devconf->pDriver;
+
+  pDriver->Init(audio_config, &lissa_audio_params);
+
+  memset(OscFrameBuffer, 0, sizeof(OscFrameBuffer));
+
+  paudio = OscFrameBuffer;
+  for (int i = 0; i < BUF_FACTOR; i++)
+  {
+    osMessageQueuePut(free_bufqId, &paudio, 0, 0);
+    paudio += AUDIO_FRAME_SIZE;
+  }
+
+  while (1)
+  {
+    st = osMessageQueueGet(wav_readqId,  &cmd, 0, osWaitForever);
+
+    if (st == osOK)
+    {
+      switch (cmd)
+      {
+      case SOUND_START:
+        sinfo->state = WAVP_ST_PLAY;
+
+        sinfo->max_index_x = LISA_SAMPLING * sinfo->fx;
+        sinfo->max_index_y = LISA_SAMPLING * sinfo->fy;
+        sinfo->index_x = 0;
+        sinfo->index_y = 0;
+
+        while ((st = osMessageQueueGet(free_bufqId, &paudio, 0, 0)) == osOK)
+        {
+          fill_wave(paudio, sinfo);
+          osMessageQueuePut(play_bufqId, &paudio, 0, 0);
+        }
+        pDriver->Start(audio_config);
+        break;
+      case SOUND_NEXT:
+        while ((st = osMessageQueueGet(free_bufqId, &paudio, 0, 0)) == osOK)
+        {
+          fill_wave(paudio, sinfo);
+          osMessageQueuePut(play_bufqId, &paudio, 0, 0);
+        }
+        break;
+      case SOUND_STOP:
+        break;
+      default:
+        break;
+      }
+    }
+  }
+}
+
+void StartLissajous(OSCM_SCREEN *screen)
+{
+  HAL_DEVICE *haldev = screen->haldev;
+  SOUNDERINFO *sinfo = &SounderInfo;
+  AUDIO_STEREO *audiop, *mp;
+  uint16_t cmd;
+  int scount;
+  osStatus_t st;
+  WAVCONTROL_EVENT ctrl;
+
+  wav_readqId = osMessageQueueNew(WAVREADQ_DEPTH, sizeof(uint16_t), &attributes_wavreadq);
+  free_bufqId = osMessageQueueNew(FREEQ_DEPTH, sizeof(uint16_t *), &attributes_freeq);
+  play_bufqId = osMessageQueueNew(FREEQ_DEPTH, sizeof(uint16_t *), &attributes_playq);
+  wav_evqId = osMessageQueueNew(WAVEV_DEPTH, sizeof(WAVCONTROL_EVENT), &attributes_wavevq);
+  memset(sinfo, 0, sizeof(SOUNDERINFO));
+
+  osThreadNew(StartSoundGeneratorTask, haldev, &attributes_flacreader);
+
+  sinfo->state = WAVP_ST_IDLE;
+  sinfo->fx = 100;
+  sinfo->fy = 100;
+
+  postWaveRequest(WAV_PLAY, sinfo);
+  scount = 0;
+
+  while (1)
+  {
+    osMessageQueueGet(wav_evqId, &ctrl, 0, osWaitForever);
+
+    switch (ctrl.event)
+    {
+    case WAV_PLAY:
+      cmd = SOUND_START;
+      scount = 0;
+      osMessageQueuePut(wav_readqId, &cmd, 0, 0);
+      break;
+    case WAV_DATA_REQ:
+      switch (sinfo->state)
+      {
+      case WAVP_ST_IDLE:
+        audiop = FinalOscBuffer + ctrl.option;
+        memcpy(audiop, OscSilentBuffer, sizeof(OscSilentBuffer));
+        break;
+      case WAVP_ST_PLAY:
+        st = osMessageQueueGet(play_bufqId, &mp, 0, 0);
+        if (st == osOK)
+        {
+          audiop = FinalOscBuffer + ctrl.option;
+          memcpy(audiop, mp, sizeof(OscSilentBuffer));
+          osMessageQueuePut(free_bufqId, &mp, 0, 0);
+          postGuiEventMessage(GUIEV_DRAW, AUDIO_FRAME_SIZE, (void *)mp, (void *)0);
+        }
+        else
+        {
+          scount++;
+          if ((scount % 10) == 0)
+            debug_printf("sc: %d\n", scount);
+        }
+        if (osMessageQueueGetCount(free_bufqId) > 0)
+        {
+          cmd = SOUND_NEXT;
+          osMessageQueuePut(wav_readqId, &cmd, 0, 0);
+        }
+        break;
+     case WAVP_ST_PAUSE:
+        break;
+      default:
+        break;
+      }
+      break;
+    }
+  }
+}
+
+static const char *roller_option = "100\n200\n300\n400\n500\n600\n700\n800\n900";
+
+static void roller_event_handler(lv_event_t *ev)
+{
+  lv_obj_t *obj;
+  char tbuff[5];
+  OSCM_SCREEN *screen;
+  int val;
+  SOUNDERINFO *sinfo = &SounderInfo;
+
+  obj = lv_event_get_target_obj(ev);
+  screen = (OSCM_SCREEN *)lv_event_get_user_data(ev);
+  lv_roller_get_selected_str(obj, tbuff, sizeof(tbuff));
+
+  val = atoi(tbuff);
+  if (obj == screen->roller_left)
+  {
+    if (val != sinfo->fx)
+    {
+      sinfo->fx = val;
+      postWaveRequest(WAV_PLAY, sinfo);
+    }
+  }
+  else
+  {
+    if (val != sinfo->fy)
+    {
+      sinfo->fy = val;
+      postWaveRequest(WAV_PLAY, sinfo);
+    }
+  }
+}
+
+static void rot_handler(lv_event_t *ev)
+{
+  lv_obj_t * obj = lv_event_get_target(ev);
+
+  if (lv_obj_has_state(obj, LV_STATE_CHECKED))
+  {
+    SounderInfo.rot_x = 0;
+  }
+  else
+  {
+    SounderInfo.rot_x = 2;
+  }
+}
+
+void KickLissajous(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
+{
+  lv_obj_t *cs;
+  lv_obj_t *label;
+  static lv_style_t style_kfocus;
+
+  cs = screen->scope_screen;
+  lv_obj_set_size(cs, 480, 320);
+  lv_obj_set_style_bg_color(cs, lv_color_black(), LV_PART_MAIN);
+
+  static lv_style_t style_def, style_pr, style_focus;
+  lv_style_init(&style_def);
+  lv_style_init(&style_pr);
+  lv_style_set_image_opa(&style_def, LV_OPA_0);
+  lv_style_set_image_opa(&style_pr, LV_OPA_100);
+  lv_style_init(&style_focus);
+  lv_style_set_img_recolor_opa(&style_focus, LV_OPA_10);
+  lv_style_set_img_recolor(&style_focus, lv_color_black());
+
+  screen->roller_left = lv_roller_create(cs);
+  lv_roller_set_options(screen->roller_left, roller_option, LV_ROLLER_MODE_NORMAL);
+  lv_roller_set_visible_row_count(screen->roller_left, 3);
+  lv_obj_align(screen->roller_left, LV_ALIGN_LEFT_MID, 5, 0);
+  lv_obj_add_event_cb(screen->roller_left, roller_event_handler, LV_EVENT_VALUE_CHANGED, screen);
+
+  screen->roller_right = lv_roller_create(cs);
+  lv_roller_set_options(screen->roller_right, roller_option, LV_ROLLER_MODE_NORMAL);
+  lv_roller_set_visible_row_count(screen->roller_right, 3);
+  lv_obj_align(screen->roller_right, LV_ALIGN_RIGHT_MID, -5, 0);
+  lv_obj_add_event_cb(screen->roller_right, roller_event_handler, LV_EVENT_VALUE_CHANGED, screen);
+
+
+  memcpy(oscImage_map1, index_data, I1_INDEX_SIZE);	/* Copy Index data */
+  memcpy(oscImage_map2, index_data, I1_INDEX_SIZE);	/* Copy Index data */
+  screen->disp_toggle = 0;
+
+  lv_style_init(&osc_style);
+  lv_style_set_text_color(&osc_style, lv_palette_main(LV_PALETTE_LIME));
+
+  screen->scope_image = lv_image_create(cs);
+  lv_image_set_src(screen->scope_image, &oscImage1);
+  lv_obj_align(screen->scope_image, LV_ALIGN_TOP_MID, 0, 20);
+
+  screen->play_button = lv_button_create(cs);
+  lv_obj_add_event_cb(screen->play_button, rot_handler, LV_EVENT_PRESSED, NULL);
+  lv_obj_align(screen->play_button, LV_ALIGN_BOTTOM_LEFT, 5, -20);
+  lv_obj_add_flag(screen->play_button, LV_OBJ_FLAG_CHECKABLE);
+  lv_obj_set_height(screen->play_button, LV_SIZE_CONTENT);
+  label = lv_label_create(screen->play_button);
+  lv_label_set_text(label, "Rot");
+  lv_obj_center(label);
+
+  lv_group_add_obj(screen->scope_ing, screen->roller_left);
+  lv_group_add_obj(screen->scope_ing, screen->roller_right);
+  lv_group_add_obj(screen->scope_ing, screen->play_button);
+
+  lv_style_init(&style_kfocus);
+#if 1
+  lv_style_set_outline_color(&style_kfocus, lv_palette_lighten(LV_PALETTE_YELLOW, 1));
+#else
+  lv_style_set_outline_color(&style_kfocus, lv_palette_main(LV_PALETTE_YELLOW));
+#endif
+  lv_style_set_outline_width(&style_kfocus, 4);
+  lv_style_set_outline_opa(&style_kfocus, LV_OPA_50);
+  lv_obj_add_style(screen->roller_left, &style_kfocus, LV_STATE_FOCUS_KEY);
+  lv_obj_add_style(screen->roller_right, &style_kfocus, LV_STATE_FOCUS_KEY);
+  lv_obj_add_style(screen->play_button, &style_kfocus, LV_STATE_FOCUS_KEY);
+
+  activate_new_screen((BASE_SCREEN *)screen, NULL, NULL);
+  screen->haldev = haldev;
+
+  osThreadNew((osThreadFunc_t)StartLissajous, screen, &attributes_mixplayer);
 }

@@ -24,6 +24,7 @@ MUTEX_DEF(guilock);
 
 extern void StartBtstackTask(void *arg);
 extern void KickOscMusic(HAL_DEVICE *haldev, OSCM_SCREEN *screen);
+extern void KickLissajous(HAL_DEVICE *haldev, OSCM_SCREEN *screen);
 extern void oscm_process_stick(OSCM_SCREEN *screen, int evcode, int direction, int cflag);
 
 LV_IMG_DECLARE(imgtest)
@@ -493,9 +494,16 @@ typedef struct {
 } APP_LABEL_INFO;
 
 static const APP_LABEL_INFO app_labels[] = {
+#if 0
  { "Doom Player", 30 },
  { "Bluetooth Player", 50 },
  { "Oscilloscope  Music",  70 },
+#else
+ { "Doom Player", 30 },
+ { "Bluetooth Player", 47 },
+ { "Lissajous Sound", 64 },
+ { "Oscilloscope  Music",  81 },
+#endif
 };
 
 #define	NUM_APPLICATION	(sizeof(app_labels)/sizeof(APP_LABEL_INFO))
@@ -1040,7 +1048,7 @@ void StartGuiTask(void *args)
     postMainRequest(REQ_VERIFY_FONT, NULL, 0);	// Start font file verification
     break;
   default:
-    postGuiEventMessage(GUIEV_OSCM_START, 0, NULL, NULL);
+    postGuiEventMessage(GUIEV_OSCM_START, haldev->boot_mode, NULL, NULL);
     break;
   }
 
@@ -1227,7 +1235,10 @@ void StartGuiTask(void *args)
         oscms->scope_ing = lv_group_create();
         oscms->list_ing = lv_group_create();
         oscms->keydev = keydev;
-        KickOscMusic(haldev, oscms);
+        if (event.evval0 == BOOTM_OSCM)
+          KickOscMusic(haldev, oscms);
+        else
+          KickLissajous(haldev, oscms);
         break;
       case GUIEV_OSCM_FILE:
         lv_label_set_text(oscms->scope_label, event.evarg1);

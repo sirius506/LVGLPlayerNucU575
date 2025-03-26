@@ -201,6 +201,8 @@ typedef struct {
   lv_obj_t *scope_label;
   lv_obj_t *progress_bar;
   lv_obj_t *slider;
+  lv_obj_t *roller_left;
+  lv_obj_t *roller_right;
   lv_obj_t *play_button;
   lv_obj_t *prev_button;
   lv_obj_t *next_button;
