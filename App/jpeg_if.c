@@ -28,51 +28,60 @@ static size_t tjpgd_infunc(JDEC *jd, uint8_t *buff, size_t nbyte)
 {
     JPEGIF_INFO *jpegInfo = (JPEGIF_INFO *)jd->device;
     uint32_t flag;
-    int nb = 0;
+    size_t nb = 0;
+    size_t tread = 0;
+    size_t remain = nbyte;
 
 #ifdef JPEG_DEBUG
 debug_printf("infunc: nb = %d (blen = %d, rindex = %d)\n", nbyte, jpegInfo->blength, jpegInfo->read_index);
 #endif
     if (buff)
     {
-      nb = jpegInfo->blength - jpegInfo->read_index;
-      if (nb <= 0)
+      while (tread < nbyte)
       {
-        flag = osEventFlagsWait(jpegInfo->flagsId, (JPEGEV_FEED|JPEGEV_EOF), osFlagsWaitAny, osWaitForever);
-        if (flag & JPEGEV_EOF)
+        nb = jpegInfo->blength - jpegInfo->read_index;
+        if (nb <= 0)
         {
-          jpegInfo->gotEOF = 1;
+          flag = osEventFlagsWait(jpegInfo->flagsId, (JPEGEV_FEED|JPEGEV_EOF), osFlagsWaitAny, osWaitForever);
+          if (flag & JPEGEV_EOF)
+          {
+            jpegInfo->gotEOF = 1;
 debug_printf("Got EOF\n");
-          return 0;
-        }
+            return tread;
+          }
 #ifdef JPEG_DEBUG
 debug_printf("New FEED\n");
 #endif
-        jpegInfo->read_index = 0;
-        nb = jpegInfo->blength;
-      }
-      if (nb > 0)
-      {
-        if ((int)nbyte < nb)
-          nb = (int)nbyte;
-        memcpy(buff, jpegInfo->buffer + jpegInfo->read_index, nb);
+          jpegInfo->read_index = 0;
+          nb = jpegInfo->blength;
+        }
+        if (nb > 0)
+        {
+          if (remain < nb)
+            nb = (int)remain;
+          memcpy(buff, jpegInfo->buffer + jpegInfo->read_index, nb);
 #ifdef JPEG_DEBUG
 debug_printf("Copy: %d (%d)\n", nb, jpegInfo->read_index);
 #endif
-        jpegInfo->read_index += nb;
-        if (jpegInfo->read_index >= jpegInfo->blength)
-        {
+          jpegInfo->read_index += nb;
+          tread += nb;
+          remain -= nb;
+          if (jpegInfo->read_index >= jpegInfo->blength)
+          {
 #ifdef JPEG_DEBUG
-          debug_printf("Set EMPTY: blen = %d, index = %d\n", jpegInfo->blength, jpegInfo->read_index);
+            debug_printf("Set EMPTY: blen = %d, index = %d\n", jpegInfo->blength, jpegInfo->read_index);
 #endif
-          osEventFlagsSet(jpegInfo->flagsId, JPEGEV_EMPTY);
+            osEventFlagsSet(jpegInfo->flagsId, JPEGEV_EMPTY);
+            buff += nb;
+          }
         }
       }
+      return tread;
     }
     else
     {
        /* Need to skip nbytes input */
-      int sb;
+      size_t sb;
 
       nb = 0;
       while (nbyte > 0)
@@ -169,6 +178,9 @@ debug_printf("jpegif_write: %d\n", len);
   jpegInfo->blength = len;
   osEventFlagsSet(jpegInfo->flagsId, JPEGEV_FEED);
   osEventFlagsWait(jpegInfo->flagsId, JPEGEV_EMPTY, osFlagsWaitAny, osWaitForever);
+#ifdef JPEG_DEBUG
+debug_printf("jpegif_write: done\n");
+#endif
 }
 
 #define	TJPG_WBSIZE	3500
@@ -183,13 +195,18 @@ void StartJpegTask(void *arg)
 
   while (1)
   {
+#ifdef JPEG_DEBUG
 debug_printf("Waiting for START\n");
+#endif
     osEventFlagsWait(jpegInfo->flagsId, JPEGEV_START, osFlagsWaitAny, osWaitForever);
+debug_printf("Got START\n");
     jpegInfo->gotEOF = 0;
     res = jd_prepare(&jdec, tjpgd_infunc, tjpg_work_buffer, TJPG_WBSIZE, jpegInfo);
     if (res == JDR_OK)
     {
+#ifdef JPEG_DEBUG
 debug_printf("JPEG: %d x %d\n", jdec.width, jdec.height);
+#endif
       if ((jdec.width = 200) && (jdec.height == 200))
       {
         jpegInfo->jwidth = jdec.width;
@@ -200,7 +217,15 @@ debug_printf("JPEG: %d x %d\n", jdec.width, jdec.height);
           debug_printf("Cover Valid\n");
           postGuiEventMessage(GUIEV_COVER_ART, 200*2*200, &imgdesc, &imgdesc);
         }
+        else
+        {
+          debug_printf("decomp failed (%d)\n", res);
+        }
       }
+    }
+    else
+    {
+debug_printf("prepare failed %d\n", res);
     }
     osEventFlagsClear(jpegInfo->flagsId, JPEGEV_EMPTY|JPEGEV_FEED|JPEGEV_EOF);
   }
