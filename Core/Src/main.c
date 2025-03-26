@@ -1562,12 +1562,13 @@ void MPU_Config(void)
   /* Disables the MPU */
   HAL_MPU_Disable();
 
+#ifdef OLD_CODE
   /** Initializes and configures the Region and the memory to be protected
   */
   MPU_InitStruct.Enable = MPU_REGION_ENABLE;
   MPU_InitStruct.Number = MPU_REGION_NUMBER0;
   MPU_InitStruct.BaseAddress = 0x70000000;
-  MPU_InitStruct.LimitAddress = 0x7003FFFF;
+  MPU_InitStruct.LimitAddress = 0x7007FFFF;
   MPU_InitStruct.AttributesIndex = MPU_ATTRIBUTES_NUMBER0;
   MPU_InitStruct.AccessPermission = MPU_REGION_ALL_RW;
   MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
@@ -1599,7 +1600,7 @@ void MPU_Config(void)
   */
   MPU_InitStruct.Number = MPU_REGION_NUMBER2;
   MPU_InitStruct.BaseAddress = 0x60000000;
-  MPU_InitStruct.LimitAddress = 0x608FFFFF;
+  MPU_InitStruct.LimitAddress = 0x607FFFFF;
   MPU_InitStruct.AttributesIndex = MPU_ATTRIBUTES_NUMBER2;
   MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
 
@@ -1607,6 +1608,71 @@ void MPU_Config(void)
   MPU_AttributesInit.Number = MPU_REGION_NUMBER2;
 
   HAL_MPU_ConfigMemoryAttributes(&MPU_AttributesInit);
+
+#else
+
+  /** Initializes and configures the Region and the memory to be protected
+  */
+  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+
+  MPU_InitStruct.Number = MPU_REGION_NUMBER0;
+  MPU_InitStruct.BaseAddress = 0x00000000;
+  MPU_InitStruct.LimitAddress = 0x0000FFFF;
+  MPU_InitStruct.AttributesIndex = MPU_ATTRIBUTES_NUMBER0;
+  MPU_InitStruct.AccessPermission = MPU_REGION_ALL_RO;
+  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
+  MPU_InitStruct.IsShareable = MPU_ACCESS_NOT_SHAREABLE;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+  MPU_AttributesInit.Number = MPU_REGION_NUMBER0;
+  MPU_AttributesInit.Attributes = MPU_DEVICE_nGnRnE | MPU_TRANSIENT | MPU_NO_ALLOCATE;
+
+  HAL_MPU_ConfigMemoryAttributes(&MPU_AttributesInit);
+
+  MPU_InitStruct.Number = MPU_REGION_NUMBER1;
+  MPU_InitStruct.BaseAddress = 0x70000000;
+  MPU_InitStruct.LimitAddress = 0x7007FFFF;
+  MPU_InitStruct.AttributesIndex = MPU_ATTRIBUTES_NUMBER1;
+  MPU_InitStruct.AccessPermission = MPU_REGION_ALL_RW;
+  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
+  MPU_InitStruct.IsShareable = MPU_ACCESS_NOT_SHAREABLE;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+  MPU_AttributesInit.Number = MPU_REGION_NUMBER1;
+  MPU_AttributesInit.Attributes = MPU_DEVICE_nGnRnE | MPU_WRITE_THROUGH
+                              | MPU_NON_TRANSIENT | MPU_NO_ALLOCATE;
+
+  HAL_MPU_ConfigMemoryAttributes(&MPU_AttributesInit);
+
+  /** Initializes and configures the Region and the memory to be protected
+  */
+  MPU_InitStruct.Number = MPU_REGION_NUMBER2;
+  MPU_InitStruct.BaseAddress = 0x90000000;
+  MPU_InitStruct.LimitAddress = 0x900FFFFF;
+  MPU_InitStruct.AttributesIndex = MPU_ATTRIBUTES_NUMBER2;
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+
+  Flash_AttributesInit.Number = MPU_REGION_NUMBER2;
+  Flash_AttributesInit.Attributes = MPU_DEVICE_nGnRnE | MPU_NOT_CACHEABLE|MPU_R_ALLOCATE;
+
+  HAL_MPU_ConfigMemoryAttributes(&Flash_AttributesInit);
+
+  /** Initializes and configures the Region and the memory to be protected
+  */
+  MPU_InitStruct.Number = MPU_REGION_NUMBER3;
+  MPU_InitStruct.BaseAddress = 0x60000000;
+  MPU_InitStruct.LimitAddress = 0x608FFFFF;
+  MPU_InitStruct.AttributesIndex = MPU_ATTRIBUTES_NUMBER3;
+  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+  MPU_AttributesInit.Number = MPU_REGION_NUMBER3;
+  MPU_AttributesInit.Attributes = MPU_DEVICE_nGnRnE | MPU_WRITE_THROUGH
+                              | MPU_TRANSIENT | MPU_NO_ALLOCATE;
+
+  HAL_MPU_ConfigMemoryAttributes(&MPU_AttributesInit);
+
+#endif
   /* Enables the MPU */
   HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
 

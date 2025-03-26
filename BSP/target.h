@@ -3,6 +3,8 @@
 #define	LCD_CMD_ADDR	(uint16_t *)0x60000000	/* LCD Located at FMC bank 1 */
 #define	LCD_DATA_ADDR	(uint16_t *)0x60080000
 
+/*#define  USE_LISSAJOUS*/
+
 #define	QSPI_FLASH_ADDR	0x90000000
 #define	QSPI_PSRAM_ADDR	0x70000000
 #define	QSPI_PSRAM_SIZE	(8*1024*1024)

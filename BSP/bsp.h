@@ -21,8 +21,8 @@ typedef enum {
 typedef enum {
   BOOTM_DOOM = 0,
   BOOTM_A2DP,
+  BOOTM_OSCM,
   BOOTM_LISSA,
-  BOOTM_OSCM
 } BOOT_MODE;
 
 typedef struct {

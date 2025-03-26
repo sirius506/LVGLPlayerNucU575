@@ -61,7 +61,7 @@ void MX_SDMMC1_SD_Init(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define PWM_PRESCALER ((160000000/50000)-1)
+#define PWM_PRESCALER ((160000000/20000)-1)
 #define LED_PWM_PRESCALER ((160000000/20000)-1)
 #define DAC_TRIGGER_PERIOD ((160000000/44100)-1)
 #define PWM_RED_Pin GPIO_PIN_3

@@ -1304,6 +1304,7 @@ static void rot_handler(lv_event_t *ev)
   }
 }
 
+#ifdef USE_LISSAJOUS
 void KickLissajous(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
 {
   lv_obj_t *cs;
@@ -1377,3 +1378,4 @@ void KickLissajous(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
 
   osThreadNew((osThreadFunc_t)StartLissajous, screen, &attributes_mixplayer);
 }
+#endif
