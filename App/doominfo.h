@@ -19,7 +19,9 @@ typedef struct {
  * All necessary config, music dta and WAD files should be located under this
  * directory.
  */
-#define FLASH_DIR        "/FlashData"
+#define FLASH_DIR       "/FlashData"
+
+#define	MUSIC_PACK_DIR	"/music-packs"
 
 /* Our DOOM file system structure definitions */
 

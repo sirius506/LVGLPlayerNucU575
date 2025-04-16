@@ -4,10 +4,15 @@
 #include <string.h>
 
 #define	SDL_MESSAGEBOX_ERROR	0
+#define	SDL_CONTROLLER_BUTTON_MAX 16
+
+#define	SDL_free	free
 
 #define	SDL_INIT_TIMER	0
 
 typedef int SDL_bool;
+typedef int16_t Sint16;
+typedef uint16_t Uint16;
 typedef uint32_t Uint32;
 
 extern int SDL_PauseAudio(int on);

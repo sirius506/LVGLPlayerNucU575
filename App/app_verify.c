@@ -18,21 +18,12 @@ typedef struct {
  * List of files we are going to check its existence on the SD card.
  */
 static const char *FileNames[] = {
-  "default.cfg",   "disco-doom.cfg", "doom1-music.cfg", "doom2-music.cfg",
-  "tnt-music.cfg", "Doom1.bin",      "DoomUlt.bin",     "DoomII1.bin",
-  "DoomII2.bin",   "Doom3.bin",      "Doom3a.bin",      "Doom3RE1.bin",
-  "Doom3RE2.bin",  TTF_FONT_NAME,
+  "default.cfg",   "disco-doom.cfg", "Doom1.bin",    "DoomUlt.bin",
+  "DoomII1.bin",   "DoomII2.bin",    "Doom3.bin",    "Doom3a.bin",
+  "Doom3RE1.bin",  "Doom3RE2.bin",   TTF_FONT_NAME,
 };
 
-
-/*
- * Name of Music configuration files.
- */
-static const char *mconfig_files[3] = {
-    "doom1-music.cfg",
-    "doom2-music.cfg",
-    "tnt-music.cfg",
-};
+extern void ReadMusicPack();
 
 
 /*
@@ -520,12 +511,5 @@ void CopyFlash(WADLIST *list, uint32_t foffset)
 
 void LoadMusicConfigs()
 {
-  int i;
-  char *path;
- 
-  for (i = 0; i < 3; ++i)
-  { 
-     path = (char *)mconfig_files[i];
-     ReadMusicList(path);
-  } 
+  ReadMusicPack();
 }

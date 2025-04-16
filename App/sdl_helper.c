@@ -1,6 +1,7 @@
 #include "DoomPlayer.h"
 #include "SDL.h"
 #include "app_gui.h"
+#include "m_misc.h"
 
 int SDL_Init(uint32_t flags)
 {
@@ -42,5 +43,5 @@ char *SDL_GetPrefPath(const char *org, const char *app)
   UNUSED(org);
   UNUSED(app);
 
-  return "/";
+  return M_StringDuplicate("/");
 }

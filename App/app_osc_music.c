@@ -1257,6 +1257,7 @@ void StartLissajous(OSCM_SCREEN *screen)
   }
 }
 
+#ifdef USE_LISSAJOUS
 static const char *roller_option = "100\n200\n300\n400\n500\n600\n700\n800\n900";
 
 static void roller_event_handler(lv_event_t *ev)
@@ -1304,7 +1305,6 @@ static void rot_handler(lv_event_t *ev)
   }
 }
 
-#ifdef USE_LISSAJOUS
 void KickLissajous(HAL_DEVICE *haldev, OSCM_SCREEN *screen)
 {
   lv_obj_t *cs;
